@@ -98,6 +98,7 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 .pivot-metric{display:flex;flex-direction:column;gap:6px}
 .pivot-amount{font-weight:600;font-size:13.5px}
 .pivot-amount-total{font-weight:800;font-size:14px}
+
 .pivot-bar{position:relative;height:8px;border-radius:999px;background:var(--chip);overflow:hidden}
 .pivot-bar-fill{position:absolute;inset:0;border-radius:inherit;opacity:.9}
 .pivot-bar-fill.spend{background:linear-gradient(90deg,rgba(37,99,235,.95),rgba(30,64,175,.95))}
@@ -291,6 +292,7 @@ const el={header:document.getElementById('appHeader'),topLine:document.getElemen
 const state={ rows:[], columns:{}, charts:{store:null, lo:null, cat:null}, monthSel:new Set(), monthOptions:[], snapshot:{}, viewMode:'both', pivotHasContent:false, chartHasContent:false };
 const VIEW_MODES=['both','charts','pivots'];
 const VIEW_LABELS={both:'View: Charts & Pivots', charts:'View: Charts Only', pivots:'View: Pivots Only'};
+
 
 /* ===== theme + boot ===== */
 document.addEventListener('DOMContentLoaded', () => {
@@ -842,6 +844,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const salesVals = sales.map(v=>+v||0);
   const totalSpend = spendVals.reduce((sum,val)=>sum+val,0);
   const totalSales = salesVals.reduce((sum,val)=>sum+val,0);
+
   const maxSpend = Math.max(totalSpend, ...spendVals, 0);
   const maxSales = Math.max(totalSales, ...salesVals, 0);
 
@@ -849,6 +852,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     const v = +value||0;
     const pctRaw = max>0 ? (v/max)*100 : 0;
     const width = v>0 && max>0 ? Math.min(100, Math.max(10, pctRaw)) : 0;
+
     const amount = escapeHtml(fmt.money0(v));
     const bar = `<div class="pivot-bar"><div class="pivot-bar-fill ${type}" style="width:${width}%;"></div></div>`;
     return `<div class="pivot-metric"><span class="pivot-amount${isTotal?' pivot-amount-total':''}">${amount}</span>${bar}</div>`;
@@ -904,6 +908,7 @@ function cycleViewMode(){
   const next = VIEW_MODES[(idx+1+VIEW_MODES.length)%VIEW_MODES.length];
   state.viewMode = next;
   applyViewMode(state.pivotHasContent, state.chartHasContent);
+
 }
 
 /* Top charts equal height (slightly larger & equal for Store and LO) */
@@ -954,6 +959,7 @@ function renderAll(){
   const loAgg    = loKey    ? buildAgg(rows, loKey, spendKey, salesKey)    : null;
   const catAgg   = catKey   ? buildAgg(rows, catKey, spendKey, salesKey)   : null;
 
+
   const storeCount = storeAgg ? storeAgg.labels.length : 0;
   const loCount    = loAgg    ? loAgg.labels.length    : 0;
 
@@ -963,6 +969,7 @@ function renderAll(){
   }else if(state.charts.store){
     state.charts.store.destroy();
     state.charts.store=null;
+
   }
 
   if(loAgg){
