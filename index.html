@@ -17,7 +17,7 @@
   --shadow:0 8px 24px rgba(0,0,0,.35);
   --header-grad: linear-gradient(180deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,0) 100%);
   --btnText:#fff;
-  --chartsGap:16px;
+  --chartsGap:12px;
   --modeBtnBg:#fff;
   --modeIcon:#000;
 }
@@ -32,7 +32,7 @@ body.light{
 }
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans";color:var(--text);background:var(--bg)}
+body{margin:0;font:13.5px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans";color:var(--text);background:var(--bg);display:flex;flex-direction:column;min-height:100%}
 h1{margin:0;font-weight:800;letter-spacing:.2px}
 
 /* Buttons */
@@ -45,11 +45,25 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .btn-mode{display:inline-flex;align-items:center;gap:0;border-radius:14px;padding:10px;border:1px solid var(--modeBtnBg);background:var(--modeBtnBg);color:var(--modeIcon);width:42px;justify-content:center}
 
 /* Header */
-.app-header{display:none;align-items:center;justify-content:space-between;padding:16px clamp(16px,3vw,32px);border-bottom:1px solid var(--border);background:var(--header-grad);position:sticky;top:0;backdrop-filter:blur(6px);z-index:20}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:12px clamp(14px,3vw,28px);border-bottom:1px solid var(--border);background:var(--header-grad);position:sticky;top:0;backdrop-filter:blur(6px);z-index:20}
 .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+body:not(.has-data) .app-header{display:none}
+
+/* Layout */
+#contentWrap{flex:1;display:flex;flex-direction:column;gap:14px;padding:12px clamp(14px,3vw,28px) 28px}
+body:not(.has-data) #contentWrap{justify-content:center;padding:0 18px}
+.empty-state{display:none;text-align:center;font-weight:600;color:var(--muted);line-height:1.6;max-width:520px;margin:0 auto;font-size:15px}
+.empty-state span{color:var(--accent);cursor:pointer;text-decoration:underline;font-weight:700}
+.empty-state span:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+body:not(.has-data) #emptyState{display:flex;align-items:center;justify-content:center;min-height:60vh}
+body.has-data #emptyState{display:none}
+body:not(.has-data) #topLine,
+body:not(.has-data) #kpiSection,
+body:not(.has-data) #chartsSection,
+body:not(.has-data) #pivotSection{display:none !important}
 
 /* Topline */
-.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px clamp(16px,3vw,32px);flex-wrap:wrap}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px clamp(14px,3vw,28px);flex-wrap:wrap}
 .topline-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .view-toggle-btn{display:inline-flex;align-items:center;gap:6px;border-radius:10px;padding:8px 12px;white-space:nowrap;font-weight:600;font-size:13px}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--chip);border:1px solid var(--border);border-radius:999px;color:var(--muted)}
@@ -65,16 +79,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .month-row input{accent-color:var(--accent)}
 
 /* KPIs */
-.kpis{padding:4px clamp(16px,3vw,32px) 10px;display:grid;grid-template-columns:repeat(8,minmax(130px,1fr));gap:12px}
-.kpi{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);min-height:78px;display:flex;flex-direction:column;justify-content:space-between}
+.kpis{padding:4px clamp(14px,3vw,26px) 8px;display:grid;grid-template-columns:repeat(8,minmax(120px,1fr));gap:10px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:8px 10px;box-shadow:var(--shadow);min-height:68px;display:flex;flex-direction:column;justify-content:space-between}
 .kpi .label{font-weight:700;color:var(--muted);font-size:12.5px}
 .kpi .value{font-size:20px;font-weight:700;letter-spacing:.1px}
-.kpi.small .value{font-size:22px}
-.kpi.small{padding-right:10px}
+.kpi.small .value{font-size:20px}
+.kpi.small{padding-right:6px}
 
 /* Charts: grid layout */
-.charts{padding:8px clamp(16px,3vw,32px) 22px;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--chartsGap);align-items:start}
-.chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:16px 16px 12px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.charts{padding:4px clamp(14px,3vw,26px) 18px;display:grid;grid-template-columns:repeat(12,1fr);gap:var(--chartsGap);align-items:start}
+.chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
 #chartLeft{grid-column:span 6}
 #chartRight{grid-column:span 6}
 #chartCat{grid-column:span 12}
@@ -83,10 +97,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 
 /* Pivot table */
-.pivot{padding:8px clamp(16px,3vw,32px) 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--chartsGap);align-items:start}
+.pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--chartsGap);align-items:start}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
-.pivot-body{margin-top:12px;overflow-x:auto}
+.pivot-body{margin-top:10px;overflow-x:auto}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase}
 .pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:nowrap}
@@ -170,26 +184,31 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
   </div>
 </header>
 
-<div class="topline" id="topLine" style="display:none">
-  <div class="pill" id="tipPill" hidden>📄 No Excel detected. Click <b>Open XLSX</b> to load a file.</div>
-  <div class="topline-controls">
-    <div class="months-wrap" id="monthsWrap" hidden>
-      <button id="clearMonth" title="Clear months">✕</button>
-      <div id="monthFilter" class="month-dd">
-        <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
-        <div class="dd-panel"><div id="monthList"></div></div>
-      </div>
-    </div>
-    <button id="viewToggleBtn" type="button" class="btn-outline view-toggle-btn" hidden title="Toggle between chart and pivot layouts">Show Bars</button>
+<main id="contentWrap">
+  <div id="emptyState" class="empty-state" role="status">
+    📄 No Excel detected. Click <span id="emptyOpenLink" role="button" tabindex="0">Open XLSX</span> to load a file.
   </div>
-</div>
 
-<section class="status" id="statusArea" aria-live="polite">
-  <div class="loader"><div class="spinner"></div><div><strong>Processing data</strong></div></div>
-</section>
+  <div class="topline" id="topLine">
+    <div class="pill" id="tipPill" hidden>📄 No Excel detected. Click <b>Open XLSX</b> to load a file.</div>
+    <div class="topline-controls">
+      <div class="months-wrap" id="monthsWrap" hidden>
+        <button id="clearMonth" title="Clear months">✕</button>
+        <div id="monthFilter" class="month-dd">
+          <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
+          <div class="dd-panel"><div id="monthList"></div></div>
+        </div>
+      </div>
+      <button id="viewToggleBtn" type="button" class="btn-outline view-toggle-btn" hidden title="Toggle between chart and pivot layouts">Show Bars</button>
+    </div>
+  </div>
 
-<!-- KPIs -->
-<section class="kpis" id="kpiSection" hidden>
+  <section class="status" id="statusArea" aria-live="polite">
+    <div class="loader"><div class="spinner"></div><div><strong>Processing data</strong></div></div>
+  </section>
+
+  <!-- KPIs -->
+  <section class="kpis" id="kpiSection" hidden>
   <div class="kpi"><div class="label">Spend</div><div class="value" id="kpiSpend">—</div></div>
   <div class="kpi"><div class="label">Sales</div><div class="value" id="kpiRevenue">—</div></div>
   <div class="kpi small"><div class="label">ACOS</div><div class="value" id="kpiACOS">—</div></div>
@@ -200,8 +219,8 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
   <div class="kpi"><div class="label">Avg CPC</div><div class="value" id="kpiAvgCPC">—</div></div>
 </section>
 
-<!-- Charts -->
-<section class="charts" id="chartsSection" hidden>
+  <!-- Charts -->
+  <section class="charts" id="chartsSection" hidden>
   <div class="chart-card" id="chartLeft">
     <div class="chart-title">Spend, Sales & ACOS by Store</div>
     <div class="chart-body"><canvas id="barStore"></canvas></div>
@@ -216,8 +235,8 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
   </div>
 </section>
 
-<!-- Pivot Table -->
-<section class="pivot" id="pivotSection" hidden>
+  <!-- Pivot Table -->
+  <section class="pivot" id="pivotSection" hidden>
   <div class="chart-card pivot-card" id="pivotStoreCard">
     <div class="chart-title">Store Performance Pivot</div>
     <div class="pivot-body">
@@ -232,11 +251,13 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
   </div>
   <div class="chart-card pivot-card" id="pivotCatCard">
     <div class="chart-title">Category Performance Pivot</div>
-    <div class="pivot-body">
+  <div class="pivot-body">
       <table id="pivotTableCat" class="pivot-table"></table>
     </div>
   </div>
 </section>
+
+</main>
 
 <!-- Filters Modal -->
 <div id="filtersModal" class="modal" aria-hidden="true" role="dialog" aria-label="Filters">
@@ -297,9 +318,9 @@ function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' 
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),viewToggleBtn:document.getElementById('viewToggleBtn'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),charts:document.getElementById('chartsSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),barStore:document.getElementById('barStore'),barLo:document.getElementById('barLo'),barCat:document.getElementById('barCat'),themeBtn:document.getElementById('themeToggle'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, charts:{store:null, lo:null, cat:null}, monthSel:new Set(), monthOptions:[], snapshot:{}, viewMode:'pivot' };
-const VIEW_LABELS={ pivot:'Show Bars', charts:'Show Pivots' };
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),viewToggleBtn:document.getElementById('viewToggleBtn'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),charts:document.getElementById('chartsSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),barStore:document.getElementById('barStore'),barLo:document.getElementById('barLo'),barCat:document.getElementById('barCat'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const state={ rows:[], columns:{}, charts:{store:null, lo:null, cat:null}, monthSel:new Set(), monthOptions:[], snapshot:{}, viewMode:'pivot', hasData:false };
+const DEFAULT_WORKBOOK='Products Search Term.xlsx';
 
 
 /* ===== theme + boot ===== */
@@ -320,11 +341,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function boot(){
-  el.header.style.display='flex';
-  document.getElementById('topLine').style.display='flex';
-  el.pickLocalBtn.addEventListener('click', ()=> el.fileInput.click());
-  el.fileInput.addEventListener('change', handleLocalFile);
-  el.dlCsv.addEventListener('click', onDownloadCsv);
+  setHasData(false);
+  const triggerPicker=()=>{ if(el.fileInput) el.fileInput.click(); };
+  if(el.pickLocalBtn) el.pickLocalBtn.addEventListener('click', triggerPicker);
+  if(el.emptyOpen){
+    const openFromEmpty=(ev)=>{
+      if(ev){
+        if(ev.type==='keydown' && !['Enter',' ','Spacebar'].includes(ev.key)) return;
+        if(ev.type==='keydown') ev.preventDefault();
+      }
+      triggerPicker();
+    };
+    el.emptyOpen.addEventListener('click', openFromEmpty);
+    el.emptyOpen.addEventListener('keydown', openFromEmpty);
+  }
+  if(el.fileInput) el.fileInput.addEventListener('change', handleLocalFile);
+  if(el.dlCsv) el.dlCsv.addEventListener('click', onDownloadCsv);
   if(el.viewToggleBtn){
     el.viewToggleBtn.addEventListener('click', toggleViewMode);
   }
@@ -346,10 +378,48 @@ function boot(){
   });
 
   showLoading(false);
-  el.tipPill.hidden=false;
+  el.tipPill.hidden=true;
   el.monthsWrap.hidden=true;
+  attemptDefaultWorkbook();
 }
 function showLoading(on){ el.status.classList.toggle('show', !!on); el.status.style.display=on?'':'none'; }
+
+function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.textContent='—'; }); }
+
+function setHasData(has){
+  state.hasData=!!has;
+  document.body.classList.toggle('has-data', !!has);
+  if(has){
+    if(el.topLine) el.topLine.style.display='flex';
+    if(el.kpis) el.kpis.hidden=false;
+    if(el.openFiltersBtn) el.openFiltersBtn.style.display='inline-flex';
+    if(el.viewToggleBtn){
+      el.viewToggleBtn.style.display='inline-flex';
+      el.viewToggleBtn.hidden=true;
+      el.viewToggleBtn.textContent = 'Show Charts';
+      el.viewToggleBtn.setAttribute('aria-pressed','false');
+    }
+    if(el.dlCsv) el.dlCsv.disabled=false;
+    if(el.monthsWrap) el.monthsWrap.hidden = state.monthOptions.length===0;
+    if(el.tipPill) el.tipPill.hidden=true;
+  }else{
+    if(el.topLine) el.topLine.style.display='none';
+    if(el.kpis) el.kpis.hidden=true;
+    if(el.charts) el.charts.hidden=true;
+    if(el.pivot?.section) el.pivot.section.hidden=true;
+    if(el.openFiltersBtn) el.openFiltersBtn.style.display='none';
+    if(el.viewToggleBtn){
+      el.viewToggleBtn.style.display='none';
+      el.viewToggleBtn.hidden=true;
+      el.viewToggleBtn.setAttribute('aria-pressed','false');
+      el.viewToggleBtn.textContent = 'Show Charts';
+    }
+    if(el.dlCsv) el.dlCsv.disabled=true;
+    if(el.monthsWrap) el.monthsWrap.hidden=true;
+    if(el.tipPill) el.tipPill.hidden=true;
+    resetKpis();
+  }
+}
 
 function setViewMode(mode){
   const hasPivot = !!state.pivotHasContent;
@@ -371,9 +441,13 @@ function setViewMode(mode){
     const bothAvailable = hasPivot && hasCharts;
     el.viewToggleBtn.hidden = !bothAvailable;
     if(bothAvailable){
-      el.viewToggleBtn.textContent = showCharts ? VIEW_LABELS.charts : VIEW_LABELS.pivot;
+      const nextMode = showCharts ? 'pivot' : 'charts';
+      el.viewToggleBtn.textContent = nextMode==='charts' ? 'Show Charts' : 'Show Pivot';
       el.viewToggleBtn.setAttribute('aria-pressed', showCharts ? 'true' : 'false');
-      el.viewToggleBtn.setAttribute('aria-label', showCharts ? 'Switch to pivot view' : 'Switch to bar chart view');
+      el.viewToggleBtn.setAttribute('aria-label', showCharts ? 'Switch to pivot view' : 'Switch to chart view');
+    }else{
+      el.viewToggleBtn.setAttribute('aria-pressed','false');
+      el.viewToggleBtn.textContent = 'Show Charts';
     }
   }
 
@@ -399,6 +473,7 @@ function applyViewMode(pivotAvailable, chartsAvailable){
     if(el.viewToggleBtn){
       el.viewToggleBtn.hidden = true;
       el.viewToggleBtn.setAttribute('aria-pressed','false');
+      el.viewToggleBtn.textContent = 'Show Charts';
     }
     if(el.charts) el.charts.hidden = true;
     if(el.pivot?.section) el.pivot.section.hidden = true;
@@ -427,16 +502,38 @@ async function handleLocalFile(e){
   try{
     showLoading(true);
     const buf = await f.arrayBuffer();
-    await parseExcel(buf);
-    el.tipPill.hidden=true;
-    el.monthsWrap.hidden = state.monthOptions.length===0;
-    el.openFiltersBtn.style.display='inline-flex';
-    el.viewToggleBtn.style.display='inline-flex';
-    el.dlCsv.disabled=false;
-    el.kpis.hidden=false;
-    setViewMode('pivot');
-  }catch(err){ alert('Failed to parse Excel: '+(err?.message||err)); }
-  finally{ showLoading(false); e.target.value=''; }
+    await loadWorkbookBuffer(buf);
+  }catch(err){
+    console.error(err);
+    alert('Failed to parse Excel: '+(err?.message||err));
+    if(!state.hasData) setHasData(false);
+  }finally{
+    showLoading(false);
+    e.target.value='';
+  }
+}
+async function loadWorkbookBuffer(buf){
+  await parseExcel(buf);
+  setHasData(true);
+  setViewMode(state.viewMode);
+}
+async function attemptDefaultWorkbook(){
+  const file=DEFAULT_WORKBOOK && DEFAULT_WORKBOOK.trim();
+  if(!file || state.hasData) return;
+  try{
+    showLoading(true);
+    const response=await fetch(encodeURI(file),{cache:'no-store'});
+    if(!response.ok) throw new Error('Default workbook not found');
+    if(state.hasData) return;
+    const buf=await response.arrayBuffer();
+    if(state.hasData) return;
+    await loadWorkbookBuffer(buf);
+  }catch(err){
+    console.warn('Default workbook could not be loaded:', err);
+    if(!state.hasData) setHasData(false);
+  }finally{
+    showLoading(false);
+  }
 }
 async function parseExcel(buf){
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
@@ -499,7 +596,7 @@ async function parseExcel(buf){
   state.chartHasContent=false;
   if(el.viewToggleBtn){
     el.viewToggleBtn.hidden=true;
-    el.viewToggleBtn.textContent=VIEW_LABELS.pivot;
+    el.viewToggleBtn.textContent = 'Show Charts';
     el.viewToggleBtn.setAttribute('aria-pressed','false');
   }
 
@@ -965,9 +1062,9 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
 /* Top charts equal height (slightly larger & equal for Store and LO) */
 function setTopHeights(storeCount, loCount){
   const maxItems = Math.max(storeCount||0, loCount||0);
-  const per = maxItems<=4 ? 46 : maxItems<=10 ? 34 : 26;
-  const base = maxItems<=4 ? 160 : 120;
-  const minH = 220, maxH = 560;
+  const per = maxItems<=4 ? 40 : maxItems<=10 ? 30 : 22;
+  const base = maxItems<=4 ? 140 : 110;
+  const minH = 180, maxH = 480;
   const h = Math.max(minH, Math.min(maxH, base + Math.max(0, maxItems-1)*per));
 
   document.getElementById('chartLeft').style.height  = h+'px';
@@ -976,9 +1073,9 @@ function setTopHeights(storeCount, loCount){
 }
 
 function setCategoryHeight(catCount){
-  const base = catCount<=3 ? 260 : 300;
-  const per = catCount<=6 ? 34 : catCount<=12 ? 26 : 20;
-  const minH = 320, maxH = 700;
+  const base = catCount<=3 ? 220 : 260;
+  const per = catCount<=6 ? 28 : catCount<=12 ? 22 : 18;
+  const minH = 260, maxH = 600;
   const h = Math.max(minH, Math.min(maxH, base + Math.max(0, catCount-1)*per));
   document.getElementById('chartCat').style.height = h+'px';
 }
