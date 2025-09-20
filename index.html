@@ -98,13 +98,13 @@ body.has-data #tipPill{display:none !important}
 .pivot[data-mode="overview"] #pivotPlacementCard{display:none !important}
 .pivot[data-mode="overall"]{grid-auto-flow:dense}
 @media(min-width:960px){
-  .pivot[data-mode="overall"]{grid-template-columns:repeat(12,minmax(0,1fr))}
-  .pivot[data-mode="overall"] .pivot-card{grid-column:span 12}
-  .pivot[data-mode="overall"] #pivotStoreCard,
-  .pivot[data-mode="overall"] #pivotLoCard,
-  .pivot[data-mode="overall"] #pivotCustTypeCard{grid-column:1 / span 6}
-  .pivot[data-mode="overall"] #pivotCatCard,
-  .pivot[data-mode="overall"] #pivotPlacementCard{grid-column:7 / span 6}
+  .pivot[data-mode="overall"][data-overall-layout="split"]{grid-template-columns:repeat(12,minmax(0,1fr))}
+  .pivot[data-mode="overall"][data-overall-layout="split"] .pivot-card{grid-column:span 12}
+  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotStoreCard,
+  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotLoCard,
+  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotCustTypeCard{grid-column:1 / span 6}
+  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotCatCard,
+  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotPlacementCard{grid-column:7 / span 6}
 }
 .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
@@ -968,6 +968,24 @@ function renderAll(){
     const agg = hasMetrics ? buildAgg(rows, columnKey, spendKey, salesKey) : null;
     return renderPivotCard(target, columnName, agg, !!columnKey);
   });
+  const section=el.pivot?.section;
+  if(section){
+    if(state.activeTab==='overall'){
+      const leftSlots=new Set(['store','lo','custType']);
+      const rightSlots=new Set(['cat','placement']);
+      let leftVisible=false;
+      let rightVisible=false;
+      config.forEach(({slot},idx)=>{
+        if(!visibilities[idx]) return;
+        if(leftSlots.has(slot)) leftVisible=true;
+        if(rightSlots.has(slot)) rightVisible=true;
+      });
+      if(leftVisible && rightVisible) section.dataset.overallLayout='split';
+      else delete section.dataset.overallLayout;
+    }else{
+      delete section.dataset.overallLayout;
+    }
+  }
   if(el.pivot){
     Object.entries(el.pivot).forEach(([slot,target])=>{
       if(slot==='section') return;
