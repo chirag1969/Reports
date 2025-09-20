@@ -63,11 +63,17 @@ body:not(.has-data) #kpiSection,
 body:not(.has-data) #pivotSection{display:none !important}
 
 /* Topline */
-.topline{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px clamp(14px,3vw,28px);flex-wrap:wrap}
+.topline{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:8px clamp(14px,3vw,28px)}
 body.has-data #tipPill{display:none !important}
-.topline-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.topline-controls{display:flex;flex-direction:column;align-items:flex-start;gap:12px;width:100%}
+.pivot-tabs-bar{display:flex;align-items:center;justify-content:flex-start;width:100%}
+.pivot-tabs{display:inline-flex;align-items:center;gap:6px;padding:4px;border-radius:14px;border:1px solid var(--border);background:var(--panel);box-shadow:var(--shadow)}
+.pivot-tab{border:0;background:transparent;color:var(--muted);font-weight:700;padding:8px 16px;border-radius:10px;cursor:pointer;transition:color .2s, background .2s, transform .12s;min-width:0}
+.pivot-tab:hover{color:var(--text);background:var(--chip);transform:translateY(-1px)}
+.pivot-tab.is-active{color:#fff;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 85%,#000))}
+.pivot-tab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--chip);border:1px solid var(--border);border-radius:999px;color:var(--muted)}
-.months-wrap{display:flex;align-items:center;gap:6px}
+.months-wrap{display:flex;align-items:center;gap:6px;align-self:flex-start}
 #clearMonth{display:none;border-radius:10px;padding:6px 9px}
 .month-dd{position:relative}
 .month-dd .dd-control{min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
@@ -93,13 +99,13 @@ body.has-data #tipPill{display:none !important}
 .pivot-card+.pivot-card{margin-top:0}
 .pivot-body{margin-top:10px;overflow:auto;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;padding-bottom:var(--pivot-foot-space,48px);background:var(--panel)}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
-.pivot-table thead th{padding:10px 12px;border-bottom:2px solid var(--border-strong);font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right}
+.pivot-table thead th{padding:10px 12px;border-bottom:0;font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right;box-shadow:inset 0 -2px 0 var(--border-strong)}
 .pivot-table thead th:first-child{text-align:left}
 .pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:nowrap}
 .pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table tbody tr:hover{background:var(--chip)}
 .pivot-table td.pivot-num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
-.pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border-top:4px double var(--border-strong);border-bottom:0;font-weight:800;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 96%, transparent) 0%,color-mix(in srgb,var(--panel) 86%, transparent) 55%,transparent 100%);backdrop-filter:blur(8px);position:sticky;bottom:0;z-index:2}
+.pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border-top:0;border-bottom:0;font-weight:800;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 96%, transparent) 0%,color-mix(in srgb,var(--panel) 86%, transparent) 55%,transparent 100%);backdrop-filter:blur(8px);position:sticky;bottom:0;z-index:2;box-shadow:inset 0 2px 0 var(--border-strong),inset 0 4px 0 var(--border-strong)}
 .pivot-table tfoot th{text-align:left}
 .pivot-table tfoot td{text-align:right}
 .pivot-table tfoot td.pivot-acos{padding-right:12px}
@@ -187,6 +193,12 @@ body.has-data #tipPill{display:none !important}
   <div class="topline" id="topLine">
     <div class="pill" id="tipPill" hidden>📄 No Excel detected. Click <b>Open XLSX</b> to load a file.</div>
     <div class="topline-controls">
+      <div class="pivot-tabs-bar" id="pivotTabsBar" hidden>
+        <div id="pivotTabs" class="pivot-tabs" role="tablist" aria-label="Pivot views">
+          <button type="button" class="pivot-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview Pivots</button>
+          <button type="button" class="pivot-tab" data-tab="overall" role="tab" aria-selected="false" tabindex="-1">Overall Pivots</button>
+        </div>
+      </div>
       <div class="months-wrap" id="monthsWrap" hidden>
         <button id="clearMonth" title="Clear months">✕</button>
         <div id="monthFilter" class="month-dd">
@@ -246,13 +258,13 @@ body.has-data #tipPill{display:none !important}
     </div>
 
     <section class="filters" id="filtersSection" hidden>
-      <div class="filter"><label>Category</label><div id="categoryMS" class="dd"></div></div>
-      <div class="filter"><label>Store</label><div id="loMS" class="dd"></div></div>
-      <div class="filter"><label>Targeting Type</label><div id="ttypeMS" class="dd"></div></div>
-      <div class="filter"><label>Targeting SubType</label><div id="tsubMS" class="dd"></div></div>
-      <div class="filter"><label>Targeting SubType2</label><div id="tsub2MS" class="dd"></div></div>
-      <div class="filter grow"><label>Campaign Name</label><div id="campaignMS" class="dd"></div></div>
-      <div class="filter grow"><label>Portfolio Name</label><div id="portfolioMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="category"><label data-col-label="category" data-default="Category">Category</label><div id="categoryMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="lo"><label data-col-label="lo" data-default="Store">Store</label><div id="loMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="ttype"><label data-col-label="ttype" data-default="Targeting Type">Targeting Type</label><div id="ttypeMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="tsub"><label data-col-label="tsub" data-default="Targeting SubType">Targeting SubType</label><div id="tsubMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="tsub2"><label data-col-label="tsub2" data-default="Targeting SubType2">Targeting SubType2</label><div id="tsub2MS" class="dd"></div></div>
+      <div class="filter grow" data-col-wrapper="campaign"><label data-col-label="campaign" data-default="Campaign Name">Campaign Name</label><div id="campaignMS" class="dd"></div></div>
+      <div class="filter grow" data-col-wrapper="portfolio"><label data-col-label="portfolio" data-default="Portfolio Name">Portfolio Name</label><div id="portfolioMS" class="dd"></div></div>
 
       <div class="filter date"><label>Date Range</label>
         <div style="display:flex;gap:6px">
@@ -296,8 +308,21 @@ function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' 
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], snapshot:{}, hasData:false };
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], snapshot:{}, hasData:false, activeTab:'overview' };
+if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
+const PIVOT_CONFIG={
+  overview:[
+    {slot:'store', column:'store', fallback:'Store'},
+    {slot:'lo', column:'lo', fallback:'LO'},
+    {slot:'cat', column:'category', fallback:'Category'}
+  ],
+  overall:[
+    {slot:'store', column:'ttype', fallback:'Targeting Type'},
+    {slot:'lo', column:'tsub', fallback:'Targeting SubType'},
+    {slot:'cat', column:'tsub2', fallback:'Targeting SubType2'}
+  ]
+};
 const DEFAULT_WORKBOOK='Products Search Term.xlsx';
 
 
@@ -318,8 +343,35 @@ document.addEventListener('DOMContentLoaded', () => {
   boot();
 });
 
+function setupTabs(){
+  if(!el.tabs?.buttons?.length) return;
+  el.tabs.buttons.forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tab=btn.dataset.tab;
+      if(!tab || state.activeTab===tab) return;
+      state.activeTab=tab;
+      updateTabsUI();
+      renderAll();
+    });
+  });
+  updateTabsUI();
+}
+function updateTabsUI(){
+  const buttons=el.tabs?.buttons||[];
+  const active=state.activeTab||'overview';
+  buttons.forEach(btn=>{
+    const tab=btn.dataset.tab;
+    const on=tab===active;
+    btn.classList.toggle('is-active', on);
+    btn.setAttribute('aria-selected', on?'true':'false');
+    btn.setAttribute('tabindex', on?'0':'-1');
+  });
+}
+function getPivotConfig(){ return PIVOT_CONFIG[state.activeTab] || PIVOT_CONFIG.overview; }
+
 function boot(){
   setHasData(false);
+  setupTabs();
   const triggerPicker=()=>{ if(el.fileInput) el.fileInput.click(); };
   if(el.pickLocalBtn) el.pickLocalBtn.addEventListener('click', triggerPicker);
   if(el.emptyOpen){
@@ -370,6 +422,7 @@ function setHasData(has){
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='inline-flex';
     if(el.dlCsv) el.dlCsv.disabled=false;
     if(el.monthsWrap) el.monthsWrap.hidden = state.monthOptions.length===0;
+    if(el.tabs?.bar) el.tabs.bar.hidden=false;
     if(el.tipPill) el.tipPill.hidden=true;
   }else{
     if(el.topLine) el.topLine.style.display='none';
@@ -378,9 +431,19 @@ function setHasData(has){
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='none';
     if(el.dlCsv) el.dlCsv.disabled=true;
     if(el.monthsWrap) el.monthsWrap.hidden=true;
+    if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
+    state.columns={};
+    state.rows=[];
+    state.monthSel.clear();
+    state.monthOptions=[];
+    if(el.monthList) el.monthList.innerHTML='';
+    syncFilterLabels();
+    state.activeTab='overview';
     resetKpis();
   }
+  updateMonthSummary();
+  updateTabsUI();
 }
 
 /* ===== Excel parsing (headers row 2, data from row 3) ===== */
@@ -490,6 +553,7 @@ async function parseExcel(buf){
     if(Object.values(o).some(val => (val!=='' && val!=null))) rows.push(o);
   }
   state.rows=rows;
+  state.monthSel.clear();
   buildMonths(); initFilters(); renderAll();
 }
 
@@ -598,7 +662,21 @@ function ddSyncSelectAll(root){
   root.querySelector('.dd-select-all').checked = (vis.length && vis.every(cb=>cb.checked));
 }
 
+function syncFilterLabels(){
+  const labels=document.querySelectorAll('[data-col-label]');
+  labels.forEach(label=>{
+    const key=label.getAttribute('data-col-label');
+    if(!key) return;
+    const fallback=label.getAttribute('data-default') || label.textContent;
+    const col=state.columns[key];
+    label.textContent = col?.name || fallback;
+    const wrapper=label.closest('[data-col-wrapper]');
+    if(wrapper) wrapper.hidden = !col;
+  });
+}
+
 function initFilters(){
+  syncFilterLabels();
   Object.values(el.dd).forEach(root=>root && ddBuild(root));
   buildOptionsAll();
 
@@ -739,8 +817,11 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     return false;
   }
 
-  const safeColumn = escapeHtml(columnLabel || 'Group');
+  const displayName = columnLabel || 'Group';
+  const safeColumn = escapeHtml(displayName);
   target.card.hidden = false;
+  const titleNode = target.card.querySelector('.chart-title');
+  if(titleNode) titleNode.textContent = `${displayName} Performance Pivot`;
 
   const head = `<thead><tr><th scope="col">${safeColumn}</th><th scope="col">Spend</th><th scope="col">Sales</th><th scope="col" class="pivot-acos">ACOS</th></tr></thead>`;
 
@@ -791,30 +872,20 @@ function renderAll(){
   const rows=getFilteredRows();
   renderKPIs(computeKPIs(rows));
 
-  const storeKey = state.columns.store ? normalize(state.columns.store.name) : null;
-  const loKey    = state.columns.lo    ? normalize(state.columns.lo.name)    : null;
-  const catKey   = state.columns.category ? normalize(state.columns.category.name) : null;
   const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
   const salesKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
-
-  if(!spendKey || !salesKey){
-    const pivotStoreVisible = renderPivotCard(el.pivot.store, state.columns.store?.name || 'Store', null, !!storeKey);
-    const pivotLoVisible    = renderPivotCard(el.pivot.lo, state.columns.lo?.name || 'LO', null, !!loKey);
-    const pivotCatVisible   = renderPivotCard(el.pivot.cat, state.columns.category?.name || 'Category', null, !!catKey);
-    const anyPivot = pivotStoreVisible || pivotLoVisible || pivotCatVisible;
-    if(el.pivot?.section) el.pivot.section.hidden = !anyPivot;
-    return;
-  }
-
-  const storeAgg = storeKey ? buildAgg(rows, storeKey, spendKey, salesKey) : null;
-  const loAgg    = loKey    ? buildAgg(rows, loKey, spendKey, salesKey)    : null;
-  const catAgg   = catKey   ? buildAgg(rows, catKey, spendKey, salesKey)   : null;
-
-  const pivotStoreVisible = renderPivotCard(el.pivot.store, state.columns.store?.name || 'Store', storeAgg, !!storeKey);
-  const pivotLoVisible    = renderPivotCard(el.pivot.lo, state.columns.lo?.name || 'LO', loAgg, !!loKey);
-  const pivotCatVisible   = renderPivotCard(el.pivot.cat, state.columns.category?.name || 'Category', catAgg, !!catKey);
-  const anyPivot = pivotStoreVisible || pivotLoVisible || pivotCatVisible;
-
+  const config=getPivotConfig();
+  const visibilities=config.map(({slot,column,fallback})=>{
+    const target=el.pivot?.[slot];
+    if(!target) return false;
+    const columnDef=state.columns[column];
+    const columnName=columnDef?.name || fallback;
+    const columnKey=columnDef ? normalize(columnDef.name) : null;
+    const hasMetrics = spendKey && salesKey && columnKey;
+    const agg = hasMetrics ? buildAgg(rows, columnKey, spendKey, salesKey) : null;
+    return renderPivotCard(target, columnName, agg, !!columnKey);
+  });
+  const anyPivot=visibilities.some(Boolean);
   if(el.pivot?.section) el.pivot.section.hidden = !anyPivot;
 }
 
@@ -830,13 +901,31 @@ function onDownloadCsv(){
 }
 
 /* ===== modal controls ===== */
-function snapshotFilters(){ state.snapshot={
-  category:ddGetSelected(el.dd.category), lo:ddGetSelected(el.dd.lo),
-  ttype:ddGetSelected(el.dd.ttype), tsub:ddGetSelected(el.dd.tsub), tsub2:ddGetSelected(el.dd.tsub2),
-  campaign:ddGetSelected(el.dd.campaign), portfolio:ddGetSelected(el.dd.portfolio),
-  start:el.start.value, end:el.end.value, search:el.search.value
-};}
-function restoreSnapshot(){ const s=state.snapshot||{}; const set=(root,vals)=>{ if(!root) return; root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=vals?.includes(cb.value)); ddUpdateSummary(root); ddSyncSelectAll(root); }; set(el.dd.category,s.category||[]); set(el.dd.lo,s.lo||[]); set(el.dd.ttype,s.ttype||[]); set(el.dd.tsub,s.tsub||[]); set(el.dd.tsub2,s.tsub2||[]); set(el.dd.campaign,s.campaign||[]); set(el.dd.portfolio,s.portfolio||[]); el.start.value=s.start??''; el.end.value=s.end??''; el.search.value=s.search??''; updateAllFilterOptions(null); }
+function snapshotFilters(){
+  const snap={};
+  Object.entries(el.dd).forEach(([key,root])=>{
+    if(!root) return;
+    snap[key]=ddGetSelected(root);
+  });
+  snap.start=el.start.value;
+  snap.end=el.end.value;
+  snap.search=el.search.value;
+  state.snapshot=snap;
+}
+function restoreSnapshot(){
+  const s=state.snapshot||{};
+  Object.entries(el.dd).forEach(([key,root])=>{
+    if(!root) return;
+    const selected=Array.isArray(s[key])?s[key]:[];
+    root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=selected.includes(cb.value));
+    ddUpdateSummary(root);
+    ddSyncSelectAll(root);
+  });
+  el.start.value=s.start??'';
+  el.end.value=s.end??'';
+  el.search.value=s.search??'';
+  updateAllFilterOptions(null);
+}
 function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); el.modal.setAttribute('aria-hidden','false'); }
 function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); }
 function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); renderAll(); }
