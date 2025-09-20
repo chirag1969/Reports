@@ -79,6 +79,27 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .chart-body{flex:1;min-height:0;position:relative}
 canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
 
+/* Pivot table */
+.pivot{padding:8px clamp(16px,3vw,32px) 36px;display:block}
+.pivot-card{grid-column:span 12;max-width:min(1180px,100%);margin:0 auto}
+.pivot-body{margin-top:12px;overflow-x:auto}
+.pivot-table{width:100%;border-collapse:collapse;min-width:520px;font-variant-numeric:tabular-nums}
+.pivot-table thead th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase}
+.pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:nowrap}
+.pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.pivot-table tbody tr:hover{background:var(--chip)}
+.pivot-table td.pivot-acos{text-align:right;font-weight:600;white-space:nowrap;color:var(--text)}
+.pivot-table tr.pivot-total th,.pivot-table tr.pivot-total td{font-weight:700;border-top:2px solid var(--border)}
+.pivot-empty{text-align:center;padding:24px 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+.pivot-metric{display:flex;flex-direction:column;gap:6px}
+.pivot-amount{font-weight:600}
+.pivot-amount-total{font-weight:700}
+.pivot-table tr.pivot-total .pivot-amount{font-weight:700}
+.pivot-bar{position:relative;height:8px;border-radius:999px;background:var(--chip);overflow:hidden}
+.pivot-bar-fill{position:absolute;inset:0;border-radius:inherit;opacity:.9}
+.pivot-bar-fill.spend{background:linear-gradient(90deg,rgba(37,99,235,.95),rgba(30,64,175,.95))}
+.pivot-bar-fill.sales{background:linear-gradient(90deg,rgba(16,185,129,.7),rgba(5,150,105,.85))}
+
 /* Loader */
 #statusArea{display:none}
 #statusArea.show{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:radial-gradient(900px 400px at 20% -10%, color-mix(in srgb, #ffffff 4%, var(--bg)) 0%, var(--bg) 45%)}
@@ -179,6 +200,16 @@ canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
   </div>
 </section>
 
+<!-- Pivot Table -->
+<section class="pivot" id="pivotSection" hidden>
+  <div class="chart-card pivot-card">
+    <div class="chart-title">Store Performance Pivot</div>
+    <div class="pivot-body">
+      <table id="pivotTable" class="pivot-table"></table>
+    </div>
+  </div>
+</section>
+
 <!-- Filters Modal -->
 <div id="filtersModal" class="modal" aria-hidden="true" role="dialog" aria-label="Filters">
   <div class="modal-card">
@@ -238,7 +269,7 @@ function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' 
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),charts:document.getElementById('chartsSection'),pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),barStore:document.getElementById('barStore'),barLo:document.getElementById('barLo'),barCat:document.getElementById('barCat'),themeBtn:document.getElementById('themeToggle'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),charts:document.getElementById('chartsSection'),pivot:{section:document.getElementById('pivotSection'),table:document.getElementById('pivotTable')},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),barStore:document.getElementById('barStore'),barLo:document.getElementById('barLo'),barCat:document.getElementById('barCat'),themeBtn:document.getElementById('themeToggle'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
 const state={ rows:[], columns:{}, charts:{store:null, lo:null, cat:null}, monthSel:new Set(), monthOptions:[], snapshot:{} };
 
 /* ===== theme + boot ===== */
@@ -757,6 +788,55 @@ function configVertical(labels, spend, sales){
   };
 }
 
+function renderStorePivot(agg, hasStoreColumn){
+  const section = el.pivot?.section;
+  const table = el.pivot?.table;
+  if(!section || !table) return;
+  if(!hasStoreColumn){
+    table.innerHTML='';
+    section.hidden=true;
+    return;
+  }
+
+  section.hidden=false;
+  const head = `<thead><tr><th scope="col">Store</th><th scope="col">Spend</th><th scope="col">Sales</th><th scope="col" class="pivot-acos">ACOS</th></tr></thead>`;
+
+  if(!agg || !agg.labels || !agg.labels.length){
+    table.innerHTML = head + `<tbody><tr><td colspan="4" class="pivot-empty">No store data for current filters.</td></tr></tbody>`;
+    return;
+  }
+
+  const {labels, spend, sales} = agg;
+  const totalSpend = spend.reduce((sum,val)=>sum+(+val||0),0);
+  const totalSales = sales.reduce((sum,val)=>sum+(+val||0),0);
+  const spendVals = spend.map(v=>+v||0);
+  const salesVals = sales.map(v=>+v||0);
+  const maxSpend = Math.max(totalSpend, ...spendVals, 0);
+  const maxSales = Math.max(totalSales, ...salesVals, 0);
+
+  const buildMetric = (value, max, type, isTotal=false)=>{
+    const v = +value||0;
+    const pctRaw = max>0 ? (v/max)*100 : 0;
+    const width = v>0 && max>0 ? Math.min(100, Math.max(6, pctRaw)) : 0;
+    const amount = escapeHtml(fmt.money0(v));
+    const bar = `<div class="pivot-bar"><div class="pivot-bar-fill ${type}" style="width:${width}%;"></div></div>`;
+    return `<div class="pivot-metric"><span class="pivot-amount${isTotal?' pivot-amount-total':''}">${amount}</span>${bar}</div>`;
+  };
+
+  const bodyRows = labels.map((label,i)=>{
+    const sp = spendVals[i];
+    const sa = salesVals[i];
+    const acos = sa>0 ? sp/sa : NaN;
+    return `<tr><th scope="row">${escapeHtml(label)}</th><td>${buildMetric(sp,maxSpend,'spend')}</td><td>${buildMetric(sa,maxSales,'sales')}</td><td class="pivot-acos">${isFinite(acos)?(acos*100).toFixed(1)+'%':'—'}</td></tr>`;
+  }).join('');
+
+  const totalAcos = totalSales>0 ? totalSpend/totalSales : NaN;
+  const totalRow = `<tr class="pivot-total"><th scope="row">Total</th><td>${buildMetric(totalSpend,maxSpend,'spend',true)}</td><td>${buildMetric(totalSales,maxSales,'sales',true)}</td><td class="pivot-acos">${isFinite(totalAcos)?(totalAcos*100).toFixed(1)+'%':'—'}</td></tr>`;
+
+  const body = `<tbody>${bodyRows}${totalRow}</tbody>`;
+  table.innerHTML = head + body;
+}
+
 /* Top charts equal height (slightly larger & equal for Store and LO) */
 function setTopHeights(storeCount, loCount){
   const maxItems = Math.max(storeCount||0, loCount||0);
@@ -788,7 +868,10 @@ function renderAll(){
   const catKey   = state.columns.category ? normalize(state.columns.category.name) : null;
   const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
   const salesKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
-  if(!spendKey || !salesKey){ return; }
+  if(!spendKey || !salesKey){
+    renderStorePivot(null, false);
+    return;
+  }
 
   // Store (horizontal)
   let storeCount = 0, loCount = 0;
@@ -797,6 +880,9 @@ function renderAll(){
     storeCount = A.labels.length;
     if(state.charts.store){ state.charts.store.destroy(); state.charts.store=null; }
     state.charts.store = new Chart(el.barStore.getContext('2d'), configHorizontal(A.labels, A.spend, A.sales));
+    renderStorePivot(A, true);
+  }else{
+    renderStorePivot(null, false);
   }
 
   // LO (vertical)
