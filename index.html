@@ -65,15 +65,15 @@ body:not(.has-data) #pivotSection{display:none !important}
 /* Topline */
 .topline{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:8px clamp(14px,3vw,28px)}
 body.has-data #tipPill{display:none !important}
-.topline-controls{display:flex;flex-direction:column;align-items:flex-start;gap:12px;width:100%}
-.pivot-tabs-bar{display:flex;align-items:center;justify-content:flex-start;width:100%}
+.topline-controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;width:100%}
+.pivot-tabs-bar{display:flex;align-items:center;justify-content:flex-start;flex:1 1 auto;min-width:0}
 .pivot-tabs{display:inline-flex;align-items:center;gap:6px;padding:4px;border-radius:14px;border:1px solid var(--border);background:var(--panel);box-shadow:var(--shadow)}
 .pivot-tab{border:0;background:transparent;color:var(--muted);font-weight:700;padding:8px 16px;border-radius:10px;cursor:pointer;transition:color .2s, background .2s, transform .12s;min-width:0}
 .pivot-tab:hover{color:var(--text);background:var(--chip);transform:translateY(-1px)}
 .pivot-tab.is-active{color:#fff;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 85%,#000))}
 .pivot-tab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--chip);border:1px solid var(--border);border-radius:999px;color:var(--muted)}
-.months-wrap{display:flex;align-items:center;gap:6px;align-self:flex-start}
+.months-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
 #clearMonth{display:none;border-radius:10px;padding:6px 9px}
 .month-dd{position:relative}
 .month-dd .dd-control{min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
@@ -97,15 +97,16 @@ body.has-data #tipPill{display:none !important}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
-.pivot-body{margin-top:10px;overflow:auto;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;padding-bottom:var(--pivot-foot-space,48px);background:var(--panel)}
+.pivot-body{margin-top:10px;overflow:auto;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;background:var(--panel)}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{padding:10px 12px;border-bottom:0;font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right;box-shadow:inset 0 -2px 0 var(--border-strong)}
 .pivot-table thead th:first-child{text-align:left}
 .pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:nowrap}
 .pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
 .pivot-table tbody tr:hover{background:var(--chip)}
 .pivot-table td.pivot-num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
-.pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border-top:0;border-bottom:0;font-weight:800;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 96%, transparent) 0%,color-mix(in srgb,var(--panel) 86%, transparent) 55%,transparent 100%);backdrop-filter:blur(8px);position:sticky;bottom:0;z-index:2;box-shadow:inset 0 2px 0 var(--border-strong),inset 0 4px 0 var(--border-strong)}
+.pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border:0;font-weight:800;background:var(--panel);position:sticky;bottom:0;z-index:2;border-top:3px double var(--border-strong);box-shadow:none}
 .pivot-table tfoot th{text-align:left}
 .pivot-table tfoot td{text-align:right}
 .pivot-table tfoot td.pivot-acos{padding-right:12px}
@@ -309,7 +310,7 @@ function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto';
 
 /* ===== elements/state ===== */
 const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], snapshot:{}, hasData:false, activeTab:'overview' };
+const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview' };
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
 const PIVOT_CONFIG={
   overview:[
@@ -392,15 +393,33 @@ function boot(){
   el.cancelFiltersBtn.addEventListener('click', closeFiltersCancel);
   el.applyFiltersBtn.addEventListener('click', closeFiltersApply);
   el.clearAllBtn.addEventListener('click', clearAllFilters);
-  el.monthDD.querySelector('.dd-control').addEventListener('click', ()=>{
+  const monthControl=el.monthDD.querySelector('.dd-control');
+  monthControl.addEventListener('click', ()=>{
+    const wasOpen=el.monthDD.classList.contains('open');
     el.monthDD.classList.toggle('open');
-    clampPanelRight(el.monthDD.querySelector('.dd-panel'));
+    if(!wasOpen){
+      clampPanelRight(el.monthDD.querySelector('.dd-panel'));
+    }else{
+      applyMonthFilters();
+    }
   });
-  el.clearMonthBtn.addEventListener('click', ()=>{ state.monthSel.clear(); updateMonthSummary(); renderAll(); });
+  el.clearMonthBtn.addEventListener('click', ()=>{
+    if(!state.monthSel.size) return;
+    state.monthSel.clear();
+    state.monthDirty=false;
+    updateMonthSummary();
+    el.monthDD.classList.remove('open');
+    applyMonthFilters(true);
+  });
 
   document.addEventListener('click', (e)=>{
-    if(!e.target.closest('.month-dd')) el.monthDD.classList.remove('open');
-    const dd=e.target.closest('.dd'); document.querySelectorAll('.dd.open').forEach(d=>{ if(d!==dd) d.classList.remove('open'); });
+    const monthRoot=el.monthDD;
+    const clickedMonth=e.target.closest('.month-dd');
+    if(monthRoot && !clickedMonth && monthRoot.classList.contains('open')){
+      monthRoot.classList.remove('open');
+      applyMonthFilters();
+    }
+    const dd=e.target.closest('.dd'); document.querySelectorAll('.dd.open').forEach(d=>{ if(d!==dd) d.classList.remove('open');});
   });
 
   showLoading(false);
@@ -437,6 +456,7 @@ function setHasData(has){
     state.rows=[];
     state.monthSel.clear();
     state.monthOptions=[];
+    state.monthDirty=false;
     if(el.monthList) el.monthList.innerHTML='';
     syncFilterLabels();
     state.activeTab='overview';
@@ -559,6 +579,7 @@ async function parseExcel(buf){
 
 /* ===== months & filters ===== */
 function buildMonths(){
+  state.monthDirty=false;
   const dateCol = state.columns.date ? normalize(state.columns.date.name) : null;
   if(!dateCol){ state.monthOptions=[]; el.monthsWrap.hidden=true; return; }
   const map=new Map();
@@ -577,7 +598,12 @@ function buildMonths(){
       <span style="color:var(--muted);font-variant-numeric:tabular-nums">${o.count.toLocaleString()}</span>
     </label>`).join('');
   el.monthList.querySelectorAll('input[type=checkbox]').forEach(cb=>{
-    cb.addEventListener('change', ()=>{ if(cb.checked) state.monthSel.add(cb.value); else state.monthSel.delete(cb.value); updateMonthSummary(); });
+    cb.addEventListener('change', ()=>{
+      if(cb.checked) state.monthSel.add(cb.value);
+      else state.monthSel.delete(cb.value);
+      state.monthDirty=true;
+      updateMonthSummary();
+    });
   });
   updateMonthSummary();
   el.monthsWrap.hidden=state.monthOptions.length===0;
@@ -589,6 +615,15 @@ function updateMonthSummary(){
   else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; el.clearMonthBtn.style.display='inline-block'; }
   else { sumEl.textContent=`${n} months`; el.clearMonthBtn.style.display='inline-block'; }
 }
+function applyMonthFilters(force=false){
+  if(!state.hasData) return;
+  if(force || state.monthDirty){
+    state.monthDirty=false;
+    updateAllFilterOptions(null);
+    renderAll();
+  }
+}
+
 
 /* dropdowns */
 function ddBuild(root){
@@ -813,6 +848,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   if(!hasColumn){
     target.card.hidden = true;
     target.table.innerHTML='';
+    target.table.classList.remove('has-grand-total');
     updatePivotFootSpace(target.table);
     return false;
   }
@@ -827,6 +863,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
 
   if(!agg || !Array.isArray(agg.labels) || agg.labels.length===0){
     target.table.innerHTML = head + `<tbody><tr><td colspan="4" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
+    target.table.classList.remove('has-grand-total');
     updatePivotFootSpace(target.table);
     return true;
   }
@@ -860,9 +897,10 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spendVals[i])}${buildMoneyCell(salesVals[i])}${buildAcosCell(acos)}</tr>`;
   }).join('');
 
-  const totalRow = `<tr class="pivot-total"><th scope="row">Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCell(totalAcos,true)}</tr>`;
+  const totalRow = `<tr class="pivot-total"><th scope="row">Grand Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCell(totalAcos,true)}</tr>`;
 
   target.table.innerHTML = head + `<tbody>${bodyRows}</tbody><tfoot>${totalRow}</tfoot>`;
+  target.table.classList.add('has-grand-total');
   updatePivotFootSpace(target.table);
   return true;
 }
