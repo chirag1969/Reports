@@ -34,6 +34,7 @@ body.light{
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;font:13.5px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans";color:var(--text);background:var(--bg);display:flex;flex-direction:column;min-height:100%}
+[hidden]{display:none !important}
 h1{margin:0;font-weight:800;letter-spacing:.2px}
 
 /* Buttons */
@@ -93,17 +94,17 @@ body.has-data #tipPill{display:none !important}
 
 /* Pivot table */
 .pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--chartsGap);align-items:start}
-.pivot[data-mode="overall"] #pivotStoreCard,
-.pivot[data-mode="overall"] #pivotLoCard,
-.pivot[data-mode="overall"] #pivotCatCard,
-.pivot[data-mode="overall"] #pivotCustTypeCard,
-.pivot[data-mode="overall"] #pivotPlacementCard{grid-column:auto}
+.pivot[data-mode="overview"] #pivotCustTypeCard,
+.pivot[data-mode="overview"] #pivotPlacementCard{display:none !important}
+.pivot[data-mode="overall"]{grid-auto-flow:dense}
 @media(min-width:960px){
   .pivot[data-mode="overall"]{grid-template-columns:repeat(12,minmax(0,1fr))}
   .pivot[data-mode="overall"] .pivot-card{grid-column:span 12}
-  .pivot[data-mode="overall"] #pivotStoreCard,.pivot[data-mode="overall"] #pivotLoCard{grid-column:1 / span 4}
-  .pivot[data-mode="overall"] #pivotCatCard{grid-column:5 / span 4}
-  .pivot[data-mode="overall"] #pivotCustTypeCard,.pivot[data-mode="overall"] #pivotPlacementCard{grid-column:9 / span 4}
+  .pivot[data-mode="overall"] #pivotStoreCard{grid-column:1 / span 4}
+  .pivot[data-mode="overall"] #pivotLoCard{grid-column:5 / span 4}
+  .pivot[data-mode="overall"] #pivotCustTypeCard{grid-column:9 / span 4}
+  .pivot[data-mode="overall"] #pivotPlacementCard{grid-column:9 / span 4}
+  .pivot[data-mode="overall"] #pivotCatCard{grid-column:1 / span 8}
 }
 .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
