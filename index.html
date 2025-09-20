@@ -91,7 +91,7 @@ body.has-data #tipPill{display:none !important}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
-.pivot-body{margin-top:10px;overflow:auto;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;padding-bottom:0;background:var(--panel);box-shadow:inset 0 1px 0 var(--border-strong),inset 0 -1px 0 var(--border-strong),inset 0 -3px 0 var(--border-strong)}
+.pivot-body{margin-top:10px;overflow:auto;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;padding-bottom:var(--pivot-foot-space,48px);background:var(--panel)}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{padding:10px 12px;border-bottom:2px solid var(--border-strong);font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right}
 .pivot-table thead th:first-child{text-align:left}
@@ -99,7 +99,7 @@ body.has-data #tipPill{display:none !important}
 .pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table tbody tr:hover{background:var(--chip)}
 .pivot-table td.pivot-num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
-.pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border-top:4px double var(--border-strong);border-bottom:0;font-weight:800;background:var(--panel);position:sticky;bottom:0;z-index:2}
+.pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border-top:4px double var(--border-strong);border-bottom:0;font-weight:800;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 96%, transparent) 0%,color-mix(in srgb,var(--panel) 86%, transparent) 55%,transparent 100%);backdrop-filter:blur(8px);position:sticky;bottom:0;z-index:2}
 .pivot-table tfoot th{text-align:left}
 .pivot-table tfoot td{text-align:right}
 .pivot-table tfoot td.pivot-acos{padding-right:12px}
@@ -711,11 +711,31 @@ function buildAgg(rows, keyCol, spendKey, salesKey){
   return {labels, spend, sales};
 }
 
+function updatePivotFootSpace(table){
+  if(!table) return;
+  const body = table.closest('.pivot-body');
+  if(!body) return;
+  const apply=()=>{
+    const foot=table.querySelector('tfoot');
+    if(!foot){
+      body.style.setProperty('--pivot-foot-space','0px');
+      return;
+    }
+    const rect=foot.getBoundingClientRect();
+    const height=Math.ceil(rect.height||0);
+    const gap=Math.max(0, height+12);
+    body.style.setProperty('--pivot-foot-space', `${gap}px`);
+  };
+  if(typeof requestAnimationFrame==='function') requestAnimationFrame(apply);
+  else apply();
+}
+
 function renderPivotCard(target, columnLabel, agg, hasColumn){
   if(!target || !target.card || !target.table) return false;
   if(!hasColumn){
     target.card.hidden = true;
     target.table.innerHTML='';
+    updatePivotFootSpace(target.table);
     return false;
   }
 
@@ -726,6 +746,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
 
   if(!agg || !Array.isArray(agg.labels) || agg.labels.length===0){
     target.table.innerHTML = head + `<tbody><tr><td colspan="4" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
+    updatePivotFootSpace(target.table);
     return true;
   }
 
@@ -735,25 +756,33 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
 
   const totalSpend = spendVals.reduce((sum,val)=>sum+val,0);
   const totalSales = salesVals.reduce((sum,val)=>sum+val,0);
+  const totalAcos = totalSales>0 ? totalSpend/totalSales : NaN;
+
+  const acosRatios = labels.map((_,i)=> salesVals[i]>0 ? spendVals[i]/salesVals[i] : NaN);
+  const finiteAcos = acosRatios.filter(Number.isFinite);
+  if(isFinite(totalAcos)) finiteAcos.push(totalAcos);
+  const maxPct = finiteAcos.length ? Math.max(...finiteAcos)*100 : 0;
+  const barMaxPct = Math.min(100, maxPct + 10);
+  const barScale = barMaxPct > 0 ? barMaxPct : 100;
 
   const buildMoneyCell = (value)=>`<td class="pivot-num">${escapeHtml(fmt.money0(value))}</td>`;
   const buildAcosCell = (value, isTotal=false)=>{
     if(!isFinite(value)) return '<td class="pivot-acos pivot-acos-empty">—</td>';
     const pct = value*100;
-    const width = Math.max(0, Math.min(100, pct));
+    const width = Math.max(0, Math.min(100, barScale ? (pct/barScale)*100 : 0));
     const cls = `pivot-amount${isTotal?' pivot-amount-total':''}`;
     return `<td class="pivot-acos"><div class="pivot-acos-wrap"><span class="${cls}">${pct.toFixed(1)}%</span><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></div></td>`;
   };
 
   const bodyRows = labels.map((label,i)=>{
-    const acos = salesVals[i]>0 ? spendVals[i]/salesVals[i] : NaN;
+    const acos = acosRatios[i];
     return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spendVals[i])}${buildMoneyCell(salesVals[i])}${buildAcosCell(acos)}</tr>`;
   }).join('');
 
-  const totalAcos = totalSales>0 ? totalSpend/totalSales : NaN;
   const totalRow = `<tr class="pivot-total"><th scope="row">Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCell(totalAcos,true)}</tr>`;
 
   target.table.innerHTML = head + `<tbody>${bodyRows}</tbody><tfoot>${totalRow}</tfoot>`;
+  updatePivotFootSpace(target.table);
   return true;
 }
 
