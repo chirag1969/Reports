@@ -917,17 +917,57 @@ function renderKPIs(x){
   el.kpi.avgcpc.textContent  = isFinite(x.avgcpc) ? fmt.money(x.avgcpc) : '—';
 }
 
+function finalizeAgg(map){
+  if(!(map instanceof Map) || map.size===0){
+    return {labels:[], spend:[], sales:[], acos:[]};
+  }
+  const entries=[];
+  map.forEach((value,label)=>{
+    const spend=+value.spend||0;
+    const sales=+value.sales||0;
+    const acos=sales>0 ? spend/sales : (spend>0 ? Infinity : NaN);
+    entries.push({label:String(label), spend, sales, acos});
+  });
+  const sortValue=v=>{
+    if(Number.isNaN(v)) return Number.NEGATIVE_INFINITY;
+    if(v===Infinity) return Number.POSITIVE_INFINITY;
+    if(v===-Infinity) return Number.NEGATIVE_INFINITY;
+    return v;
+  };
+  entries.sort((a,b)=>{
+    if(b.sales!==a.sales) return b.sales - a.sales;
+    const aAcos=sortValue(a.acos);
+    const bAcos=sortValue(b.acos);
+    if(bAcos>aAcos) return 1;
+    if(bAcos<aAcos) return -1;
+    return String(a.label).localeCompare(String(b.label));
+  });
+  return {
+    labels:entries.map(e=>e.label),
+    spend:entries.map(e=>e.spend),
+    sales:entries.map(e=>e.sales),
+    acos:entries.map(e=>e.acos)
+  };
+}
+
 function buildAgg(rows, keyCol, spendKey, salesKey){
+  if(!Array.isArray(rows) || !rows.length || !keyCol){
+    return {labels:[], spend:[], sales:[], acos:[]};
+  }
   const agg=new Map();
   for(const r of rows){
-    const x=String(r[keyCol] ?? '(Unspecified)');
-    const sp=+r[spendKey]||0, sa=+r[salesKey]||0;
-    const o=agg.get(x)||{sp:0,sa:0}; o.sp+=sp; o.sa+=sa; agg.set(x,o);
+    const label=String(r[keyCol] ?? '(Unspecified)');
+    const spend=+r[spendKey]||0;
+    const sales=+r[salesKey]||0;
+    const entry=agg.get(label);
+    if(entry){
+      entry.spend+=spend;
+      entry.sales+=sales;
+    }else{
+      agg.set(label,{spend,sales});
+    }
   }
-  const labels=[...agg.keys()];
-  const spend=labels.map(k=>agg.get(k).sp);
-  const sales=labels.map(k=>agg.get(k).sa);
-  return {labels, spend, sales};
+  return finalizeAgg(agg);
 }
 
 function updatePivotFootSpace(table){
@@ -1024,16 +1064,22 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     return true;
   }
 
-  const spendVals = agg.spend.map(v=>+v||0);
-  const salesVals = agg.sales.map(v=>+v||0);
-  const labels = agg.labels;
+  const labels = Array.isArray(agg.labels) ? agg.labels : [];
+  const spendVals = Array.isArray(agg.spend) ? agg.spend.map(v=>+v||0) : labels.map(()=>0);
+  const salesVals = Array.isArray(agg.sales) ? agg.sales.map(v=>+v||0) : labels.map(()=>0);
+  const acosVals = (Array.isArray(agg.acos) && agg.acos.length===labels.length)
+    ? agg.acos.map(v=> typeof v==='number' ? v : parseFloat(v))
+    : labels.map((_,i)=>{
+        const sales=salesVals[i];
+        const spend=spendVals[i];
+        return sales>0 ? spend/sales : (spend>0 ? Infinity : NaN);
+      });
 
   const totalSpend = spendVals.reduce((sum,val)=>sum+val,0);
   const totalSales = salesVals.reduce((sum,val)=>sum+val,0);
   const totalAcos = totalSales>0 ? totalSpend/totalSales : NaN;
 
-  const acosRatios = labels.map((_,i)=> salesVals[i]>0 ? spendVals[i]/salesVals[i] : NaN);
-  const finiteAcos = acosRatios.filter(Number.isFinite);
+  const finiteAcos = acosVals.filter(Number.isFinite);
   if(isFinite(totalAcos)) finiteAcos.push(totalAcos);
   const maxPct = finiteAcos.length ? Math.max(...finiteAcos)*100 : 0;
   const barMaxPct = Math.min(100, maxPct + 10);
@@ -1049,8 +1095,10 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   };
 
   const bodyRows = labels.map((label,i)=>{
-    const acos = acosRatios[i];
-    return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spendVals[i])}${buildMoneyCell(salesVals[i])}${buildAcosCell(acos)}</tr>`;
+    const spend=spendVals[i];
+    const sales=salesVals[i];
+    const acos=acosVals[i];
+    return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spend)}${buildMoneyCell(sales)}${buildAcosCell(acos)}</tr>`;
   }).join('');
 
   const totalRow = `<tr class="pivot-total"><th scope="row">Grand Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCell(totalAcos,true)}</tr>`;
@@ -1080,23 +1128,43 @@ function renderConversionPivots(rows, spendKey, salesKey){
   const termKey = normalize(termCol.name);
   const typeKey = normalize(typeCol.name);
   const normalizeTypeRaw = (value)=>String(value??'').trim().toLowerCase();
+  const typeCache=new Map();
   const mapTypeValue=(value)=>{
     const raw=normalizeTypeRaw(value);
-    if(raw==='search term' || raw==='searchterm' || raw==='search-term') return 'st';
-    if(raw==='st') return 'st';
-    if(raw==='asin' || raw==='product asin' || raw==='product-asin') return 'asin';
-    return raw;
+    if(typeCache.has(raw)) return typeCache.get(raw);
+    let mapped;
+    if(raw==='search term' || raw==='searchterm' || raw==='search-term' || raw==='st') mapped='st';
+    else if(raw==='asin' || raw==='product asin' || raw==='product-asin') mapped='asin';
+    else mapped=raw;
+    typeCache.set(raw,mapped);
+    return mapped;
   };
 
-  const renderForType=(target,typeValue,labelSuffix)=>{
+  const buckets={st:new Map(), asin:new Map()};
+  for(const row of rows){
+    const type=mapTypeValue(row[typeKey]);
+    const bucket=type==='st'?buckets.st:type==='asin'?buckets.asin:null;
+    if(!bucket) continue;
+    const label=String(row[termKey] ?? '(Unspecified)');
+    const spend=+row[spendKey]||0;
+    const sales=+row[salesKey]||0;
+    const entry=bucket.get(label);
+    if(entry){
+      entry.spend+=spend;
+      entry.sales+=sales;
+    }else{
+      bucket.set(label,{spend,sales});
+    }
+  }
+
+  const renderBucket=(target,map,labelSuffix)=>{
     if(!target) return false;
-    const filtered = rows.filter(r=>mapTypeValue(r[typeKey])===typeValue);
-    const agg = buildAgg(filtered, termKey, spendKey, salesKey);
+    const agg=finalizeAgg(map);
     return renderPivotCard(target, `${baseLabel} (${labelSuffix})`, agg, true);
   };
 
-  result.st = renderForType(targetSt,'st','ST');
-  result.asin = renderForType(targetAsin,'asin','ASIN');
+  result.st = renderBucket(targetSt,buckets.st,'ST');
+  result.asin = renderBucket(targetAsin,buckets.asin,'ASIN');
   return result;
 }
 
