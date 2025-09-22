@@ -85,16 +85,17 @@ body.has-data #tipPill{display:none !important}
 .month-dd .dd-control{min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
 .month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:240px;display:none;max-height:360px;overflow:auto}
 .month-dd.open .dd-panel{display:block}
-.month-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 10px}
+.month-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:8px 12px}
 .month-row:hover{background:var(--chip)}
 .month-row input{accent-color:var(--accent)}
+.month-name{font-weight:700;color:var(--text)}
 .month-custom{padding:10px;border-top:1px solid var(--border);background:color-mix(in srgb,var(--panel) 90%, var(--chip));display:grid;gap:10px}
 .month-custom-btn{width:100%;border:1px dashed var(--border);background:transparent;color:var(--accent);font-weight:700;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:6px}
 .month-custom-btn:hover{background:color-mix(in srgb,var(--chip) 80%, transparent)}
 .month-range-panel{border:1px solid var(--border);border-radius:12px;padding:10px;background:color-mix(in srgb,var(--panel) 85%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent)}
-.month-range-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.month-range-fields{display:flex;flex-direction:column;gap:12px}
 .month-range-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
-.month-range-fields input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel);color:var(--text)}
+.month-range-fields input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel);color:var(--text);width:100%}
 .month-range-actions{display:flex;gap:8px;margin-top:10px}
 .month-range-apply,.month-range-clear{flex:1;border-radius:9px;font-weight:700}
 .month-range-apply{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(37,99,235,.25)}
@@ -108,7 +109,7 @@ body.has-data #tipPill{display:none !important}
 .kpi .label{font-weight:700;color:var(--muted);font-size:12.5px}
 .kpi .value{font-size:20px;font-weight:700;letter-spacing:.1px}
 .kpi.small .value{font-size:20px}
-.kpi.small{padding-right:6px}
+
 
 /* Pivot table */
 .pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--chartsGap);align-items:start;grid-auto-rows:var(--pivot-auto-rows,auto);grid-auto-flow:row dense}
@@ -212,15 +213,16 @@ body.has-data #tipPill{display:none !important}
 .dd.no-results .dd-empty{display:block}
 
 /* KPI sparklines */
-.kpi{position:relative;overflow:hidden;transition:transform .18s ease, box-shadow .25s ease}
+.kpi{position:relative;overflow:hidden;transition:transform .18s ease, box-shadow .25s ease;padding-right:calc(10px + clamp(54px,45%,90px))}
 .kpi:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(15,23,42,.28)}
-.kpi-spark{position:absolute;inset:10px 8px 8px 8px;pointer-events:none;opacity:0;transition:opacity .25s ease}
+.kpi-spark{position:absolute;top:10px;right:10px;bottom:8px;width:clamp(54px,45%,90px);pointer-events:none;opacity:0;transition:opacity .25s ease}
 .kpi:hover .kpi-spark{opacity:.9}
-.kpi.small .kpi-spark{inset:10px 6px 8px 6px}
+.kpi.small{padding-right:calc(8px + clamp(48px,48%,82px))}
+.kpi.small .kpi-spark{right:8px;width:clamp(48px,48%,82px)}
 
 /* Pivot animations */
-.pivot-animate-forward{animation:pivotSlideRight .4s ease}
-.pivot-animate-backward{animation:pivotSlideLeft .4s ease}
+.pivot-animate-forward{animation:pivotSlideLeft .4s ease}
+.pivot-animate-backward{animation:pivotSlideRight .4s ease}
 @keyframes pivotSlideRight{from{opacity:0;transform:translateX(-24px);}to{opacity:1;transform:translateX(0);}}
 @keyframes pivotSlideLeft{from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:translateX(0);}}
 
@@ -438,10 +440,11 @@ const fmt={
   money0:n=>isFinite(n)?n.toLocaleString(undefined,{style:"currency",currency:"USD",maximumFractionDigits:0,minimumFractionDigits:0}):"—",
   num0:n=>isFinite(n)?new Intl.NumberFormat(undefined,{maximumFractionDigits:0,minimumFractionDigits:0}).format(n):"—"
 };
+const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const normalize=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
 const escapeHtml=s=>String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const debounce=(fn,ms=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
-const toDMY=d=>!(d instanceof Date)?"":`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+const toDMY=d=>!(d instanceof Date)?"":`${String(d.getDate()).padStart(2,'0')} ${MONTH_NAMES[d.getMonth()]||''} ${d.getFullYear()}`.trim();
 const parseDMY=(s)=>{ if(!s) return null; const m=String(s).match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/); if(!m) return null; const d=new Date(+m[3], +m[2]-1, +m[1]); return isNaN(+d)?null:d; };
 const toInputDate=d=>!(d instanceof Date)?"":`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const parseInputDate=s=>{ if(!s) return null; const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return null; const d=new Date(+m[1], +m[2]-1, +m[3]); return isNaN(+d)?null:d; };
@@ -872,14 +875,15 @@ function buildMonths(){
     map.set(ym,(map.get(ym)||0)+1);
   }
   const arr=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  state.monthOptions=arr.map(([ym,count])=>({ym,label:MONTHS[+ym.slice(5)-1],count}));
+  state.monthOptions=arr.map(([ym])=>{
+    const monthIndex=+ym.slice(5)-1;
+    return {ym,label:MONTH_NAMES[monthIndex]||ym};
+  });
   state.dateBounds={min:minDate,max:maxDate};
   el.monthList.innerHTML=state.monthOptions.map(o=>`
     <label class="month-row">
       <input type="checkbox" value="${o.ym}" ${state.monthSel.has(o.ym)?'checked':''}/>
-      <span>${escapeHtml(o.label)}</span>
-      <span style="color:var(--muted);font-variant-numeric:tabular-nums">${o.count.toLocaleString()}</span>
+      <span class="month-name">${escapeHtml(o.label)}</span>
     </label>`).join('');
   el.monthList.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
@@ -1194,8 +1198,14 @@ function ensureKpiSparklines(){
 function drawKpiSpark(meta, values){
   const {card,canvas,ctx}=meta||{};
   if(!card || !canvas || !ctx){ return; }
-  const width=Math.max(60, card.clientWidth-16);
-  const height=Math.max(40, card.clientHeight-22);
+  const isSmall=card.classList.contains('small');
+  const widthRatio=isSmall?0.48:0.45;
+  const widthMax=isSmall?82:90;
+  const widthMin=isSmall?48:54;
+  const width=Math.max(widthMin, Math.min(widthMax, card.clientWidth*widthRatio));
+  const heightPaddingTop=10;
+  const heightPaddingBottom=8;
+  const height=Math.max(36, card.clientHeight-(heightPaddingTop+heightPaddingBottom));
   const dpr=window.devicePixelRatio||1;
   canvas.width=Math.round(width*dpr);
   canvas.height=Math.round(height*dpr);
