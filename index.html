@@ -131,7 +131,14 @@ body.has-data #tipPill{display:none !important}
   .pivot[data-mode="conversion"]{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
-.chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
+.chart-title{font-weight:700;margin-bottom:8px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.chart-title-text{flex:1;min-width:0}
+.pivot-copy-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);cursor:pointer;transition:background .2s ease, color .2s ease, transform .12s ease, box-shadow .25s ease, border-color .2s ease}
+.pivot-copy-btn .pivot-copy-icon{font-size:16px;line-height:1}
+.pivot-copy-btn:hover{background:color-mix(in srgb,var(--chip) 88%, var(--panel));color:var(--text);transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,23,42,.28)}
+.pivot-copy-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.pivot-copy-btn.is-copied{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 60%, var(--border))}
+.pivot-copy-btn.is-copied::after{content:"Copied!";position:absolute;top:calc(100% + 6px);right:0;border-radius:6px;border:1px solid var(--border);background:var(--panel);padding:4px 8px;color:var(--ok);font-size:11px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow);pointer-events:none;z-index:5}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
 .pivot-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
@@ -146,6 +153,11 @@ body.has-data #tipPill{display:none !important}
 .pivot-note{margin:2px 0 8px;color:var(--muted);font-size:12px;font-weight:600;line-height:1.35;}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{padding:10px 12px;border-bottom:0;font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right;box-shadow:inset 0 -2px 0 var(--border-strong)}
+.pivot-table thead th.pivot-sortable{cursor:pointer;user-select:none}
+.pivot-table thead th.pivot-sortable:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:8px}
+.pivot-sort-label{display:inline-flex;align-items:center;gap:6px;justify-content:flex-end}
+.pivot-table thead th:first-child .pivot-sort-label{justify-content:flex-start}
+.pivot-sort-indicator{font-size:10px;opacity:.75}
 .pivot-table thead th:first-child{text-align:left}
 .pivot-table thead th.pivot-acos{text-align:right}
 .pivot-table thead th.pivot-acos-bar{padding-left:0;text-align:left;width:90px}
@@ -323,55 +335,100 @@ body.has-data #tipPill{display:none !important}
   <!-- Pivot Table -->
   <section class="pivot" id="pivotSection" hidden>
   <div class="chart-card pivot-card pivot-overall-left" id="pivotStoreCard">
-    <div class="chart-title">Store Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Store Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableStore" title="Copy Store Performance Pivot table" aria-label="Copy Store Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableStore" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-overall-left" id="pivotLoCard">
-    <div class="chart-title">LO Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">LO Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableLo" title="Copy LO Performance Pivot table" aria-label="Copy LO Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableLo" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-overall-left" id="pivotCustTypeCard">
-    <div class="chart-title">Customer Search Term - TYPE Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Customer Search Term - TYPE Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCustType" title="Copy Customer Search Term - TYPE Performance Pivot table" aria-label="Copy Customer Search Term - TYPE Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableCustType" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-overall-right" id="pivotCatCard">
-    <div class="chart-title">Category Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Category Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCat" title="Copy Category Performance Pivot table" aria-label="Copy Category Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableCat" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-overall-right" id="pivotPlacementCard">
-    <div class="chart-title">Placement Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Placement Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTablePlacement" title="Copy Placement Performance Pivot table" aria-label="Copy Placement Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTablePlacement" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card" id="pivotCampaignCard">
-    <div class="chart-title">Campaign Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Campaign Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCampaign" title="Copy Campaign Performance Pivot table" aria-label="Copy Campaign Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableCampaign" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card" id="pivotPortfolioCard">
-    <div class="chart-title">Portfolio Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Portfolio Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTablePortfolio" title="Copy Portfolio Performance Pivot table" aria-label="Copy Portfolio Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTablePortfolio" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-conversion" id="pivotConversionStCard">
-    <div class="chart-title">Customer Search Term (ST) Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Customer Search Term (ST) Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableConversionSt" title="Copy Customer Search Term (ST) Performance Pivot table" aria-label="Copy Customer Search Term (ST) Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableConversionSt" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-conversion" id="pivotConversionAsinCard">
-    <div class="chart-title">Customer Search Term (ASIN) Performance Pivot</div>
+    <div class="chart-title">
+      <span class="chart-title-text">Customer Search Term (ASIN) Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableConversionAsin" title="Copy Customer Search Term (ASIN) Performance Pivot table" aria-label="Copy Customer Search Term (ASIN) Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
     <div class="pivot-body">
       <table id="pivotTableConversionAsin" class="pivot-table"></table>
     </div>
@@ -516,11 +573,28 @@ function ensureConversionElements(){
       table.className='pivot-table';
       body.appendChild(table);
     }
+
     return card;
   };
 
   ensureCard('pivotConversionStCard','Customer Search Term (ST) Performance Pivot','pivotTableConversionSt','st');
   ensureCard('pivotConversionAsinCard','Customer Search Term (ASIN) Performance Pivot','pivotTableConversionAsin','asin');
+}
+
+function createPivotCopyButton(tableId,label){
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.className='pivot-copy-btn';
+  if(tableId) btn.dataset.copyTarget=tableId;
+  const labelText=label?`Copy ${label} table`:'Copy pivot table';
+  btn.title=labelText;
+  btn.setAttribute('aria-label', labelText);
+  const icon=document.createElement('span');
+  icon.className='pivot-copy-icon';
+  icon.setAttribute('aria-hidden','true');
+  icon.textContent='📋';
+  btn.appendChild(icon);
+  return btn;
 }
 ensureConversionElements();
 
@@ -635,8 +709,11 @@ function deactivateCustomRange(){
 const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
 const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, conversionPage:{st:0,asin:0}, lastTabIndex:0 };
 const TAB_ORDER=['overview','overall','campaignPortfolio','conversion'];
-const MAX_CONVERSION_ROWS=500;
+const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
+
 const kpiSparkCache=new Map();
+const copyFeedbackTimers=new WeakMap();
+const PIVOT_LABEL_COLLATOR=new Intl.Collator(undefined,{sensitivity:'base'});
 let lastKpiSeries=null;
 let pivotLayoutFrame=null;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
@@ -799,6 +876,129 @@ function animatePivot(direction){
   };
   target.addEventListener('animationend', handler);
 }
+
+function setupPivotInteractions(){
+  const root=el.pivot?.section;
+  if(!root) return;
+  root.addEventListener('click', handlePivotSectionClick);
+  root.addEventListener('keydown', handlePivotHeaderKeydown);
+}
+
+function handlePivotSectionClick(event){
+  const copyBtn=event.target.closest?.('.pivot-copy-btn');
+  if(copyBtn){
+    event.preventDefault();
+    handlePivotCopy(copyBtn);
+    return;
+  }
+  const header=event.target.closest?.('th[data-sort-key]');
+  if(header){
+    event.preventDefault();
+    togglePivotSort(header);
+  }
+}
+
+function handlePivotHeaderKeydown(event){
+  const header=event.target.closest?.('th[data-sort-key]');
+  if(!header) return;
+  if(event.key==='Enter' || event.key===' ' || event.key==='Spacebar'){
+    event.preventDefault();
+    togglePivotSort(header);
+  }
+}
+
+function togglePivotSort(header){
+  if(!header) return;
+  const table=header.closest('table.pivot-table');
+  if(!table || !table._pivotData) return;
+  const key=header.dataset.sortKey;
+  if(!PIVOT_SORT_KEYS.has(key)) return;
+  const sort=table._pivotSort || (table._pivotSort={key:null,dir:'desc'});
+  if(sort.key===key){
+    sort.dir = sort.dir==='desc' ? 'asc' : 'desc';
+  }else{
+    sort.key = key;
+    sort.dir = key==='label' ? 'asc' : 'desc';
+  }
+  renderPivotTable(table);
+}
+
+async function handlePivotCopy(button){
+  if(!button) return;
+  const tableId=button.dataset.copyTarget;
+  let table=null;
+  if(tableId) table=document.getElementById(tableId);
+  if(!table){
+    table=button.closest('.pivot-card')?.querySelector('table');
+  }
+  if(!table){
+    console.warn('Pivot copy: target table not found');
+    return;
+  }
+  const text=pivotTableToClipboardText(table);
+  if(!text){
+    console.warn('Pivot copy: no content to copy');
+    return;
+  }
+  try{
+    await copyTextToClipboard(text);
+    showPivotCopySuccess(button);
+  }catch(err){
+    console.error('Failed to copy pivot table', err);
+    alert('Unable to copy table to clipboard. Please copy manually.');
+  }
+}
+
+function pivotTableToClipboardText(table){
+  if(!table) return '';
+  const rows=[];
+  ['thead','tbody','tfoot'].forEach(sectionName=>{
+    const section=table.querySelector(sectionName);
+    if(!section) return;
+    section.querySelectorAll('tr').forEach(tr=>{
+      const cells=Array.from(tr.children||[])
+        .filter(cell=>!cell.classList?.contains('pivot-acos-bar') && cell.getAttribute?.('aria-hidden')!=='true')
+        .map(cell=>String(cell.textContent||'').replace(/\s+/g,' ').trim());
+      if(cells.length) rows.push(cells.join('\t'));
+    });
+  });
+  return rows.join('\n').trim();
+}
+
+async function copyTextToClipboard(text){
+  if(!text) return;
+  if(navigator.clipboard?.writeText){
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const textarea=document.createElement('textarea');
+  textarea.value=text;
+  textarea.setAttribute('readonly','');
+  textarea.style.position='fixed';
+  textarea.style.opacity='0';
+  textarea.style.pointerEvents='none';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try{
+    const ok=document.execCommand('copy');
+    if(!ok) throw new Error('Copy command was rejected');
+  }finally{
+    document.body.removeChild(textarea);
+  }
+}
+
+function showPivotCopySuccess(button){
+  if(!button) return;
+  button.classList.add('is-copied');
+  const timer=copyFeedbackTimers.get(button);
+  if(timer) clearTimeout(timer);
+  const timeout=setTimeout(()=>{
+    button.classList.remove('is-copied');
+    copyFeedbackTimers.delete(button);
+  },1600);
+  copyFeedbackTimers.set(button, timeout);
+}
 function getPivotConfig(){ return PIVOT_CONFIG[state.activeTab] || PIVOT_CONFIG.overview; }
 
 function boot(){
@@ -859,6 +1059,8 @@ function boot(){
     }
     const dd=e.target.closest('.dd'); document.querySelectorAll('.dd.open').forEach(d=>{ if(d!==dd) d.classList.remove('open');});
   });
+
+  setupPivotInteractions();
 
   showLoading(false);
   el.tipPill.hidden=true;
@@ -1610,26 +1812,127 @@ function updatePivotLayout(){
   });
 }
 
-function setPivotNote(card, message){
-  if(!card) return;
-  let note=card.querySelector('.pivot-note');
-  if(message){
-    if(!note){
-      note=document.createElement('div');
-      note.className='pivot-note';
-      const body=card.querySelector('.pivot-body');
-      if(body && body.parentNode===card){
-        card.insertBefore(note, body);
-      }else{
-        card.appendChild(note);
-      }
-    }
-    note.textContent=message;
-    note.hidden=false;
-  }else if(note){
-    note.textContent='';
-    note.hidden=true;
+function renderPivotTable(table){
+  if(!table) return;
+  const data=table._pivotData;
+  if(!data){
+    table.innerHTML='';
+    table.classList.remove('has-grand-total');
+    updatePivotFootSpace(table);
+    schedulePivotLayout();
+    return;
   }
+
+  const safeColumn=escapeHtml(data.displayName||'Group');
+  const sort=table._pivotSort || (table._pivotSort={key:null,dir:'desc'});
+  if(sort.key && !PIVOT_SORT_KEYS.has(sort.key)){
+    sort.key=null;
+  }
+  if(sort.dir!=='asc' && sort.dir!=='desc'){
+    sort.dir='desc';
+  }
+
+  const rows=Array.isArray(data.rows)?data.rows.slice():[];
+  if(sort.key){
+    rows.sort((a,b)=>comparePivotRows(a,b,sort.key,sort.dir));
+  }
+
+  const head=buildPivotHead(safeColumn, sort.key, sort.dir);
+
+  if(!rows.length){
+    table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
+    table.classList.remove('has-grand-total');
+    updatePivotFootSpace(table);
+    schedulePivotLayout();
+    return;
+  }
+
+  const barScale=Number.isFinite(data.barScale) && data.barScale>0 ? data.barScale : 100;
+  const bodyRows=rows.map(row=>{
+    const labelCell=`<th scope="row">${escapeHtml(row.label)}</th>`;
+    const spendCell=buildPivotMoneyCell(row.spend);
+    const salesCell=buildPivotMoneyCell(row.sales);
+    const acosCells=buildPivotAcosCells(row.acos, barScale, false);
+    return `<tr>${labelCell}${spendCell}${salesCell}${acosCells}</tr>`;
+  }).join('');
+
+  const totalSpend=Number(data.totals?.spend)||0;
+  const totalSales=Number(data.totals?.sales)||0;
+  const totalAcos=typeof data.totals?.acos==='number'?data.totals.acos:NaN;
+  const totalRow=`<tr class="pivot-total"><th scope="row">Grand Total</th>${buildPivotMoneyCell(totalSpend)}${buildPivotMoneyCell(totalSales)}${buildPivotAcosCells(totalAcos, barScale, true)}</tr>`;
+
+  table.innerHTML = head + `<tbody>${bodyRows}</tbody><tfoot>${totalRow}</tfoot>`;
+  table.classList.add('has-grand-total');
+  updatePivotFootSpace(table);
+  schedulePivotLayout();
+}
+
+function buildPivotHead(columnLabel, activeKey, activeDir){
+  const cells=[
+    buildPivotHeadCell('label', columnLabel, '', activeKey, activeDir),
+    buildPivotHeadCell('spend', 'Spend', '', activeKey, activeDir),
+    buildPivotHeadCell('sales', 'Sales', '', activeKey, activeDir),
+    buildPivotHeadCell('acos', 'ACOS', 'pivot-acos', activeKey, activeDir),
+    '<th scope="col" class="pivot-acos-bar" aria-hidden="true"></th>'
+  ];
+  return `<thead><tr>${cells.join('')}</tr></thead>`;
+}
+
+function buildPivotHeadCell(key, title, extraClass, activeKey, activeDir){
+  const sortable=PIVOT_SORT_KEYS.has(key);
+  const classes=['pivot-sortable'];
+  if(extraClass) classes.push(extraClass);
+  const classAttr=sortable?` class="${classes.join(' ')}"`:(extraClass?` class="${extraClass}"`:'');
+  const attrs=[`scope="col"`];
+  if(sortable){
+    attrs.push(`data-sort-key="${key}"`);
+    attrs.push('role="button"');
+    attrs.push('tabindex="0"');
+  }
+  if(sortable && activeKey===key){
+    attrs.push(`aria-sort="${activeDir==='asc'?'ascending':'descending'}"`);
+  }
+  const indicator=(sortable && activeKey===key)?`<span class="pivot-sort-indicator" aria-hidden="true">${activeDir==='asc'?'▲':'▼'}</span>`:'';
+  const safeTitle=escapeHtml(title);
+  return `<th ${attrs.join(' ')}${classAttr}><span class="pivot-sort-label">${safeTitle}${indicator}</span></th>`;
+}
+
+function buildPivotMoneyCell(value){
+  return `<td class="pivot-num">${escapeHtml(fmt.money0(value))}</td>`;
+}
+
+function buildPivotAcosCells(value, barScale, isTotal){
+  if(!Number.isFinite(value)){
+    return '<td class="pivot-acos pivot-acos-empty">—</td><td class="pivot-acos-bar pivot-acos-empty"></td>';
+  }
+  const pct=value*100;
+  const width=Math.max(0, Math.min(100, barScale ? (pct/barScale)*100 : 0));
+  const cls=`pivot-amount${isTotal?' pivot-amount-total':''}`;
+  const valueCell=`<td class="pivot-acos"><span class="${cls}">${pct.toFixed(1)}%</span></td>`;
+  const barCell=`<td class="pivot-acos-bar"><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></td>`;
+  return valueCell+barCell;
+}
+
+function comparePivotRows(a,b,key,dir){
+  if(key==='label'){
+    const cmp=PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
+    return dir==='desc' ? -cmp : cmp;
+  }
+  const va=pivotSortWeight(a[key]);
+  const vb=pivotSortWeight(b[key]);
+  if(va!==vb){
+    const diff=va-vb;
+    return dir==='desc' ? -diff : diff;
+  }
+  return PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
+}
+
+function pivotSortWeight(value){
+  if(typeof value!=='number' || Number.isNaN(value)) return -1e14;
+  if(value===Infinity) return 1e15;
+  if(value===-Infinity) return -1e15;
+  return value;
+
 }
 
 function renderPivotCard(target, columnLabel, agg, hasColumn){
@@ -1638,6 +1941,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     target.card.hidden = true;
     if(target.card.style) target.card.style.removeProperty('grid-row-end');
     target.table.innerHTML='';
+    target.table._pivotData=null;
     target.table.classList.remove('has-grand-total');
     updatePivotFootSpace(target.table);
     schedulePivotLayout();
@@ -1646,24 +1950,19 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   }
 
   const displayName = columnLabel || 'Group';
-  const safeColumn = escapeHtml(displayName);
   target.card.hidden = false;
-  const titleNode = target.card.querySelector('.chart-title');
-  if(titleNode) titleNode.textContent = `${displayName} Performance Pivot`;
+  const titleTextNode = target.card.querySelector('.chart-title-text');
+  if(titleTextNode) titleTextNode.textContent = `${displayName} Performance Pivot`;
+  else{
+    const fallbackTitle=target.card.querySelector('.chart-title');
+    if(fallbackTitle) fallbackTitle.textContent = `${displayName} Performance Pivot`;
 
-  const head = `<thead><tr><th scope="col">${safeColumn}</th><th scope="col">Spend</th><th scope="col">Sales</th><th scope="col" class="pivot-acos">ACOS</th><th scope="col" class="pivot-acos-bar" aria-hidden="true"></th></tr></thead>`;
-
-  if(!agg || !Array.isArray(agg.labels) || agg.labels.length===0){
-    target.table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
-    target.table.classList.remove('has-grand-total');
-    updatePivotFootSpace(target.table);
-    setPivotNote(target.card, '');
-    return true;
   }
 
-  const labels = Array.isArray(agg.labels) ? agg.labels : [];
-  const spendVals = Array.isArray(agg.spend) ? agg.spend.map(v=>+v||0) : labels.map(()=>0);
-  const salesVals = Array.isArray(agg.sales) ? agg.sales.map(v=>+v||0) : labels.map(()=>0);
+  const labels = Array.isArray(agg?.labels) ? agg.labels : [];
+  const spendVals = Array.isArray(agg?.spend) ? agg.spend.map(v=>+v||0) : labels.map(()=>0);
+  const salesVals = Array.isArray(agg?.sales) ? agg.sales.map(v=>+v||0) : labels.map(()=>0);
+
   const parseAcosValue=(value)=>{
     if(typeof value==='number') return value;
     const str=String(value??'').trim();
@@ -1674,7 +1973,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     return Number.isFinite(num)?num:NaN;
   };
 
-  const acosVals = (Array.isArray(agg.acos) && agg.acos.length===labels.length)
+  const acosVals = (Array.isArray(agg?.acos) && agg.acos.length===labels.length)
     ? agg.acos.map(parseAcosValue)
     : labels.map((_,i)=>{
         const sales=salesVals[i];
@@ -1711,30 +2010,25 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const barMaxPct = Math.min(100, maxPct + 10);
   const barScale = barMaxPct > 0 ? barMaxPct : 100;
 
-  const buildMoneyCell = (value)=>`<td class="pivot-num">${escapeHtml(fmt.money0(value))}</td>`;
-  const buildAcosCells = (value, isTotal=false)=>{
-    if(!isFinite(value)) return '<td class="pivot-acos pivot-acos-empty">—</td><td class="pivot-acos-bar pivot-acos-empty"></td>';
-    const pct = value*100;
-    const width = Math.max(0, Math.min(100, barScale ? (pct/barScale)*100 : 0));
-    const cls = `pivot-amount${isTotal?' pivot-amount-total':''}`;
-    const valueCell = `<td class="pivot-acos"><span class="${cls}">${pct.toFixed(1)}%</span></td>`;
-    const barCell = `<td class="pivot-acos-bar"><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></td>`;
-    return valueCell + barCell;
+  const rowData = labels.map((label,i)=>({
+    label:String(label),
+    spend:spendVals[i],
+    sales:salesVals[i],
+    acos:acosVals[i]
+  }));
+
+  target.table._pivotData={
+    displayName,
+    rows:rowData,
+    totals:{spend:totalSpend,sales:totalSales,acos:totalAcos},
+    barScale
   };
 
-  const bodyRows = labels.map((label,i)=>{
-    const spend=spendVals[i];
-    const sales=salesVals[i];
-    const acos=acosVals[i];
-    return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spend)}${buildMoneyCell(sales)}${buildAcosCells(acos)}</tr>`;
-  }).join('');
+  if(!target.table._pivotSort){
+    target.table._pivotSort={key:null,dir:'desc'};
+  }
 
-  const totalRow = `<tr class="pivot-total"><th scope="row">Grand Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCells(totalAcos,true)}</tr>`;
-
-  target.table.innerHTML = head + `<tbody>${bodyRows}</tbody><tfoot>${totalRow}</tfoot>`;
-  target.table.classList.add('has-grand-total');
-  updatePivotFootSpace(target.table);
-  schedulePivotLayout();
+  renderPivotTable(target.table);
   return true;
 }
 
@@ -1818,6 +2112,7 @@ function hideUnusedPivotSlots(activeSlots){
     }
     if(target?.table){
       target.table.innerHTML='';
+      target.table._pivotData=null;
       target.table.classList.remove('has-grand-total');
       updatePivotFootSpace(target.table);
     }
