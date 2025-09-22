@@ -142,6 +142,7 @@ body.has-data #tipPill{display:none !important}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
 .pivot-body{margin-top:10px;overflow-y:auto;overflow-x:hidden;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;background:var(--panel)}
+.pivot-note{margin:2px 0 8px;color:var(--muted);font-size:12px;font-weight:600;line-height:1.35;}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{padding:10px 12px;border-bottom:0;font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right;box-shadow:inset 0 -2px 0 var(--border-strong)}
 .pivot-table thead th.pivot-sortable{cursor:pointer;user-select:none}
@@ -633,6 +634,7 @@ const el={header:document.getElementById('appHeader'),topLine:document.getElemen
 const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, lastTabIndex:0 };
 const TAB_ORDER=['overview','overall','campaignPortfolio','conversion'];
 const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
+
 const kpiSparkCache=new Map();
 const copyFeedbackTimers=new WeakMap();
 const PIVOT_LABEL_COLLATOR=new Intl.Collator(undefined,{sensitivity:'base'});
@@ -933,6 +935,11 @@ function setHasData(has){
     if(el.monthCustomToggle) el.monthCustomToggle.disabled = state.monthOptions.length===0;
     if(el.tabs?.bar) el.tabs.bar.hidden=false;
     if(el.tipPill) el.tipPill.hidden=true;
+    if(lastKpiSeries){
+      const redraw=()=>updateKpiSparks(lastKpiSeries);
+      if(typeof requestAnimationFrame==='function'){ requestAnimationFrame(redraw); }
+      else redraw();
+    }
   }else{
     if(el.topLine) el.topLine.style.display='none';
     if(el.kpis) el.kpis.hidden=true;
@@ -1496,16 +1503,20 @@ function updateKpiSparks(series){
   });
 }
 
-function finalizeAgg(map){
+function finalizeAgg(map, limit){
   if(!(map instanceof Map) || map.size===0){
-    return {labels:[], spend:[], sales:[], acos:[]};
+    return {labels:[], spend:[], sales:[], acos:[], total:0, truncated:false, totalSpend:0, totalSales:0, limit:null};
   }
   const entries=[];
+  let totalSpend=0;
+  let totalSales=0;
   map.forEach((value,label)=>{
     const spend=+value.spend||0;
     const sales=+value.sales||0;
     const acos=sales>0 ? spend/sales : (spend>0 ? Infinity : NaN);
     entries.push({label:String(label), spend, sales, acos});
+    totalSpend+=spend;
+    totalSales+=sales;
   });
   const sortValue=v=>{
     if(Number.isNaN(v)) return Number.NEGATIVE_INFINITY;
@@ -1521,11 +1532,19 @@ function finalizeAgg(map){
     if(bAcos<aAcos) return -1;
     return String(a.label).localeCompare(String(b.label));
   });
+  const maxRows=(Number.isFinite(limit)&&limit>0)?Math.floor(limit):null;
+  const truncated=!!(maxRows && entries.length>maxRows);
+  const output=truncated?entries.slice(0,maxRows):entries;
   return {
-    labels:entries.map(e=>e.label),
-    spend:entries.map(e=>e.spend),
-    sales:entries.map(e=>e.sales),
-    acos:entries.map(e=>e.acos)
+    labels:output.map(e=>e.label),
+    spend:output.map(e=>e.spend),
+    sales:output.map(e=>e.sales),
+    acos:output.map(e=>e.acos),
+    total:entries.length,
+    truncated,
+    totalSpend,
+    totalSales,
+    limit:maxRows
   };
 }
 
@@ -1736,6 +1755,7 @@ function pivotSortWeight(value){
   if(value===Infinity) return 1e15;
   if(value===-Infinity) return -1e15;
   return value;
+
 }
 
 function renderPivotCard(target, columnLabel, agg, hasColumn){
@@ -1748,6 +1768,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     target.table.classList.remove('has-grand-total');
     updatePivotFootSpace(target.table);
     schedulePivotLayout();
+    setPivotNote(target.card, '');
     return false;
   }
 
@@ -1758,6 +1779,7 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   else{
     const fallbackTitle=target.card.querySelector('.chart-title');
     if(fallbackTitle) fallbackTitle.textContent = `${displayName} Performance Pivot`;
+
   }
 
   const labels = Array.isArray(agg?.labels) ? agg.labels : [];
@@ -1782,9 +1804,23 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
         return sales>0 ? spend/sales : (spend>0 ? Infinity : NaN);
       });
 
-  const totalSpend = spendVals.reduce((sum,val)=>sum+val,0);
-  const totalSales = salesVals.reduce((sum,val)=>sum+val,0);
+  const totalSpend = Number.isFinite(agg?.totalSpend) ? agg.totalSpend : spendVals.reduce((sum,val)=>sum+val,0);
+  const totalSales = Number.isFinite(agg?.totalSales) ? agg.totalSales : salesVals.reduce((sum,val)=>sum+val,0);
   const totalAcos = totalSales>0 ? totalSpend/totalSales : NaN;
+
+  const truncatedNote = agg?.truncated ? (()=>{
+    const totalCount=Number.isFinite(agg.total)?agg.total:labels.length;
+    const limit=Number.isFinite(agg.limit)?agg.limit:labels.length;
+    if(totalCount<=labels.length) return '';
+    const totalStr=totalCount.toLocaleString();
+    const limitStr=limit.toLocaleString();
+    return `Showing top ${limitStr} of ${totalStr} ${displayName} results. Totals include all filtered rows.`;
+  })() : '';
+  if(truncatedNote){
+    setPivotNote(target.card, truncatedNote);
+  }else{
+    setPivotNote(target.card, '');
+  }
 
   const finiteAcos = acosVals.filter(Number.isFinite);
   if(isFinite(totalAcos)) finiteAcos.push(totalAcos);
@@ -1863,7 +1899,7 @@ function renderConversionPivots(rows, spendKey, salesKey){
 
   const renderBucket=(target,map,labelSuffix)=>{
     if(!target) return false;
-    const agg=finalizeAgg(map);
+    const agg=finalizeAgg(map, MAX_CONVERSION_ROWS);
     return renderPivotCard(target, `${baseLabel} (${labelSuffix})`, agg, true);
   };
 
