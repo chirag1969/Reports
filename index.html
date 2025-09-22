@@ -97,7 +97,7 @@ body.has-data #tipPill{display:none !important}
 .month-range-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
 .month-range-fields input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel);color:var(--text);width:100%}
 .month-range-actions{display:flex;gap:8px;margin-top:10px}
-.month-range-apply,.month-range-clear{flex:1;border-radius:9px;font-weight:700}
+.month-range-apply,.month-range-clear{flex:1;border-radius:9px;font-weight:700;padding:8px 12px}
 .month-range-apply{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(37,99,235,.25)}
 .month-range-apply:hover{box-shadow:0 12px 24px rgba(37,99,235,.3)}
 .month-range-clear{background:transparent;border:1px solid var(--border-strong);color:var(--muted)}
@@ -134,6 +134,14 @@ body.has-data #tipPill{display:none !important}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
+.pivot-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.pivot-card-head .chart-title{margin-bottom:0}
+.pivot-pagination{display:inline-flex;align-items:center;gap:8px}
+.pivot-pagination.is-idle{opacity:.7}
+.pivot-pagination[hidden]{display:none !important}
+.pivot-nav-btn{width:30px;height:30px;min-width:30px;min-height:30px;display:grid;place-items:center;padding:0;border-radius:8px;font-size:16px;line-height:1}
+.pivot-nav-btn:disabled{opacity:.45;cursor:not-allowed}
+.pivot-nav-label{font-weight:700;color:var(--muted);font-size:12px;white-space:nowrap}
 .pivot-body{margin-top:10px;overflow-y:auto;overflow-x:hidden;max-height:clamp(360px,55vh,520px);position:relative;border-radius:10px;background:var(--panel)}
 .pivot-note{margin:2px 0 8px;color:var(--muted);font-size:12px;font-weight:600;line-height:1.35;}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
@@ -285,7 +293,7 @@ body.has-data #tipPill{display:none !important}
                   </label>
                 </div>
                 <div class="month-range-actions">
-                  <button type="button" id="customRangeApply" class="month-range-apply">Apply range</button>
+                  <button type="button" id="customRangeApply" class="month-range-apply">Apply</button>
                   <button type="button" id="customRangeClear" class="month-range-clear">Clear</button>
                 </div>
               </div>
@@ -423,29 +431,96 @@ function ensureConversionElements(){
   const pivotSection=document.getElementById('pivotSection');
   if(!pivotSection) return;
 
-  const ensureCard=(cardId,title,tableId)=>{
+  const createNav=(type)=>{
+    const nav=document.createElement('div');
+    nav.className='pivot-pagination';
+    nav.dataset.pivot=type;
+    const prev=document.createElement('button');
+    prev.type='button';
+    prev.className='pivot-nav-btn prev';
+    prev.setAttribute('aria-label','Previous 500 rows');
+    prev.textContent='‹';
+    prev.disabled=true;
+    const label=document.createElement('span');
+    label.className='pivot-nav-label';
+    label.textContent='—';
+    const next=document.createElement('button');
+    next.type='button';
+    next.className='pivot-nav-btn next';
+    next.setAttribute('aria-label','Next 500 rows');
+    next.textContent='›';
+    next.disabled=true;
+    nav.append(prev,label,next);
+    return nav;
+  };
+
+  const ensureHead=(card)=>{
+    if(!card) return null;
+    let head=card.querySelector('.pivot-card-head');
+    if(head) return head;
+    head=document.createElement('div');
+    head.className='pivot-card-head';
+    const titleNode=card.querySelector('.chart-title');
+    if(titleNode){
+      card.insertBefore(head,titleNode);
+      head.appendChild(titleNode);
+    }else{
+      const title=document.createElement('div');
+      title.className='chart-title';
+      head.appendChild(title);
+      card.insertBefore(head, card.firstChild||null);
+    }
+    return head;
+  };
+
+  const ensureCard=(cardId,title,tableId,type)=>{
     let card=document.getElementById(cardId);
-    if(card) return card;
-    card=document.createElement('div');
-    card.id=cardId;
-    card.className='chart-card pivot-card pivot-conversion';
-    const titleNode=document.createElement('div');
-    titleNode.className='chart-title';
-    titleNode.textContent=title;
-    const body=document.createElement('div');
-    body.className='pivot-body';
-    const table=document.createElement('table');
-    table.id=tableId;
-    table.className='pivot-table';
-    body.appendChild(table);
-    card.appendChild(titleNode);
-    card.appendChild(body);
-    pivotSection.appendChild(card);
+    if(!card){
+      card=document.createElement('div');
+      card.id=cardId;
+      card.className='chart-card pivot-card pivot-conversion';
+      const head=document.createElement('div');
+      head.className='pivot-card-head';
+      const titleNode=document.createElement('div');
+      titleNode.className='chart-title';
+      titleNode.textContent=title;
+      head.appendChild(titleNode);
+      head.appendChild(createNav(type));
+      card.appendChild(head);
+      const body=document.createElement('div');
+      body.className='pivot-body';
+      const table=document.createElement('table');
+      table.id=tableId;
+      table.className='pivot-table';
+      body.appendChild(table);
+      card.appendChild(body);
+      pivotSection.appendChild(card);
+      return card;
+    }
+
+    const head=ensureHead(card);
+    if(head && !head.querySelector('.pivot-pagination')){
+      head.appendChild(createNav(type));
+    }
+    const titleNode=head?.querySelector('.chart-title') || card.querySelector('.chart-title');
+    if(titleNode) titleNode.textContent=title;
+    if(tableId && !card.querySelector(`#${tableId}`)){
+      let body=card.querySelector('.pivot-body');
+      if(!body){
+        body=document.createElement('div');
+        body.className='pivot-body';
+        card.appendChild(body);
+      }
+      const table=document.createElement('table');
+      table.id=tableId;
+      table.className='pivot-table';
+      body.appendChild(table);
+    }
     return card;
   };
 
-  ensureCard('pivotConversionStCard','Customer Search Term (ST) Performance Pivot','pivotTableConversionSt');
-  ensureCard('pivotConversionAsinCard','Customer Search Term (ASIN) Performance Pivot','pivotTableConversionAsin');
+  ensureCard('pivotConversionStCard','Customer Search Term (ST) Performance Pivot','pivotTableConversionSt','st');
+  ensureCard('pivotConversionAsinCard','Customer Search Term (ASIN) Performance Pivot','pivotTableConversionAsin','asin');
 }
 ensureConversionElements();
 
@@ -501,8 +576,10 @@ function syncCustomRangeInputs(){
   }else{
     el.monthCustomStart.removeAttribute('max'); el.monthCustomEnd.removeAttribute('max');
   }
-  el.monthCustomStart.value=toInputDate(state.customRange.start);
-  el.monthCustomEnd.value=toInputDate(state.customRange.end);
+  const startValue=state.customRange.start || min || null;
+  const endValue=state.customRange.end || max || null;
+  el.monthCustomStart.value=toInputDate(startValue);
+  el.monthCustomEnd.value=toInputDate(endValue);
 }
 function applyCustomRangeFromInputs(){
   if(!state.hasData) return;
@@ -528,6 +605,7 @@ function applyCustomRangeFromInputs(){
   updateMonthSummary();
   if(state.hasData){
     updateAllFilterOptions(null);
+    resetConversionPaging();
     renderAll();
   }
   updateResetButtonVisibility();
@@ -542,6 +620,7 @@ function clearCustomRange(options={}){
   updateMonthSummary();
   updateResetButtonVisibility();
   if(!hadActive) return;
+  resetConversionPaging();
   if(state.hasData && !skipFilters) updateAllFilterOptions(null);
   if(state.hasData && !skipRender) renderAll();
 }
@@ -553,8 +632,8 @@ function deactivateCustomRange(){
 }
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, lastTabIndex:0 };
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
+const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, conversionPage:{st:0,asin:0}, lastTabIndex:0 };
 const TAB_ORDER=['overview','overall','campaignPortfolio','conversion'];
 const MAX_CONVERSION_ROWS=500;
 const kpiSparkCache=new Map();
@@ -581,6 +660,78 @@ const PIVOT_CONFIG={
   conversion:[]
 };
 const DEFAULT_WORKBOOK='Products Search Term.xlsx';
+
+
+function resetConversionPaging(){
+  state.conversionPage={st:0,asin:0};
+}
+
+function initConversionNav(){
+  const attach=(target,slot)=>{
+    if(!target?.card) return;
+    if(!target.nav){
+      target.nav=target.card.querySelector('.pivot-pagination');
+    }
+    if(!target.nav) return;
+    if(!target.navLabel) target.navLabel=target.nav.querySelector('.pivot-nav-label');
+    if(!target.navPrev) target.navPrev=target.nav.querySelector('.pivot-nav-btn.prev');
+    if(!target.navNext) target.navNext=target.nav.querySelector('.pivot-nav-btn.next');
+    const key=slot==='conversionAsin'?'asin':'st';
+    if(target.navPrev && !target.navPrev.__bound){
+      target.navPrev.__bound=true;
+      target.navPrev.addEventListener('click',()=>goToConversionPage(key,-1));
+    }
+    if(target.navNext && !target.navNext.__bound){
+      target.navNext.__bound=true;
+      target.navNext.addEventListener('click',()=>goToConversionPage(key,1));
+    }
+  };
+  attach(el.pivot?.conversionSt,'conversionSt');
+  attach(el.pivot?.conversionAsin,'conversionAsin');
+}
+
+function goToConversionPage(which, delta){
+  if(!state.conversionPage) state.conversionPage={st:0,asin:0};
+  const key=which==='asin'?'asin':'st';
+  const current=state.conversionPage[key]||0;
+  const next=Math.max(0, current+delta);
+  if(next===current) return;
+  state.conversionPage[key]=next;
+  renderAll();
+}
+
+function updateConversionNav(target, agg){
+  if(!target) return;
+  if(!target.nav && target.card){
+    target.nav=target.card.querySelector('.pivot-pagination');
+    if(target.nav){
+      target.navLabel=target.nav.querySelector('.pivot-nav-label');
+      target.navPrev=target.nav.querySelector('.pivot-nav-btn.prev');
+      target.navNext=target.nav.querySelector('.pivot-nav-btn.next');
+    }
+  }
+  if(!target.nav) return;
+  const page=agg?.page;
+  const total=Number.isFinite(agg?.total)?agg.total:0;
+  const count=Array.isArray(agg?.labels)?agg.labels.length:0;
+  if(target.navLabel){
+    if(total && count){
+      const start=Number.isFinite(page?.start)?page.start:0;
+      const from=Math.min(total,start+1);
+      const to=Math.min(total,start+count);
+      target.navLabel.textContent=`${from.toLocaleString()}–${to.toLocaleString()} of ${total.toLocaleString()}`;
+    }else if(total){
+      target.navLabel.textContent=`0 of ${total.toLocaleString()}`;
+    }else{
+      target.navLabel.textContent='No rows';
+    }
+  }
+  if(target.navPrev) target.navPrev.disabled=!(page && page.hasPrev);
+  if(target.navNext) target.navNext.disabled=!(page && page.hasNext);
+  target.nav.hidden = total<=0;
+  const idle=!(page && (page.hasPrev || page.hasNext));
+  target.nav.classList.toggle('is-idle', idle);
+}
 
 
 /* ===== theme + boot ===== */
@@ -653,6 +804,7 @@ function getPivotConfig(){ return PIVOT_CONFIG[state.activeTab] || PIVOT_CONFIG.
 function boot(){
   setHasData(false);
   setupTabs();
+  initConversionNav();
   const triggerPicker=()=>{ if(el.fileInput) el.fileInput.click(); };
   if(el.pickLocalBtn) el.pickLocalBtn.addEventListener('click', triggerPicker);
   if(el.emptyOpen){
@@ -752,6 +904,7 @@ function setHasData(has){
     state.monthDirty=false;
     state.customRange={start:null,end:null,active:false};
     state.dateBounds={min:null,max:null};
+    resetConversionPaging();
     if(el.monthList) el.monthList.innerHTML='';
     syncFilterLabels();
     state.activeTab='overview';
@@ -876,6 +1029,7 @@ async function parseExcel(buf){
   }
   state.rows=rows;
   state.monthSel.clear();
+  resetConversionPaging();
   buildMonths(); initFilters(); renderAll();
 }
 
@@ -950,6 +1104,7 @@ function applyMonthFilters(force=false){
   if(force || state.monthDirty){
     state.monthDirty=false;
     updateAllFilterOptions(null);
+    resetConversionPaging();
     renderAll();
   }
   updateResetButtonVisibility();
@@ -1298,9 +1453,9 @@ function updateKpiSparks(series){
   });
 }
 
-function finalizeAgg(map, limit){
+function finalizeAgg(map, limit, options={}){
   if(!(map instanceof Map) || map.size===0){
-    return {labels:[], spend:[], sales:[], acos:[], total:0, truncated:false, totalSpend:0, totalSales:0, limit:null};
+    return {labels:[], spend:[], sales:[], acos:[], total:0, truncated:false, totalSpend:0, totalSales:0, limit:null, page:{start:0,count:0,size:0,current:0,totalPages:0,hasPrev:false,hasNext:false,total:0}};
   }
   const entries=[];
   let totalSpend=0;
@@ -1328,8 +1483,32 @@ function finalizeAgg(map, limit){
     return String(a.label).localeCompare(String(b.label));
   });
   const maxRows=(Number.isFinite(limit)&&limit>0)?Math.floor(limit):null;
-  const truncated=!!(maxRows && entries.length>maxRows);
-  const output=truncated?entries.slice(0,maxRows):entries;
+  let output=entries;
+  let pageMeta={start:0,count:entries.length,size:maxRows||entries.length,current:0,totalPages:maxRows?Math.ceil(entries.length/(maxRows||1)): (entries.length?1:0),hasPrev:false,hasNext:false,total:entries.length};
+  if(maxRows){
+    const totalPages=entries.length ? Math.ceil(entries.length/maxRows) : 0;
+    let pageIndex=Number.isFinite(options.page)?Math.max(0, Math.floor(options.page)):0;
+    if(totalPages>0){
+      pageIndex=Math.min(pageIndex, totalPages-1);
+    }else{
+      pageIndex=0;
+    }
+    const start=pageIndex*maxRows;
+    const end=start+maxRows;
+    output=entries.slice(start,end);
+    const count=output.length;
+    pageMeta={
+      start,
+      count,
+      size:maxRows,
+      current:pageIndex,
+      totalPages,
+      hasPrev:start>0,
+      hasNext:end<entries.length,
+      total:entries.length
+    };
+  }
+  const truncated=!!(maxRows && entries.length>output.length);
   return {
     labels:output.map(e=>e.label),
     spend:output.map(e=>e.spend),
@@ -1339,7 +1518,8 @@ function finalizeAgg(map, limit){
     truncated,
     totalSpend,
     totalSales,
-    limit:maxRows
+    limit:maxRows,
+    page:pageMeta
   };
 }
 
@@ -1506,14 +1686,19 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const totalSales = Number.isFinite(agg?.totalSales) ? agg.totalSales : salesVals.reduce((sum,val)=>sum+val,0);
   const totalAcos = totalSales>0 ? totalSpend/totalSales : NaN;
 
-  const truncatedNote = agg?.truncated ? (()=>{
-    const totalCount=Number.isFinite(agg.total)?agg.total:labels.length;
-    const limit=Number.isFinite(agg.limit)?agg.limit:labels.length;
-    if(totalCount<=labels.length) return '';
+  const totalCount=Number.isFinite(agg?.total)?agg.total:labels.length;
+  const limit=Number.isFinite(agg?.limit)?agg.limit:null;
+  let truncatedNote='';
+  if(labels.length && limit && totalCount>labels.length && agg?.page){
+    const start=Number.isFinite(agg.page.start)?agg.page.start:0;
+    const from=Math.min(totalCount,start+1);
+    const to=Math.min(totalCount,start+labels.length);
+    truncatedNote=`Showing rows ${from.toLocaleString()}–${to.toLocaleString()} of ${totalCount.toLocaleString()} ${displayName} results. Totals include all filtered rows.`;
+  }else if(agg?.truncated){
     const totalStr=totalCount.toLocaleString();
-    const limitStr=limit.toLocaleString();
-    return `Showing top ${limitStr} of ${totalStr} ${displayName} results. Totals include all filtered rows.`;
-  })() : '';
+    const limitStr=(limit||labels.length).toLocaleString();
+    truncatedNote=`Showing top ${limitStr} of ${totalStr} ${displayName} results. Totals include all filtered rows.`;
+  }
   if(truncatedNote){
     setPivotNote(target.card, truncatedNote);
   }else{
@@ -1600,14 +1785,25 @@ function renderConversionPivots(rows, spendKey, salesKey){
     }
   }
 
-  const renderBucket=(target,map,labelSuffix)=>{
+  const renderBucket=(target,map,labelSuffix,key)=>{
     if(!target) return false;
-    const agg=finalizeAgg(map, MAX_CONVERSION_ROWS);
+    if(!state.conversionPage) state.conversionPage={st:0,asin:0};
+    const totalEntries=map instanceof Map ? map.size : 0;
+    let pageIndex=state.conversionPage[key]||0;
+    if(MAX_CONVERSION_ROWS && totalEntries>0){
+      const totalPages=Math.ceil(totalEntries/MAX_CONVERSION_ROWS);
+      if(pageIndex>=totalPages) pageIndex=Math.max(0,totalPages-1);
+    }else{
+      pageIndex=0;
+    }
+    state.conversionPage[key]=pageIndex;
+    const agg=finalizeAgg(map, MAX_CONVERSION_ROWS, {page:pageIndex});
+    updateConversionNav(target, agg);
     return renderPivotCard(target, `${baseLabel} (${labelSuffix})`, agg, true);
   };
 
-  result.st = renderBucket(targetSt,buckets.st,'ST');
-  result.asin = renderBucket(targetAsin,buckets.asin,'ASIN');
+  result.st = renderBucket(targetSt,buckets.st,'ST','st');
+  result.asin = renderBucket(targetAsin,buckets.asin,'ASIN','asin');
   return result;
 }
 
@@ -1727,7 +1923,7 @@ function restoreSnapshot(){
 }
 function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); el.modal.setAttribute('aria-hidden','false'); }
 function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); }
-function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); renderAll(); }
+function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); resetConversionPaging(); renderAll(); }
 function clearAllFilters(){
   Object.values(el.dd).forEach(root=>{
     if(!root) return;
@@ -1752,6 +1948,7 @@ function resetFiltersAndApply(){
   updateMonthSummary();
   if(el.monthDD) el.monthDD.classList.remove('open');
   clearAllFilters();
+  resetConversionPaging();
   renderAll();
 }
 
