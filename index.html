@@ -75,7 +75,6 @@ body.has-data #tipPill{display:none !important}
 .pivot-tab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--chip);border:1px solid var(--border);border-radius:999px;color:var(--muted)}
 .months-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
-#clearMonth{display:none;border-radius:10px;padding:6px 9px}
 .month-dd{position:relative}
 .month-dd .dd-control{min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
 .month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:220px;display:none;max-height:340px;overflow:auto}
@@ -118,6 +117,7 @@ body.has-data #tipPill{display:none !important}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{padding:10px 12px;border-bottom:0;font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right;box-shadow:inset 0 -2px 0 var(--border-strong)}
 .pivot-table thead th:first-child{text-align:left}
+.pivot-table thead th.pivot-acos{text-align:left}
 .pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
@@ -198,6 +198,7 @@ body.has-data #tipPill{display:none !important}
 <header id="appHeader" class="app-header">
   <div><h1>🔎 Search Terms Analytics</h1></div>
   <div class="actions">
+    <button id="resetFilters" class="btn-outline" style="display:none">Reset</button>
     <button id="openFilters" class="btn-outline" style="display:none">Filters</button>
     <button id="pickLocalBtn" class="btn-primary">Open XLSX</button>
     <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
@@ -222,7 +223,6 @@ body.has-data #tipPill{display:none !important}
         </div>
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
-        <button id="clearMonth" title="Clear months">✕</button>
         <div id="monthFilter" class="month-dd">
           <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
           <div class="dd-panel"><div id="monthList"></div></div>
@@ -398,7 +398,7 @@ function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' 
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
 const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview' };
 let pivotLayoutFrame=null;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
@@ -487,6 +487,7 @@ function boot(){
   el.cancelFiltersBtn.addEventListener('click', closeFiltersCancel);
   el.applyFiltersBtn.addEventListener('click', closeFiltersApply);
   el.clearAllBtn.addEventListener('click', clearAllFilters);
+  if(el.resetFiltersBtn) el.resetFiltersBtn.addEventListener('click', resetFiltersAndApply);
   const monthControl=el.monthDD.querySelector('.dd-control');
   monthControl.addEventListener('click', ()=>{
     const wasOpen=el.monthDD.classList.contains('open');
@@ -496,14 +497,6 @@ function boot(){
     }else{
       applyMonthFilters();
     }
-  });
-  el.clearMonthBtn.addEventListener('click', ()=>{
-    if(!state.monthSel.size) return;
-    state.monthSel.clear();
-    state.monthDirty=false;
-    updateMonthSummary();
-    el.monthDD.classList.remove('open');
-    applyMonthFilters(true);
   });
 
   document.addEventListener('click', (e)=>{
@@ -558,6 +551,7 @@ function setHasData(has){
   }
   updateMonthSummary();
   updateTabsUI();
+  updateResetButtonVisibility();
 }
 
 /* ===== Excel parsing (headers row 2, data from row 3) ===== */
@@ -708,9 +702,9 @@ function buildMonths(){
 function updateMonthSummary(){
   const sumEl=el.monthDD.querySelector('.dd-summary');
   const n=state.monthSel.size;
-  if(n===0){ sumEl.textContent='All'; el.clearMonthBtn.style.display='none'; }
-  else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; el.clearMonthBtn.style.display='inline-block'; }
-  else { sumEl.textContent=`${n} months`; el.clearMonthBtn.style.display='inline-block'; }
+  if(n===0){ sumEl.textContent='All'; }
+  else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; }
+  else { sumEl.textContent=`${n} months`; }
 }
 function applyMonthFilters(force=false){
   if(!state.hasData) return;
@@ -719,6 +713,24 @@ function applyMonthFilters(force=false){
     updateAllFilterOptions(null);
     renderAll();
   }
+}
+
+function hasActiveFilters(){
+  if(!state.hasData) return false;
+  if(state.monthSel.size) return true;
+  if(el.start && el.start.value.trim()) return true;
+  if(el.end && el.end.value.trim()) return true;
+  if(el.search && el.search.value.trim()) return true;
+  for(const root of Object.values(el.dd||{})){
+    if(!root) continue;
+    if(root.querySelector('.dd-list input[type=checkbox]:checked')) return true;
+  }
+  return false;
+}
+
+function updateResetButtonVisibility(){
+  if(!el.resetFiltersBtn) return;
+  el.resetFiltersBtn.style.display = hasActiveFilters() ? 'inline-flex' : 'none';
 }
 
 
@@ -1073,8 +1085,18 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const labels = Array.isArray(agg.labels) ? agg.labels : [];
   const spendVals = Array.isArray(agg.spend) ? agg.spend.map(v=>+v||0) : labels.map(()=>0);
   const salesVals = Array.isArray(agg.sales) ? agg.sales.map(v=>+v||0) : labels.map(()=>0);
+  const parseAcosValue=(value)=>{
+    if(typeof value==='number') return value;
+    const str=String(value??'').trim();
+    if(!str) return NaN;
+    const cleaned=str.replace(/acos/ig,'').trim();
+    if(!/[0-9]/.test(cleaned)) return NaN;
+    const num=parseNumber(cleaned);
+    return Number.isFinite(num)?num:NaN;
+  };
+
   const acosVals = (Array.isArray(agg.acos) && agg.acos.length===labels.length)
-    ? agg.acos.map(v=> typeof v==='number' ? v : parseFloat(v))
+    ? agg.acos.map(parseAcosValue)
     : labels.map((_,i)=>{
         const sales=salesVals[i];
         const spend=spendVals[i];
@@ -1228,6 +1250,7 @@ function renderAll(){
   hideUnusedPivotSlots(activeSlots);
 
   if(el.pivot?.section) el.pivot.section.hidden = !anyPivot;
+  updateResetButtonVisibility();
   schedulePivotLayout();
 }
 
@@ -1276,6 +1299,17 @@ function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); 
 function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); }
 function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); renderAll(); }
 function clearAllFilters(){ Object.values(el.dd).forEach(root=> root && root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=false)); el.start.value=''; el.end.value=''; el.search.value=''; updateAllFilterOptions(null); }
+
+function resetFiltersAndApply(){
+  if(!state.hasData) return;
+  if(!hasActiveFilters()) return;
+  state.monthSel.clear();
+  state.monthDirty=false;
+  updateMonthSummary();
+  if(el.monthDD) el.monthDD.classList.remove('open');
+  clearAllFilters();
+  renderAll();
+}
 
 </script>
 </body>
