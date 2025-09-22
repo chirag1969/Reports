@@ -93,18 +93,22 @@ body.has-data #tipPill{display:none !important}
 .kpi.small{padding-right:6px}
 
 /* Pivot table */
-.pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:var(--chartsGap);align-items:start;grid-auto-rows:var(--pivot-auto-rows,auto)}
+.pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--chartsGap);align-items:start;grid-auto-rows:var(--pivot-auto-rows,auto);grid-auto-flow:row}
 .pivot[data-mode="overview"] #pivotCustTypeCard,
 .pivot[data-mode="overview"] #pivotPlacementCard{display:none !important}
-.pivot[data-mode="overall"]{grid-auto-flow:dense}
+.pivot[data-mode="overview"] .pivot-conversion,
+.pivot[data-mode="overall"] .pivot-conversion{display:none !important}
+.pivot[data-mode="conversion"] #pivotStoreCard,
+.pivot[data-mode="conversion"] #pivotLoCard,
+.pivot[data-mode="conversion"] #pivotCustTypeCard,
+.pivot[data-mode="conversion"] #pivotCatCard,
+.pivot[data-mode="conversion"] #pivotPlacementCard{display:none !important}
 @media(min-width:960px){
-  .pivot[data-mode="overall"][data-overall-layout="split"]{grid-template-columns:repeat(12,minmax(0,1fr))}
-  .pivot[data-mode="overall"][data-overall-layout="split"] .pivot-card{grid-column:span 12}
-  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotStoreCard,
-  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotLoCard,
-  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotCustTypeCard{grid-column:1 / span 6}
-  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotCatCard,
-  .pivot[data-mode="overall"][data-overall-layout="split"] #pivotPlacementCard{grid-column:7 / span 6}
+  .pivot[data-mode="overall"]{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .pivot[data-mode="overall"] .pivot-card{grid-column:1 / -1;}
+  .pivot[data-mode="overall"] .pivot-overall-left{grid-column:1 / 2;}
+  .pivot[data-mode="overall"] .pivot-overall-right{grid-column:2 / 3;}
+  .pivot[data-mode="conversion"]{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted)}
@@ -214,6 +218,7 @@ body.has-data #tipPill{display:none !important}
         <div id="pivotTabs" class="pivot-tabs" role="tablist" aria-label="Pivot views">
           <button type="button" class="pivot-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview Pivots</button>
           <button type="button" class="pivot-tab" data-tab="overall" role="tab" aria-selected="false" tabindex="-1">Overall Pivots</button>
+          <button type="button" class="pivot-tab" data-tab="conversion" role="tab" aria-selected="false" tabindex="-1">ST/ASIN Conversion</button>
         </div>
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
@@ -244,34 +249,46 @@ body.has-data #tipPill{display:none !important}
 
   <!-- Pivot Table -->
   <section class="pivot" id="pivotSection" hidden>
-  <div class="chart-card pivot-card" id="pivotStoreCard">
+  <div class="chart-card pivot-card pivot-overall-left" id="pivotStoreCard">
     <div class="chart-title">Store Performance Pivot</div>
     <div class="pivot-body">
       <table id="pivotTableStore" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card" id="pivotLoCard">
+  <div class="chart-card pivot-card pivot-overall-left" id="pivotLoCard">
     <div class="chart-title">LO Performance Pivot</div>
     <div class="pivot-body">
       <table id="pivotTableLo" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card" id="pivotCustTypeCard">
+  <div class="chart-card pivot-card pivot-overall-left" id="pivotCustTypeCard">
     <div class="chart-title">Customer Search Term - TYPE Performance Pivot</div>
     <div class="pivot-body">
       <table id="pivotTableCustType" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card" id="pivotCatCard">
+  <div class="chart-card pivot-card pivot-overall-right" id="pivotCatCard">
     <div class="chart-title">Category Performance Pivot</div>
     <div class="pivot-body">
       <table id="pivotTableCat" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card" id="pivotPlacementCard">
+  <div class="chart-card pivot-card pivot-overall-right" id="pivotPlacementCard">
     <div class="chart-title">Placement Performance Pivot</div>
     <div class="pivot-body">
       <table id="pivotTablePlacement" class="pivot-table"></table>
+    </div>
+  </div>
+  <div class="chart-card pivot-card pivot-conversion" id="pivotConversionStCard">
+    <div class="chart-title">Customer Search Term (ST) Performance Pivot</div>
+    <div class="pivot-body">
+      <table id="pivotTableConversionSt" class="pivot-table"></table>
+    </div>
+  </div>
+  <div class="chart-card pivot-card pivot-conversion" id="pivotConversionAsinCard">
+    <div class="chart-title">Customer Search Term (ASIN) Performance Pivot</div>
+    <div class="pivot-body">
+      <table id="pivotTableConversionAsin" class="pivot-table"></table>
     </div>
   </div>
 </section>
@@ -337,7 +354,7 @@ function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' 
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
 const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview' };
 let pivotLayoutFrame=null;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
@@ -353,7 +370,8 @@ const PIVOT_CONFIG={
     {slot:'custType', column:'customerType', fallback:'Customer Search Term - TYPE'},
     {slot:'cat', column:'tsub2', fallback:'Targeting Sub Type2'},
     {slot:'placement', column:'placement', fallback:'Placement'}
-  ]
+  ],
+  conversion:[]
 };
 const DEFAULT_WORKBOOK='Products Search Term.xlsx';
 
@@ -579,6 +597,7 @@ async function parseExcel(buf){
     ttype:      findIndexByTokens(headers,['targetingtype','adtype','type']),
     tsub:       findIndexByTokens(headers,['targetingsubtype','matchtype','subtype']),
     tsub2:      findIndexByTokens(headers,['subtype2','matchtype2']),
+    term:       findIndexByTokens(headers,['customersearchterm','searchterm','term']),
     customerType:findIndexByTokens(headers,['customersearchtermtype','searchtermtype']),
     placement:  findIndexByTokens(headers,['placement','placements']),
     campaign:   findIndexByTokens(headers,['campaignname','campaign']),
@@ -1000,6 +1019,61 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   return true;
 }
 
+function renderConversionPivots(rows, spendKey, salesKey){
+  const result={st:false,asin:false};
+  const targetSt=el.pivot?.conversionSt;
+  const targetAsin=el.pivot?.conversionAsin;
+  const termCol=state.columns.term;
+  const typeCol=state.columns.customerType;
+  const hasBasics = !!(spendKey && salesKey && termCol && typeCol);
+  const baseLabel = termCol?.name || 'Customer Search Term';
+
+  if(!hasBasics){
+    if(targetSt) renderPivotCard(targetSt, `${baseLabel} (ST)`, null, false);
+    if(targetAsin) renderPivotCard(targetAsin, `${baseLabel} (ASIN)`, null, false);
+    return result;
+  }
+
+  const termKey = normalize(termCol.name);
+  const typeKey = normalize(typeCol.name);
+  const normalizeTypeRaw = (value)=>String(value??'').trim().toLowerCase();
+  const mapTypeValue=(value)=>{
+    const raw=normalizeTypeRaw(value);
+    if(raw==='search term' || raw==='searchterm' || raw==='search-term') return 'st';
+    if(raw==='st') return 'st';
+    if(raw==='asin' || raw==='product asin' || raw==='product-asin') return 'asin';
+    return raw;
+  };
+
+  const renderForType=(target,typeValue,labelSuffix)=>{
+    if(!target) return false;
+    const filtered = rows.filter(r=>mapTypeValue(r[typeKey])===typeValue);
+    const agg = buildAgg(filtered, termKey, spendKey, salesKey);
+    return renderPivotCard(target, `${baseLabel} (${labelSuffix})`, agg, true);
+  };
+
+  result.st = renderForType(targetSt,'st','ST');
+  result.asin = renderForType(targetAsin,'asin','ASIN');
+  return result;
+}
+
+function hideUnusedPivotSlots(activeSlots){
+  if(!el.pivot) return;
+  Object.entries(el.pivot).forEach(([slot,target])=>{
+    if(slot==='section') return;
+    if(activeSlots.has(slot)) return;
+    if(target?.card){
+      target.card.hidden=true;
+      target.card.style.removeProperty('grid-row-end');
+    }
+    if(target?.table){
+      target.table.innerHTML='';
+      target.table.classList.remove('has-grand-total');
+      updatePivotFootSpace(target.table);
+    }
+  });
+}
+
 /* ===== render & CSV ===== */
 function renderAll(){
   const rows=getFilteredRows();
@@ -1007,53 +1081,35 @@ function renderAll(){
 
   const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
   const salesKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
-  const config=getPivotConfig();
   if(el.pivot?.section) el.pivot.section.dataset.mode = state.activeTab || 'overview';
-  const usedSlots=new Set();
-  const visibilities=config.map(({slot,column,fallback})=>{
-    const target=el.pivot?.[slot];
-    if(!target) return false;
-    usedSlots.add(slot);
-    const columnDef=state.columns[column];
-    const columnName=columnDef?.name || fallback;
-    const columnKey=columnDef ? normalize(columnDef.name) : null;
-    const hasMetrics = spendKey && salesKey && columnKey;
-    const agg = hasMetrics ? buildAgg(rows, columnKey, spendKey, salesKey) : null;
-    return renderPivotCard(target, columnName, agg, !!columnKey);
-  });
-  const section=el.pivot?.section;
-  if(section){
-    if(state.activeTab==='overall'){
-      const leftSlots=new Set(['store','lo','custType']);
-      const rightSlots=new Set(['cat','placement']);
-      let leftVisible=false;
-      let rightVisible=false;
-      config.forEach(({slot},idx)=>{
-        if(!visibilities[idx]) return;
-        if(leftSlots.has(slot)) leftVisible=true;
-        if(rightSlots.has(slot)) rightVisible=true;
-      });
-      if(leftVisible && rightVisible) section.dataset.overallLayout='split';
-      else delete section.dataset.overallLayout;
-    }else{
-      delete section.dataset.overallLayout;
-    }
-  }
-  if(el.pivot){
-    Object.entries(el.pivot).forEach(([slot,target])=>{
-      if(slot==='section') return;
-      if(!usedSlots.has(slot) && target?.card){
-        target.card.hidden=true;
-        target.card.style.removeProperty('grid-row-end');
-        if(target.table){
-          target.table.innerHTML='';
-          target.table.classList.remove('has-grand-total');
-          updatePivotFootSpace(target.table);
-        }
-      }
+
+  const activeSlots=new Set();
+  let anyPivot=false;
+
+  if(state.activeTab==='conversion'){
+    const result=renderConversionPivots(rows, spendKey, salesKey);
+    if(result.st) activeSlots.add('conversionSt');
+    if(result.asin) activeSlots.add('conversionAsin');
+    anyPivot = result.st || result.asin;
+  }else{
+    const config=getPivotConfig();
+    const visibilities=config.map(({slot,column,fallback})=>{
+      const target=el.pivot?.[slot];
+      if(!target) return false;
+      const columnDef=state.columns[column];
+      const columnName=columnDef?.name || fallback;
+      const columnKey=columnDef ? normalize(columnDef.name) : null;
+      const hasMetrics = spendKey && salesKey && columnKey;
+      const agg = hasMetrics ? buildAgg(rows, columnKey, spendKey, salesKey) : null;
+      const rendered = renderPivotCard(target, columnName, agg, !!columnKey);
+      if(rendered) activeSlots.add(slot);
+      return rendered;
     });
+    anyPivot = visibilities.some(Boolean);
   }
-  const anyPivot=visibilities.some(Boolean);
+
+  hideUnusedPivotSlots(activeSlots);
+
   if(el.pivot?.section) el.pivot.section.hidden = !anyPivot;
   schedulePivotLayout();
 }
