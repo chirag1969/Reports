@@ -137,7 +137,8 @@ body.has-data #tipPill{display:none !important}
 .pivot-table{width:100%;border-collapse:collapse;min-width:320px;font-variant-numeric:tabular-nums}
 .pivot-table thead th{padding:10px 12px;border-bottom:0;font-weight:700;color:var(--muted);font-size:12.5px;letter-spacing:.3px;text-transform:uppercase;position:sticky;top:0;background:var(--panel);z-index:3;text-align:right;box-shadow:inset 0 -2px 0 var(--border-strong)}
 .pivot-table thead th:first-child{text-align:left}
-.pivot-table thead th.pivot-acos{text-align:left}
+.pivot-table thead th.pivot-acos{text-align:right}
+.pivot-table thead th.pivot-acos-bar{padding-left:0;text-align:left;width:90px}
 .pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
@@ -147,12 +148,14 @@ body.has-data #tipPill{display:none !important}
 .pivot-table tfoot th{text-align:left}
 .pivot-table tfoot td{text-align:right}
 .pivot-table tfoot td.pivot-acos{padding-right:12px}
+.pivot-table tfoot td.pivot-acos-bar{text-align:left;padding-left:0}
 .pivot-table tfoot td .pivot-amount-total{font-weight:800}
-.pivot-table td.pivot-acos{color:var(--text);vertical-align:middle;text-align:right}
+.pivot-table td.pivot-acos{color:var(--text);vertical-align:middle;text-align:right;white-space:nowrap}
 .pivot-table td.pivot-acos .pivot-amount{display:inline-block;min-width:56px;text-align:right;font-weight:600}
 .pivot-table td.pivot-acos.pivot-acos-empty{color:var(--muted)}
-.pivot-acos-wrap{display:flex;align-items:center;gap:12px;width:100%}
-.pivot-acos-wrap .pivot-bar{flex:1}
+.pivot-table td.pivot-acos-bar{padding-left:0;padding-right:12px;vertical-align:middle}
+.pivot-table td.pivot-acos-bar .pivot-bar{min-width:64px}
+.pivot-table td.pivot-acos-bar.pivot-acos-empty{opacity:.4}
 .pivot-bar-fill.acos{background:linear-gradient(90deg,rgba(239,68,68,.9),rgba(220,38,38,.95))}
 .pivot-table tr.pivot-total th,.pivot-table tr.pivot-total td{font-weight:800}
 .pivot-empty{text-align:center;padding:24px 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
@@ -1408,10 +1411,10 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const titleNode = target.card.querySelector('.chart-title');
   if(titleNode) titleNode.textContent = `${displayName} Performance Pivot`;
 
-  const head = `<thead><tr><th scope="col">${safeColumn}</th><th scope="col">Spend</th><th scope="col">Sales</th><th scope="col" class="pivot-acos">ACOS</th></tr></thead>`;
+  const head = `<thead><tr><th scope="col">${safeColumn}</th><th scope="col">Spend</th><th scope="col">Sales</th><th scope="col" class="pivot-acos">ACOS</th><th scope="col" class="pivot-acos-bar" aria-hidden="true"></th></tr></thead>`;
 
   if(!agg || !Array.isArray(agg.labels) || agg.labels.length===0){
-    target.table.innerHTML = head + `<tbody><tr><td colspan="4" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
+    target.table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
     target.table.classList.remove('has-grand-total');
     updatePivotFootSpace(target.table);
     return true;
@@ -1449,22 +1452,24 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const barScale = barMaxPct > 0 ? barMaxPct : 100;
 
   const buildMoneyCell = (value)=>`<td class="pivot-num">${escapeHtml(fmt.money0(value))}</td>`;
-  const buildAcosCell = (value, isTotal=false)=>{
-    if(!isFinite(value)) return '<td class="pivot-acos pivot-acos-empty">—</td>';
+  const buildAcosCells = (value, isTotal=false)=>{
+    if(!isFinite(value)) return '<td class="pivot-acos pivot-acos-empty">—</td><td class="pivot-acos-bar pivot-acos-empty"></td>';
     const pct = value*100;
     const width = Math.max(0, Math.min(100, barScale ? (pct/barScale)*100 : 0));
     const cls = `pivot-amount${isTotal?' pivot-amount-total':''}`;
-    return `<td class="pivot-acos"><div class="pivot-acos-wrap"><span class="${cls}">${pct.toFixed(1)}%</span><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></div></td>`;
+    const valueCell = `<td class="pivot-acos"><span class="${cls}">${pct.toFixed(1)}%</span></td>`;
+    const barCell = `<td class="pivot-acos-bar"><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></td>`;
+    return valueCell + barCell;
   };
 
   const bodyRows = labels.map((label,i)=>{
     const spend=spendVals[i];
     const sales=salesVals[i];
     const acos=acosVals[i];
-    return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spend)}${buildMoneyCell(sales)}${buildAcosCell(acos)}</tr>`;
+    return `<tr><th scope="row">${escapeHtml(label)}</th>${buildMoneyCell(spend)}${buildMoneyCell(sales)}${buildAcosCells(acos)}</tr>`;
   }).join('');
 
-  const totalRow = `<tr class="pivot-total"><th scope="row">Grand Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCell(totalAcos,true)}</tr>`;
+  const totalRow = `<tr class="pivot-total"><th scope="row">Grand Total</th>${buildMoneyCell(totalSpend)}${buildMoneyCell(totalSales)}${buildAcosCells(totalAcos,true)}</tr>`;
 
   target.table.innerHTML = head + `<tbody>${bodyRows}</tbody><tfoot>${totalRow}</tfoot>`;
   target.table.classList.add('has-grand-total');
