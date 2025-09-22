@@ -41,7 +41,13 @@ h1{margin:0;font-weight:800;letter-spacing:.2px}
 button{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;transition:transform .12s, box-shadow .25s, background .2s, border-color .2s}
 button:hover{transform:translateY(-1px)}
 button:disabled{opacity:.5;cursor:not-allowed}
+#resetFilters{display:none}
+.btn-filters{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--chip) 70%, var(--panel));color:var(--text);font-weight:700;box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .25s ease, background .2s ease}
+.btn-filters:hover{background:color-mix(in srgb,var(--chip) 90%, var(--panel));box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.btn-filters:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .btn-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, #000));color:#fff !important;border-color:transparent;box-shadow:0 6px 18px rgba(37,99,235,.25)}
+.btn-success{background:linear-gradient(180deg, var(--ok), color-mix(in srgb, var(--ok) 78%, #000)) !important;color:#fff !important;border-color:color-mix(in srgb, var(--ok) 60%, #000) !important;box-shadow:0 8px 22px color-mix(in srgb, var(--ok) 35%, transparent)}
+.btn-success:hover{box-shadow:0 14px 32px color-mix(in srgb, var(--ok) 45%, transparent);transform:translateY(-2px)}
 .btn-outline{display:inline-flex;align-items:center;gap:8px;background:transparent;border-color:var(--btnText);color:var(--btnText)}
 /* icon-only theme button */
 .btn-mode{display:inline-flex;align-items:center;gap:0;border-radius:14px;padding:10px;border:1px solid var(--modeBtnBg);background:var(--modeBtnBg);color:var(--modeIcon);width:42px;justify-content:center}
@@ -77,11 +83,24 @@ body.has-data #tipPill{display:none !important}
 .months-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
 .month-dd{position:relative}
 .month-dd .dd-control{min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
-.month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:220px;display:none;max-height:340px;overflow:auto}
+.month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:240px;display:none;max-height:360px;overflow:auto}
 .month-dd.open .dd-panel{display:block}
 .month-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 10px}
 .month-row:hover{background:var(--chip)}
 .month-row input{accent-color:var(--accent)}
+.month-custom{padding:10px;border-top:1px solid var(--border);background:color-mix(in srgb,var(--panel) 90%, var(--chip));display:grid;gap:10px}
+.month-custom-btn{width:100%;border:1px dashed var(--border);background:transparent;color:var(--accent);font-weight:700;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:6px}
+.month-custom-btn:hover{background:color-mix(in srgb,var(--chip) 80%, transparent)}
+.month-range-panel{border:1px solid var(--border);border-radius:12px;padding:10px;background:color-mix(in srgb,var(--panel) 85%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent)}
+.month-range-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.month-range-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.month-range-fields input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel);color:var(--text)}
+.month-range-actions{display:flex;gap:8px;margin-top:10px}
+.month-range-apply,.month-range-clear{flex:1;border-radius:9px;font-weight:700}
+.month-range-apply{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(37,99,235,.25)}
+.month-range-apply:hover{box-shadow:0 12px 24px rgba(37,99,235,.3)}
+.month-range-clear{background:transparent;border:1px solid var(--border-strong);color:var(--muted)}
+.month-range-clear:hover{background:color-mix(in srgb,var(--chip) 85%, transparent)}
 
 /* KPIs */
 .kpis{padding:4px clamp(14px,3vw,26px) 8px;display:grid;grid-template-columns:repeat(8,minmax(120px,1fr));gap:10px}
@@ -159,12 +178,16 @@ body.has-data #tipPill{display:none !important}
 .modal-card{width:min(1120px,94vw);max-height:86vh;background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px;overflow:visible}
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
-.filters{display:grid;gap:12px;grid-template-columns:repeat(12, minmax(0,1fr));overflow:visible}
+.modal-card{position:relative}
+.modal-card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 35%, transparent) 0%,transparent 42%,color-mix(in srgb,var(--accent) 28%, transparent) 100%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.modal-head{padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--border-strong)}
+.modal-head h3{margin:0;font-size:20px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--text)}
+.filters{display:grid;gap:14px;grid-template-columns:repeat(12, minmax(0,1fr));overflow:visible;padding:12px;border:1px solid var(--border);border-radius:14px;background:color-mix(in srgb,var(--panel) 90%, var(--chip))}
 .filter{display:grid;gap:6px;min-width:0;grid-column:span 4}
 .filter.grow{grid-column:span 8}
-.filter.date{grid-column:span 6}
 .filter.search{grid-column:span 12}
-.filter label{font-weight:600;color:var(--muted);white-space:nowrap}
+.filter label{font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-size:12px}
+.filter label::after{content:"";display:block;width:18px;height:2px;border-radius:999px;background:var(--accent);margin-top:4px}
 
 /* Multi-select */
 .dd{position:relative}
@@ -188,6 +211,19 @@ body.has-data #tipPill{display:none !important}
 .dd.no-results .dd-list{display:none}
 .dd.no-results .dd-empty{display:block}
 
+/* KPI sparklines */
+.kpi{position:relative;overflow:hidden;transition:transform .18s ease, box-shadow .25s ease}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(15,23,42,.28)}
+.kpi-spark{position:absolute;inset:10px 8px 8px 8px;pointer-events:none;opacity:0;transition:opacity .25s ease}
+.kpi:hover .kpi-spark{opacity:.9}
+.kpi.small .kpi-spark{inset:10px 6px 8px 6px}
+
+/* Pivot animations */
+.pivot-animate-forward{animation:pivotSlideRight .4s ease}
+.pivot-animate-backward{animation:pivotSlideLeft .4s ease}
+@keyframes pivotSlideRight{from{opacity:0;transform:translateX(-24px);}to{opacity:1;transform:translateX(0);}}
+@keyframes pivotSlideLeft{from{opacity:0;transform:translateX(24px);}to{opacity:1;transform:translateX(0);}}
+
 /* responsive */
 @media (max-width:980px){.kpis{grid-template-columns:repeat(4,1fr)}}
 @media (max-width:620px){.kpis{grid-template-columns:repeat(2,1fr)}}
@@ -198,11 +234,11 @@ body.has-data #tipPill{display:none !important}
 <header id="appHeader" class="app-header">
   <div><h1>🔎 Search Terms Analytics</h1></div>
   <div class="actions">
-    <button id="resetFilters" class="btn-outline" style="display:none">Reset</button>
-    <button id="openFilters" class="btn-outline" style="display:none">Filters</button>
-    <button id="pickLocalBtn" class="btn-primary">Open XLSX</button>
+    <button id="resetFilters" class="btn-outline">Reset</button>
+    <button id="openFilters" class="btn-filters" style="display:none">Filters</button>
+    <button id="pickLocalBtn" class="btn-primary btn-success">Open XLSX</button>
     <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
-    <button id="downloadCsvBtn" class="btn-primary" disabled>Download CSV</button>
+    <button id="downloadCsvBtn" class="btn-primary btn-success" disabled>Download CSV</button>
     <button id="themeToggle" class="btn-mode" title="Toggle dark/light" aria-label="Toggle theme"><span class="icon">🌙</span></button>
   </div>
 </header>
@@ -225,7 +261,28 @@ body.has-data #tipPill{display:none !important}
       <div class="months-wrap" id="monthsWrap" hidden>
         <div id="monthFilter" class="month-dd">
           <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
-          <div class="dd-panel"><div id="monthList"></div></div>
+          <div class="dd-panel">
+            <div id="monthList"></div>
+            <div class="month-custom">
+              <button type="button" id="customRangeToggle" class="month-custom-btn">Custom date range…</button>
+              <div id="customRangePanel" class="month-range-panel" hidden>
+                <div class="month-range-fields">
+                  <label>
+                    <span>From</span>
+                    <input type="date" id="customRangeStart" />
+                  </label>
+                  <label>
+                    <span>To</span>
+                    <input type="date" id="customRangeEnd" />
+                  </label>
+                </div>
+                <div class="month-range-actions">
+                  <button type="button" id="customRangeApply" class="month-range-apply">Apply range</button>
+                  <button type="button" id="customRangeClear" class="month-range-clear">Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -237,14 +294,14 @@ body.has-data #tipPill{display:none !important}
 
   <!-- KPIs -->
   <section class="kpis" id="kpiSection" hidden>
-  <div class="kpi"><div class="label">Spend</div><div class="value" id="kpiSpend">—</div></div>
-  <div class="kpi"><div class="label">Sales</div><div class="value" id="kpiRevenue">—</div></div>
-  <div class="kpi small"><div class="label">ACOS</div><div class="value" id="kpiACOS">—</div></div>
-  <div class="kpi"><div class="label">Clicks</div><div class="value" id="kpiClicks">—</div></div>
-  <div class="kpi"><div class="label">Impressions</div><div class="value" id="kpiImpr">—</div></div>
-  <div class="kpi small"><div class="label">CTR</div><div class="value" id="kpiCTR">—</div></div>
-  <div class="kpi"><div class="label">ROAS</div><div class="value" id="kpiROAS">—</div></div>
-  <div class="kpi"><div class="label">Avg CPC</div><div class="value" id="kpiAvgCPC">—</div></div>
+  <div class="kpi" data-kpi="spend"><div class="label">Spend</div><div class="value" id="kpiSpend">—</div></div>
+  <div class="kpi" data-kpi="revenue"><div class="label">Sales</div><div class="value" id="kpiRevenue">—</div></div>
+  <div class="kpi small" data-kpi="acos"><div class="label">ACOS</div><div class="value" id="kpiACOS">—</div></div>
+  <div class="kpi" data-kpi="clicks"><div class="label">Clicks</div><div class="value" id="kpiClicks">—</div></div>
+  <div class="kpi" data-kpi="impressions"><div class="label">Impressions</div><div class="value" id="kpiImpr">—</div></div>
+  <div class="kpi small" data-kpi="ctr"><div class="label">CTR</div><div class="value" id="kpiCTR">—</div></div>
+  <div class="kpi" data-kpi="roas"><div class="label">ROAS</div><div class="value" id="kpiROAS">—</div></div>
+  <div class="kpi" data-kpi="avgcpc"><div class="label">Avg CPC</div><div class="value" id="kpiAvgCPC">—</div></div>
 </section>
 
   <!-- Pivot Table -->
@@ -312,14 +369,6 @@ body.has-data #tipPill{display:none !important}
       <div class="filter" data-col-wrapper="tsub2"><label data-col-label="tsub2" data-default="Targeting Sub Type2">Targeting Sub Type2</label><div id="tsub2MS" class="dd"></div></div>
       <div class="filter grow" data-col-wrapper="campaign"><label data-col-label="campaign" data-default="Campaign Name">Campaign Name</label><div id="campaignMS" class="dd"></div></div>
       <div class="filter grow" data-col-wrapper="portfolio"><label data-col-label="portfolio" data-default="Portfolio Name">Portfolio Name</label><div id="portfolioMS" class="dd"></div></div>
-
-      <div class="filter date"><label>Date Range</label>
-        <div style="display:flex;gap:6px">
-          <input type="text" id="startDate" placeholder="dd-mm-yyyy" inputmode="numeric" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)" />
-          <span class="sep" style="align-self:center;padding:0 6px">—</span>
-          <input type="text" id="endDate" placeholder="dd-mm-yyyy" inputmode="numeric" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)" />
-        </div>
-      </div>
 
       <div class="filter search"><label for="searchFilter">Search Term</label>
         <input id="searchFilter" type="search" placeholder="Type to filter terms…" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)">
@@ -394,12 +443,100 @@ const escapeHtml=s=>String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>
 const debounce=(fn,ms=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
 const toDMY=d=>!(d instanceof Date)?"":`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
 const parseDMY=(s)=>{ if(!s) return null; const m=String(s).match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/); if(!m) return null; const d=new Date(+m[3], +m[2]-1, +m[1]); return isNaN(+d)?null:d; };
+const toInputDate=d=>!(d instanceof Date)?"":`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parseInputDate=s=>{ if(!s) return null; const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return null; const d=new Date(+m[1], +m[2]-1, +m[3]); return isNaN(+d)?null:d; };
+const cloneDate=d=> (d instanceof Date) ? new Date(d.getTime()) : null;
 function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' && isFinite(v)) return v; let s=String(v).trim(); if(/^\(.*\)$/.test(s)) s='-'+s.slice(1,-1); if(/%$/.test(s)){ const num=parseFloat(s.replace(/[%\s,]/g,'')); return isFinite(num)?num/100:0; } s=s.replace(/[$€£₹¥₩]/g,'').replace(/,/g,'').replace(/[^\d.\-]/g,'').trim(); const num=parseFloat(s); return isFinite(num)?num:0; }
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
+function hideCustomRangePanel(){
+  if(el.monthCustomPanel){
+    el.monthCustomPanel.setAttribute('hidden','');
+  }
+  if(el.monthCustomToggle){
+    el.monthCustomToggle.setAttribute('aria-expanded','false');
+  }
+}
+function showCustomRangePanel(){
+  if(!el.monthCustomPanel) return;
+  syncCustomRangeInputs();
+  el.monthCustomPanel.removeAttribute('hidden');
+  if(el.monthCustomToggle){
+    el.monthCustomToggle.setAttribute('aria-expanded','true');
+  }
+}
+function syncCustomRangeInputs(){
+  if(!el.monthCustomStart || !el.monthCustomEnd) return;
+  const {min,max}=state.dateBounds || {};
+  const minStr=toInputDate(min);
+  const maxStr=toInputDate(max);
+  if(minStr){
+    el.monthCustomStart.min=minStr; el.monthCustomEnd.min=minStr;
+  }else{
+    el.monthCustomStart.removeAttribute('min'); el.monthCustomEnd.removeAttribute('min');
+  }
+  if(maxStr){
+    el.monthCustomStart.max=maxStr; el.monthCustomEnd.max=maxStr;
+  }else{
+    el.monthCustomStart.removeAttribute('max'); el.monthCustomEnd.removeAttribute('max');
+  }
+  el.monthCustomStart.value=toInputDate(state.customRange.start);
+  el.monthCustomEnd.value=toInputDate(state.customRange.end);
+}
+function applyCustomRangeFromInputs(){
+  if(!state.hasData) return;
+  const start=parseInputDate(el.monthCustomStart?.value||'');
+  const end=parseInputDate(el.monthCustomEnd?.value||'');
+  if(!start || !end){
+    alert('Please select both start and end dates.');
+    return;
+  }
+  if(start>end){
+    alert('Start date must be on or before end date.');
+    return;
+  }
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+  state.customRange={start,end,active:true};
+  state.monthSel.clear();
+  state.monthDirty=false;
+  el.monthList?.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  if(el.monthDD) el.monthDD.classList.remove('open');
+  syncCustomRangeInputs();
+  hideCustomRangePanel();
+  updateMonthSummary();
+  if(state.hasData){
+    updateAllFilterOptions(null);
+    renderAll();
+  }
+  updateResetButtonVisibility();
+}
+function clearCustomRange(options={}){
+  const {skipRender=false, skipFilters=false}=options;
+  const hadActive = state.customRange.active || state.customRange.start || state.customRange.end;
+  state.customRange={start:null,end:null,active:false};
+  if(el.monthCustomStart) el.monthCustomStart.value='';
+  if(el.monthCustomEnd) el.monthCustomEnd.value='';
+  hideCustomRangePanel();
+  updateMonthSummary();
+  updateResetButtonVisibility();
+  if(!hadActive) return;
+  if(state.hasData && !skipFilters) updateAllFilterOptions(null);
+  if(state.hasData && !skipRender) renderAll();
+}
+function deactivateCustomRange(){
+  if(!state.customRange.active) return;
+  state.customRange.active=false;
+  updateMonthSummary();
+  updateResetButtonVisibility();
+}
+
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview' };
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
+const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, lastTabIndex:0 };
+const TAB_ORDER=['overview','overall','conversion'];
+const kpiSparkCache=new Map();
+let lastKpiSeries=null;
 let pivotLayoutFrame=null;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
 const PIVOT_CONFIG={
@@ -435,16 +572,26 @@ document.addEventListener('DOMContentLoaded', () => {
     el.themeBtn.querySelector('.icon').textContent= light?'🌙':'☀️';
   }
   boot();
-  window.addEventListener('resize', debounce(()=>schedulePivotLayout(),150));
+  window.addEventListener('resize', debounce(()=>{
+    schedulePivotLayout();
+    if(lastKpiSeries) updateKpiSparks(lastKpiSeries);
+  },180));
 });
 
 function setupTabs(){
   if(!el.tabs?.buttons?.length) return;
+  state.lastTabIndex = TAB_ORDER.indexOf(state.activeTab);
   el.tabs.buttons.forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const tab=btn.dataset.tab;
       if(!tab || state.activeTab===tab) return;
+      const prevIndex = TAB_ORDER.indexOf(state.activeTab);
+      const newIndex = TAB_ORDER.indexOf(tab);
       state.activeTab=tab;
+      if(prevIndex>-1 && newIndex>-1 && prevIndex!==newIndex){
+        animatePivot(newIndex>prevIndex?'forward':'backward');
+      }
+      state.lastTabIndex=newIndex;
       updateTabsUI();
       renderAll();
     });
@@ -461,6 +608,19 @@ function updateTabsUI(){
     btn.setAttribute('aria-selected', on?'true':'false');
     btn.setAttribute('tabindex', on?'0':'-1');
   });
+}
+function animatePivot(direction){
+  const target=el.pivot?.section;
+  if(!target) return;
+  target.classList.remove('pivot-animate-forward','pivot-animate-backward');
+  void target.offsetWidth;
+  const cls = direction==='backward'?'pivot-animate-backward':'pivot-animate-forward';
+  target.classList.add(cls);
+  const handler=()=>{
+    target.classList.remove('pivot-animate-forward','pivot-animate-backward');
+    target.removeEventListener('animationend', handler);
+  };
+  target.addEventListener('animationend', handler);
 }
 function getPivotConfig(){ return PIVOT_CONFIG[state.activeTab] || PIVOT_CONFIG.overview; }
 
@@ -498,6 +658,19 @@ function boot(){
       applyMonthFilters();
     }
   });
+  if(el.monthCustomToggle){
+    el.monthCustomToggle.setAttribute('aria-expanded','false');
+    el.monthCustomToggle.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const hidden=el.monthCustomPanel?.hasAttribute('hidden');
+      if(hidden) showCustomRangePanel(); else hideCustomRangePanel();
+    });
+  }
+  if(el.monthCustomPanel){
+    el.monthCustomPanel.addEventListener('click', ev=>ev.stopPropagation());
+  }
+  if(el.monthCustomApply) el.monthCustomApply.addEventListener('click', applyCustomRangeFromInputs);
+  if(el.monthCustomClear) el.monthCustomClear.addEventListener('click', ()=>clearCustomRange());
 
   document.addEventListener('click', (e)=>{
     const monthRoot=el.monthDD;
@@ -516,7 +689,7 @@ function boot(){
 }
 function showLoading(on){ el.status.classList.toggle('show', !!on); el.status.style.display=on?'':'none'; }
 
-function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.textContent='—'; }); }
+function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.textContent='—'; }); lastKpiSeries=null; updateKpiSparks(null); }
 
 function setHasData(has){
   state.hasData=!!has;
@@ -528,6 +701,7 @@ function setHasData(has){
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='inline-flex';
     if(el.dlCsv) el.dlCsv.disabled=false;
     if(el.monthsWrap) el.monthsWrap.hidden = state.monthOptions.length===0;
+    if(el.monthCustomToggle) el.monthCustomToggle.disabled = state.monthOptions.length===0;
     if(el.tabs?.bar) el.tabs.bar.hidden=false;
     if(el.tipPill) el.tipPill.hidden=true;
   }else{
@@ -537,6 +711,7 @@ function setHasData(has){
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='none';
     if(el.dlCsv) el.dlCsv.disabled=true;
     if(el.monthsWrap) el.monthsWrap.hidden=true;
+    if(el.monthCustomToggle) el.monthCustomToggle.disabled=true;
     if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
     state.columns={};
@@ -544,10 +719,15 @@ function setHasData(has){
     state.monthSel.clear();
     state.monthOptions=[];
     state.monthDirty=false;
+    state.customRange={start:null,end:null,active:false};
+    state.dateBounds={min:null,max:null};
     if(el.monthList) el.monthList.innerHTML='';
     syncFilterLabels();
     state.activeTab='overview';
+    state.lastTabIndex=TAB_ORDER.indexOf('overview');
     resetKpis();
+    hideCustomRangePanel();
+    syncCustomRangeInputs();
   }
   updateMonthSummary();
   updateTabsUI();
@@ -672,16 +852,29 @@ async function parseExcel(buf){
 function buildMonths(){
   state.monthDirty=false;
   const dateCol = state.columns.date ? normalize(state.columns.date.name) : null;
-  if(!dateCol){ state.monthOptions=[]; el.monthsWrap.hidden=true; return; }
+  if(!dateCol){
+    state.monthOptions=[];
+    state.dateBounds={min:null,max:null};
+    clearCustomRange({skipRender:true, skipFilters:true});
+    el.monthsWrap.hidden=true;
+    if(el.monthCustomToggle) el.monthCustomToggle.disabled=true;
+    syncCustomRangeInputs();
+    updateMonthSummary();
+    return;
+  }
   const map=new Map();
+  let minDate=null, maxDate=null;
   for(const r of state.rows){
     const d=r[dateCol]; if(!(d instanceof Date)) continue;
+    if(!minDate || d<minDate) minDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    if(!maxDate || d>maxDate) maxDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());
     const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     map.set(ym,(map.get(ym)||0)+1);
   }
   const arr=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
   const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   state.monthOptions=arr.map(([ym,count])=>({ym,label:MONTHS[+ym.slice(5)-1],count}));
+  state.dateBounds={min:minDate,max:maxDate};
   el.monthList.innerHTML=state.monthOptions.map(o=>`
     <label class="month-row">
       <input type="checkbox" value="${o.ym}" ${state.monthSel.has(o.ym)?'checked':''}/>
@@ -693,14 +886,27 @@ function buildMonths(){
       if(cb.checked) state.monthSel.add(cb.value);
       else state.monthSel.delete(cb.value);
       state.monthDirty=true;
+      if(state.customRange.active) deactivateCustomRange();
       updateMonthSummary();
+      updateResetButtonVisibility();
     });
   });
+  if(el.monthCustomToggle) el.monthCustomToggle.disabled = state.monthOptions.length===0;
+  syncCustomRangeInputs();
   updateMonthSummary();
   el.monthsWrap.hidden=state.monthOptions.length===0;
 }
 function updateMonthSummary(){
   const sumEl=el.monthDD.querySelector('.dd-summary');
+  if(!sumEl) return;
+  if(state.customRange.active){
+    const {start,end}=state.customRange;
+    if(start && end) sumEl.textContent=`${toDMY(start)} – ${toDMY(end)}`;
+    else if(start) sumEl.textContent=`From ${toDMY(start)}`;
+    else if(end) sumEl.textContent=`Until ${toDMY(end)}`;
+    else sumEl.textContent='Custom range';
+    return;
+  }
   const n=state.monthSel.size;
   if(n===0){ sumEl.textContent='All'; }
   else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; }
@@ -708,18 +914,19 @@ function updateMonthSummary(){
 }
 function applyMonthFilters(force=false){
   if(!state.hasData) return;
+  hideCustomRangePanel();
   if(force || state.monthDirty){
     state.monthDirty=false;
     updateAllFilterOptions(null);
     renderAll();
   }
+  updateResetButtonVisibility();
 }
 
 function hasActiveFilters(){
   if(!state.hasData) return false;
   if(state.monthSel.size) return true;
-  if(el.start && el.start.value.trim()) return true;
-  if(el.end && el.end.value.trim()) return true;
+  if(state.customRange.active) return true;
   if(el.search && el.search.value.trim()) return true;
   for(const root of Object.values(el.dd||{})){
     if(!root) continue;
@@ -834,15 +1041,10 @@ function initFilters(){
   syncFilterLabels();
   Object.values(el.dd).forEach(root=>root && ddBuild(root));
   buildOptionsAll();
-
-  const dateKey = state.columns.date ? normalize(state.columns.date.name) : null;
-  if(dateKey){
-    const dates = state.rows.map(r=>r[dateKey]).filter(Boolean).sort((a,b)=>a-b);
-    el.start.value = dates[0]?toDMY(dates[0]):'';
-    el.end.value   = dates[dates.length-1]?toDMY(dates[dates.length-1]):'';
-  }else{ el.start.value=''; el.end.value=''; }
-  [el.start,el.end].forEach(n=>n.addEventListener('input', debounce(()=>{ const d=parseDMY(n.value); if(d) n.value=toDMY(d); updateAllFilterOptions(null); },150)));
-  el.search.addEventListener('input', debounce(()=>updateAllFilterOptions(null),150));
+  if(el.search){
+    el.search.value='';
+    el.search.addEventListener('input', debounce(()=>updateAllFilterOptions(null),150));
+  }
 
   el.filters.hidden=false;
 }
@@ -879,8 +1081,11 @@ function activeSelections(excludeRoot){
     const vals=ddGetSelected(root); if(vals.length) act[keyOf(k)] = new Set(vals.map(String));
   });
   const dateKey=keyOf('date');
-  const from=dateKey && parseDMY(el.start.value);
-  const to=dateKey && parseDMY(el.end.value); if(to) to.setHours(23,59,59,999);
+  let from=null, to=null;
+  if(dateKey && state.customRange.active){
+    from=cloneDate(state.customRange.start); if(from) from.setHours(0,0,0,0);
+    to=cloneDate(state.customRange.end); if(to) to.setHours(23,59,59,999);
+  }
   const monthSet=new Set(state.monthSel);
   return {act,dateKey,from,to,termKey:keyOf('term'),monthSet};
 }
@@ -924,7 +1129,44 @@ function computeKPIs(rows){
   const avgcpc = C>0 ? S/C : NaN;
   return {I,C,R,S,ctr,acos,roas,avgcpc};
 }
-function renderKPIs(x){
+function buildKpiSeries(rows){
+  const series={spend:[], revenue:[], acos:[], clicks:[], impressions:[], ctr:[], roas:[], avgcpc:[]};
+  const dateCol=state.columns.date ? normalize(state.columns.date.name) : null;
+  if(!Array.isArray(rows) || !rows.length || !dateCol) return series;
+  const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
+  const revenueKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
+  const clicksKey = state.columns.clicks ? normalize(state.columns.clicks.name) : null;
+  const imprKey = state.columns.impressions ? normalize(state.columns.impressions.name) : null;
+  const hasSpend=!!spendKey, hasRevenue=!!revenueKey, hasClicks=!!clicksKey, hasImpr=!!imprKey;
+  const buckets=new Map();
+  for(const row of rows){
+    const d=row[dateCol];
+    if(!(d instanceof Date)) continue;
+    const key=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    let bucket=buckets.get(key);
+    if(!bucket){
+      bucket={date:new Date(d.getFullYear(),d.getMonth(),d.getDate()), spend:0,revenue:0,clicks:0,impressions:0};
+      buckets.set(key,bucket);
+    }
+    if(hasSpend) bucket.spend += +row[spendKey]||0;
+    if(hasRevenue) bucket.revenue += +row[revenueKey]||0;
+    if(hasClicks) bucket.clicks += +row[clicksKey]||0;
+    if(hasImpr) bucket.impressions += +row[imprKey]||0;
+  }
+  const sorted=[...buckets.values()].sort((a,b)=>a.date-b.date);
+  for(const entry of sorted){
+    if(hasSpend) series.spend.push(entry.spend);
+    if(hasRevenue) series.revenue.push(entry.revenue);
+    if(hasSpend && hasRevenue) series.acos.push(entry.revenue>0 ? entry.spend/entry.revenue : NaN);
+    if(hasClicks) series.clicks.push(entry.clicks);
+    if(hasImpr) series.impressions.push(entry.impressions);
+    if(hasClicks && hasImpr) series.ctr.push(entry.impressions>0 ? entry.clicks/entry.impressions : NaN);
+    if(hasSpend && hasRevenue) series.roas.push(entry.spend>0 ? entry.revenue/entry.spend : NaN);
+    if(hasSpend && hasClicks) series.avgcpc.push(entry.clicks>0 ? entry.spend/entry.clicks : NaN);
+  }
+  return series;
+}
+function renderKPIs(x, series){
   el.kpi.spend.textContent   = fmt.money0(x.S);
   el.kpi.revenue.textContent = fmt.money0(x.R);
   el.kpi.acos.textContent    = isFinite(x.acos) ? (x.acos*100).toFixed(2)+'%' : '—';
@@ -933,6 +1175,89 @@ function renderKPIs(x){
   el.kpi.ctr.textContent     = isFinite(x.ctr) ? (x.ctr*100).toFixed(2)+'%' : '—';
   el.kpi.roas.textContent    = isFinite(x.roas) ? x.roas.toFixed(2)+'x' : '—';
   el.kpi.avgcpc.textContent  = isFinite(x.avgcpc) ? fmt.money(x.avgcpc) : '—';
+  lastKpiSeries = series || null;
+  updateKpiSparks(series);
+}
+function ensureKpiSparklines(){
+  if(!el.kpis) return;
+  const cards=el.kpis.querySelectorAll('.kpi[data-kpi]');
+  cards.forEach(card=>{
+    const key=card.getAttribute('data-kpi');
+    if(!key || kpiSparkCache.has(key)) return;
+    const canvas=document.createElement('canvas');
+    canvas.className='kpi-spark';
+    card.appendChild(canvas);
+    const ctx=canvas.getContext('2d');
+    kpiSparkCache.set(key,{card,canvas,ctx});
+  });
+}
+function drawKpiSpark(meta, values){
+  const {card,canvas,ctx}=meta||{};
+  if(!card || !canvas || !ctx){ return; }
+  const width=Math.max(60, card.clientWidth-16);
+  const height=Math.max(40, card.clientHeight-22);
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.round(width*dpr);
+  canvas.height=Math.round(height*dpr);
+  canvas.style.width=`${width}px`;
+  canvas.style.height=`${height}px`;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+  const arr=Array.isArray(values)?values.filter(v=>Number.isFinite(v)):[];
+  if(arr.length===0){ return; }
+  let min=Math.min(...arr);
+  let max=Math.max(...arr);
+  if(!Number.isFinite(min) || !Number.isFinite(max)){ return; }
+  if(max===min){
+    const pad=Math.abs(max||1)*0.05 || 1;
+    min-=pad; max+=pad;
+  }else{
+    const pad=(max-min)*0.08;
+    min-=pad; max+=pad;
+  }
+  const points=[];
+  const step=arr.length>1 ? width/(arr.length-1) : width/2;
+  let idx=0;
+  values.forEach(val=>{
+    if(!Number.isFinite(val)) return;
+    const x=arr.length>1 ? idx*step : width/2;
+    const ratio=(val-min)/(max-min);
+    const y=height - Math.max(0, Math.min(1, ratio))*height;
+    points.push({x,y});
+    idx++;
+  });
+  const accent=getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#2563eb';
+  ctx.lineWidth=2.4;
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+  ctx.strokeStyle=accent;
+  if(points.length<=1){
+    const y=points.length?points[0].y:height/2;
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(width,y);
+    ctx.stroke();
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for(let i=1;i<points.length-1;i++){
+    const xc=(points[i].x+points[i+1].x)/2;
+    const yc=(points[i].y+points[i+1].y)/2;
+    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+  }
+  ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+  ctx.stroke();
+}
+function updateKpiSparks(series){
+  ensureKpiSparklines();
+  const metrics=['spend','revenue','acos','clicks','impressions','ctr','roas','avgcpc'];
+  metrics.forEach(key=>{
+    const meta=kpiSparkCache.get(key);
+    if(!meta) return;
+    const values=series && Array.isArray(series[key]) ? series[key] : [];
+    drawKpiSpark(meta, values);
+  });
 }
 
 function finalizeAgg(map){
@@ -1216,7 +1541,8 @@ function hideUnusedPivotSlots(activeSlots){
 /* ===== render & CSV ===== */
 function renderAll(){
   const rows=getFilteredRows();
-  renderKPIs(computeKPIs(rows));
+  const series=buildKpiSeries(rows);
+  renderKPIs(computeKPIs(rows), series);
 
   const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
   const salesKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
@@ -1274,9 +1600,12 @@ function snapshotFilters(){
     if(col && col.aliasOf) return;
     snap[key]=ddGetSelected(root);
   });
-  snap.start=el.start.value;
-  snap.end=el.end.value;
   snap.search=el.search.value;
+  snap.customRange={
+    active:state.customRange.active,
+    start:state.customRange.start?toInputDate(state.customRange.start):'',
+    end:state.customRange.end?toInputDate(state.customRange.end):''
+  };
   state.snapshot=snap;
 }
 function restoreSnapshot(){
@@ -1290,21 +1619,45 @@ function restoreSnapshot(){
     ddUpdateSummary(root);
     ddSyncSelectAll(root);
   });
-  el.start.value=s.start??'';
-  el.end.value=s.end??'';
   el.search.value=s.search??'';
+  if(s.customRange){
+    const start=parseInputDate(s.customRange.start);
+    const end=parseInputDate(s.customRange.end);
+    state.customRange={
+      active:!!s.customRange.active && (start||end),
+      start:start||null,
+      end:end||null
+    };
+    if(state.customRange.active) state.monthSel.clear();
+    syncCustomRangeInputs();
+    updateMonthSummary();
+  }
   updateAllFilterOptions(null);
+  updateResetButtonVisibility();
 }
 function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); el.modal.setAttribute('aria-hidden','false'); }
 function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); }
 function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); renderAll(); }
-function clearAllFilters(){ Object.values(el.dd).forEach(root=> root && root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=false)); el.start.value=''; el.end.value=''; el.search.value=''; updateAllFilterOptions(null); }
+function clearAllFilters(){
+  Object.values(el.dd).forEach(root=>{
+    if(!root) return;
+    root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=false);
+    ddUpdateSummary(root);
+    ddSyncSelectAll(root);
+  });
+  clearCustomRange({skipRender:true, skipFilters:true});
+  el.search.value='';
+  updateAllFilterOptions(null);
+  updateMonthSummary();
+  updateResetButtonVisibility();
+}
 
 function resetFiltersAndApply(){
   if(!state.hasData) return;
   if(!hasActiveFilters()) return;
   state.monthSel.clear();
   state.monthDirty=false;
+  clearCustomRange({skipRender:true, skipFilters:true});
   updateMonthSummary();
   if(el.monthDD) el.monthDD.classList.remove('open');
   clearAllFilters();
