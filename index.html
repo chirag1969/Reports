@@ -42,9 +42,9 @@ button{border:1px solid var(--border);background:var(--panel);color:var(--text);
 button:hover{transform:translateY(-1px)}
 button:disabled{opacity:.5;cursor:not-allowed}
 #resetFilters{display:none}
-.btn-filters{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--chip) 70%, var(--panel));color:var(--text);font-weight:700;box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .25s ease, background .2s ease}
-.btn-filters:hover{background:color-mix(in srgb,var(--chip) 90%, var(--panel));box-shadow:0 12px 28px rgba(0,0,0,.28)}
-.btn-filters:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.btn-filters,.btn-reset{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--chip) 70%, var(--panel));color:var(--text);font-weight:700;box-shadow:var(--shadow);transition:transform .15s ease, box-shadow .25s ease, background .2s ease}
+.btn-filters:hover,.btn-reset:hover{background:color-mix(in srgb,var(--chip) 90%, var(--panel));box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.btn-filters:focus-visible,.btn-reset:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .btn-primary{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 85%, #000));color:#fff !important;border-color:transparent;box-shadow:0 6px 18px rgba(37,99,235,.25)}
 .btn-success{background:linear-gradient(180deg, var(--ok), color-mix(in srgb, var(--ok) 78%, #000)) !important;color:#fff !important;border-color:color-mix(in srgb, var(--ok) 60%, #000) !important;box-shadow:0 8px 22px color-mix(in srgb, var(--ok) 35%, transparent)}
 .btn-success:hover{box-shadow:0 14px 32px color-mix(in srgb, var(--ok) 45%, transparent);transform:translateY(-2px)}
@@ -236,7 +236,7 @@ body.has-data #tipPill{display:none !important}
 <header id="appHeader" class="app-header">
   <div><h1>🔎 Search Terms Analytics</h1></div>
   <div class="actions">
-    <button id="resetFilters" class="btn-outline">Reset</button>
+    <button id="resetFilters" class="btn-reset">Reset</button>
     <button id="openFilters" class="btn-filters" style="display:none">Filters</button>
     <button id="pickLocalBtn" class="btn-primary btn-success">Open XLSX</button>
     <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
@@ -1666,6 +1666,7 @@ function resetFiltersAndApply(){
   if(!state.hasData) return;
   if(!hasActiveFilters()) return;
   state.monthSel.clear();
+  el.monthList?.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
   state.monthDirty=false;
   clearCustomRange({skipRender:true, skipFilters:true});
   updateMonthSummary();
