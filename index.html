@@ -336,6 +336,49 @@ body.has-data #tipPill{display:none !important}
 <script>
 'use strict';
 
+function ensureConversionElements(){
+  const tabsList=document.getElementById('pivotTabs');
+  if(tabsList && !tabsList.querySelector('[data-tab="conversion"]')){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='pivot-tab';
+    btn.dataset.tab='conversion';
+    btn.setAttribute('role','tab');
+    btn.setAttribute('aria-selected','false');
+    btn.setAttribute('tabindex','-1');
+    btn.textContent='ST/ASIN Conversion';
+    tabsList.appendChild(btn);
+  }
+
+  const pivotSection=document.getElementById('pivotSection');
+  if(!pivotSection) return;
+
+  const ensureCard=(cardId,title,tableId)=>{
+    let card=document.getElementById(cardId);
+    if(card) return card;
+    card=document.createElement('div');
+    card.id=cardId;
+    card.className='chart-card pivot-card pivot-conversion';
+    const titleNode=document.createElement('div');
+    titleNode.className='chart-title';
+    titleNode.textContent=title;
+    const body=document.createElement('div');
+    body.className='pivot-body';
+    const table=document.createElement('table');
+    table.id=tableId;
+    table.className='pivot-table';
+    body.appendChild(table);
+    card.appendChild(titleNode);
+    card.appendChild(body);
+    pivotSection.appendChild(card);
+    return card;
+  };
+
+  ensureCard('pivotConversionStCard','Customer Search Term (ST) Performance Pivot','pivotTableConversionSt');
+  ensureCard('pivotConversionAsinCard','Customer Search Term (ASIN) Performance Pivot','pivotTableConversionAsin');
+}
+ensureConversionElements();
+
 /* ===== helpers ===== */
 const fmt={
   int:n=>isFinite(n)?n.toLocaleString():"—",
