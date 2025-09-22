@@ -1935,6 +1935,27 @@ function pivotSortWeight(value){
 
 }
 
+function setPivotNote(card, text){
+  if(!card) return;
+  const message=(text==null?'':String(text)).trim();
+  let note=card.querySelector('.pivot-note');
+  if(!message){
+    if(note) note.remove();
+    return;
+  }
+  if(!note){
+    note=document.createElement('div');
+    note.className='pivot-note';
+    const body=card.querySelector('.pivot-body');
+    if(body && body.parentNode===card){
+      card.insertBefore(note, body);
+    }else{
+      card.appendChild(note);
+    }
+  }
+  note.textContent=message;
+}
+
 function renderPivotCard(target, columnLabel, agg, hasColumn){
   if(!target || !target.card || !target.table) return false;
   if(!hasColumn){
