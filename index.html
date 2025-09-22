@@ -77,29 +77,12 @@ body.has-data #tipPill{display:none !important}
 .months-wrap{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
 #clearMonth{display:none;border-radius:10px;padding:6px 9px}
 .month-dd{position:relative}
-.month-dd .dd-control{min-width:200px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
-.month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:240px;display:none;max-height:360px;overflow:hidden;flex-direction:column}
-.month-dd.open .dd-panel{display:flex}
-.month-dd #monthList{flex:1;overflow:auto}
-.month-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 12px}
+.month-dd .dd-control{min-width:160px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:var(--panel);cursor:pointer}
+.month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:220px;display:none;max-height:340px;overflow:auto}
+.month-dd.open .dd-panel{display:block}
+.month-row{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:8px 10px}
 .month-row:hover{background:var(--chip)}
 .month-row input{accent-color:var(--accent)}
-.month-custom{border-top:1px solid var(--border);padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--panel);position:sticky;bottom:0;z-index:0}
-.month-custom-btn{border:1px dashed var(--border);background:var(--chip);color:var(--text);padding:8px 12px;border-radius:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,border-color .2s}
-.month-custom-btn:hover{background:color-mix(in srgb,var(--chip) 82%,var(--text) 8%);border-color:color-mix(in srgb,var(--border) 70%,var(--accent) 30%)}
-.month-custom-summary{font-size:12px;color:var(--muted);text-align:center;line-height:1.3}
-.month-custom-clear{align-self:center;border:0;background:transparent;color:var(--danger);font-weight:600;font-size:12px;padding:4px 6px;border-radius:8px;cursor:pointer}
-.month-custom-clear:hover{background:color-mix(in srgb,var(--danger) 18%,var(--panel));color:color-mix(in srgb,var(--danger) 88%,#fff 12%)}
-.month-custom-form{padding:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:12px;background:color-mix(in srgb,var(--panel) 92%,var(--chip) 8%);position:sticky;bottom:0;z-index:1}
-.month-custom-fields{display:flex;flex-direction:column;gap:8px}
-.month-custom-fields label{display:flex;flex-direction:column;gap:6px;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.3px}
-.month-custom-fields input{border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:var(--panel);color:var(--text)}
-.month-custom-fields input:focus{outline:2px solid var(--accent);outline-offset:2px}
-.month-custom-actions{display:flex;justify-content:flex-end;gap:8px}
-.month-custom-cancel{border:1px solid var(--border);background:var(--chip);color:var(--text);border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer}
-.month-custom-cancel:hover{background:color-mix(in srgb,var(--chip) 82%,var(--text) 10%)}
-.month-custom-apply{border:0;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));color:#fff;border-radius:10px;padding:8px 14px;font-weight:700;cursor:pointer}
-.month-custom-apply:hover{filter:brightness(1.05)}
 
 /* KPIs */
 .kpis{padding:4px clamp(14px,3vw,26px) 8px;display:grid;grid-template-columns:repeat(8,minmax(120px,1fr));gap:10px}
@@ -145,13 +128,11 @@ body.has-data #tipPill{display:none !important}
 .pivot-table tfoot td{text-align:right}
 .pivot-table tfoot td.pivot-acos{padding-right:12px}
 .pivot-table tfoot td .pivot-amount-total{font-weight:800}
-.pivot-table td.pivot-acos{color:var(--text);vertical-align:top;text-align:right;padding-top:12px}
+.pivot-table td.pivot-acos{color:var(--text);vertical-align:middle;text-align:right}
 .pivot-table td.pivot-acos .pivot-amount{display:inline-block;min-width:56px;text-align:right;font-weight:600}
 .pivot-table td.pivot-acos.pivot-acos-empty{color:var(--muted)}
-.pivot-acos-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;width:100%}
-.pivot-acos-label{font-size:11px;font-weight:700;letter-spacing:.3px;color:var(--muted);text-transform:uppercase}
-.pivot-acos-track{display:flex;align-items:center;gap:10px;width:100%}
-.pivot-acos-track .pivot-bar{flex:1}
+.pivot-acos-wrap{display:flex;align-items:center;gap:12px;width:100%}
+.pivot-acos-wrap .pivot-bar{flex:1}
 .pivot-bar-fill.acos{background:linear-gradient(90deg,rgba(239,68,68,.9),rgba(220,38,38,.95))}
 .pivot-table tr.pivot-total th,.pivot-table tr.pivot-total td{font-weight:800}
 .pivot-empty{text-align:center;padding:24px 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
@@ -175,19 +156,15 @@ body.has-data #tipPill{display:none !important}
 /* Modal (filters) */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:50}
 .modal.open{display:flex}
-.modal-card{width:min(1120px,94vw);max-height:86vh;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 96%,var(--chip) 4%),var(--panel));border:1px solid var(--border-strong);border-radius:18px;box-shadow:var(--shadow);padding:22px;overflow:visible;position:relative}
-.modal-card::after{content:"";position:absolute;inset:18px;border-radius:14px;border:1px solid rgba(255,255,255,.04);pointer-events:none}
-.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-.modal-head h3{margin:0;font-size:20px;letter-spacing:.4px}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:16px;border-top:1px solid var(--border)}
-.filters{display:grid;gap:12px;grid-template-columns:repeat(12, minmax(0,1fr));overflow:visible;padding:12px;background:color-mix(in srgb,var(--panel) 92%,var(--chip) 8%);border-radius:16px}
-.filter{display:grid;gap:8px;min-width:0;grid-column:span 4;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--panel);box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+.modal-card{width:min(1120px,94vw);max-height:86vh;background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:18px;overflow:visible}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.filters{display:grid;gap:12px;grid-template-columns:repeat(12, minmax(0,1fr));overflow:visible}
+.filter{display:grid;gap:6px;min-width:0;grid-column:span 4}
 .filter.grow{grid-column:span 8}
 .filter.date{grid-column:span 6}
 .filter.search{grid-column:span 12}
-.filter label{font-weight:700;color:var(--muted);white-space:nowrap;text-transform:uppercase;font-size:11px;letter-spacing:.35px}
-.filter-input{width:100%;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text);transition:border-color .2s, box-shadow .2s}
-.filter-input:focus{outline:2px solid var(--accent);outline-offset:2px}
+.filter label{font-weight:600;color:var(--muted);white-space:nowrap}
 
 /* Multi-select */
 .dd{position:relative}
@@ -248,30 +225,7 @@ body.has-data #tipPill{display:none !important}
         <button id="clearMonth" title="Clear months">✕</button>
         <div id="monthFilter" class="month-dd">
           <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
-          <div class="dd-panel">
-            <div id="monthList"></div>
-            <div id="monthCustomControls" class="month-custom">
-              <button type="button" id="monthCustomBtn" class="month-custom-btn">➕ Custom Range</button>
-              <div id="monthCustomSummary" class="month-custom-summary" hidden></div>
-              <button type="button" id="monthCustomClear" class="month-custom-clear" hidden>Clear</button>
-            </div>
-            <div id="monthCustomForm" class="month-custom-form" hidden>
-              <div class="month-custom-fields">
-                <label>
-                  <span>Start</span>
-                  <input type="date" id="monthCustomStart" />
-                </label>
-                <label>
-                  <span>End</span>
-                  <input type="date" id="monthCustomEnd" />
-                </label>
-              </div>
-              <div class="month-custom-actions">
-                <button type="button" id="monthCustomCancel" class="month-custom-cancel">Cancel</button>
-                <button type="button" id="monthCustomApply" class="month-custom-apply">Apply</button>
-              </div>
-            </div>
-          </div>
+          <div class="dd-panel"><div id="monthList"></div></div>
         </div>
       </div>
     </div>
@@ -359,8 +313,16 @@ body.has-data #tipPill{display:none !important}
       <div class="filter grow" data-col-wrapper="campaign"><label data-col-label="campaign" data-default="Campaign Name">Campaign Name</label><div id="campaignMS" class="dd"></div></div>
       <div class="filter grow" data-col-wrapper="portfolio"><label data-col-label="portfolio" data-default="Portfolio Name">Portfolio Name</label><div id="portfolioMS" class="dd"></div></div>
 
+      <div class="filter date"><label>Date Range</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="startDate" placeholder="dd-mm-yyyy" inputmode="numeric" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)" />
+          <span class="sep" style="align-self:center;padding:0 6px">—</span>
+          <input type="text" id="endDate" placeholder="dd-mm-yyyy" inputmode="numeric" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)" />
+        </div>
+      </div>
+
       <div class="filter search"><label for="searchFilter">Search Term</label>
-        <input id="searchFilter" class="filter-input" type="search" placeholder="Type to filter terms…">
+        <input id="searchFilter" type="search" placeholder="Type to filter terms…" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)">
       </div>
     </section>
 
@@ -431,12 +393,13 @@ const normalize=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
 const escapeHtml=s=>String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const debounce=(fn,ms=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
 const toDMY=d=>!(d instanceof Date)?"":`${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+const parseDMY=(s)=>{ if(!s) return null; const m=String(s).match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/); if(!m) return null; const d=new Date(+m[3], +m[2]-1, +m[1]); return isNaN(+d)?null:d; };
 function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' && isFinite(v)) return v; let s=String(v).trim(); if(/^\(.*\)$/.test(s)) s='-'+s.slice(1,-1); if(/%$/.test(s)){ const num=parseFloat(s.replace(/[%\s,]/g,'')); return isFinite(num)?num/100:0; } s=s.replace(/[$€£₹¥₩]/g,'').replace(/,/g,'').replace(/[^\d.\-]/g,'').trim(); const num=parseFloat(s); return isFinite(num)?num:0; }
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),monthCustom:{container:document.getElementById('monthCustomControls'),btn:document.getElementById('monthCustomBtn'),summary:document.getElementById('monthCustomSummary'),clear:document.getElementById('monthCustomClear'),form:document.getElementById('monthCustomForm'),start:document.getElementById('monthCustomStart'),end:document.getElementById('monthCustomEnd'),apply:document.getElementById('monthCustomApply'),cancel:document.getElementById('monthCustomCancel')},tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, customRange:null, dateBounds:{min:null,max:null}, snapshot:{}, hasData:false, activeTab:'overview' };
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview' };
 let pivotLayoutFrame=null;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
 const PIVOT_CONFIG={
@@ -531,53 +494,23 @@ function boot(){
     if(!wasOpen){
       clampPanelRight(el.monthDD.querySelector('.dd-panel'));
     }else{
-      closeMonthCustomForm();
       applyMonthFilters();
     }
   });
   el.clearMonthBtn.addEventListener('click', ()=>{
-    if(!state.monthSel.size && !state.customRange) return;
+    if(!state.monthSel.size) return;
     state.monthSel.clear();
     state.monthDirty=false;
-    state.customRange=null;
-    closeMonthCustomForm();
-    if(el.monthList) el.monthList.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
     updateMonthSummary();
     el.monthDD.classList.remove('open');
     applyMonthFilters(true);
   });
-
-  if(el.monthCustom?.btn){
-    el.monthCustom.btn.addEventListener('click', ()=>{
-      if(el.monthCustom.form?.hidden){
-        openMonthCustomForm();
-      }else{
-        closeMonthCustomForm();
-      }
-    });
-  }
-  if(el.monthCustom?.cancel){
-    el.monthCustom.cancel.addEventListener('click', ()=>{
-      closeMonthCustomForm();
-    });
-  }
-  if(el.monthCustom?.apply){
-    el.monthCustom.apply.addEventListener('click', applyCustomRange);
-  }
-  if(el.monthCustom?.clear){
-    el.monthCustom.clear.addEventListener('click', ()=>{
-      if(!state.customRange) return;
-      clearCustomRange(true);
-      closeMonthCustomForm();
-    });
-  }
 
   document.addEventListener('click', (e)=>{
     const monthRoot=el.monthDD;
     const clickedMonth=e.target.closest('.month-dd');
     if(monthRoot && !clickedMonth && monthRoot.classList.contains('open')){
       monthRoot.classList.remove('open');
-      closeMonthCustomForm();
       applyMonthFilters();
     }
     const dd=e.target.closest('.dd'); document.querySelectorAll('.dd.open').forEach(d=>{ if(d!==dd) d.classList.remove('open');});
@@ -618,8 +551,6 @@ function setHasData(has){
     state.monthSel.clear();
     state.monthOptions=[];
     state.monthDirty=false;
-    state.customRange=null;
-    state.dateBounds={min:null,max:null};
     if(el.monthList) el.monthList.innerHTML='';
     syncFilterLabels();
     state.activeTab='overview';
@@ -747,33 +678,12 @@ async function parseExcel(buf){
 function buildMonths(){
   state.monthDirty=false;
   const dateCol = state.columns.date ? normalize(state.columns.date.name) : null;
-  if(!dateCol){
-    state.monthOptions=[];
-    state.dateBounds={min:null,max:null};
-    state.customRange=null;
-    if(el.monthList) el.monthList.innerHTML='';
-    el.monthsWrap.hidden=true;
-    updateMonthSummary();
-    return;
-  }
+  if(!dateCol){ state.monthOptions=[]; el.monthsWrap.hidden=true; return; }
   const map=new Map();
-  let minDate=null,maxDate=null;
   for(const r of state.rows){
     const d=r[dateCol]; if(!(d instanceof Date)) continue;
-    const base=new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    if(!minDate || base<minDate) minDate=base;
-    if(!maxDate || base>maxDate) maxDate=base;
-    const ym=`${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}`;
+    const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     map.set(ym,(map.get(ym)||0)+1);
-  }
-  state.dateBounds={min:minDate,max:maxDate};
-  if(map.size===0){
-    state.monthOptions=[];
-    state.customRange=null;
-    if(el.monthList) el.monthList.innerHTML='';
-    el.monthsWrap.hidden=true;
-    updateMonthSummary();
-    return;
   }
   const arr=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
   const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -788,7 +698,6 @@ function buildMonths(){
     cb.addEventListener('change', ()=>{
       if(cb.checked) state.monthSel.add(cb.value);
       else state.monthSel.delete(cb.value);
-      if(state.customRange) clearCustomRange(false);
       state.monthDirty=true;
       updateMonthSummary();
     });
@@ -796,49 +705,12 @@ function buildMonths(){
   updateMonthSummary();
   el.monthsWrap.hidden=state.monthOptions.length===0;
 }
-function formatRangeLabel(range){
-  if(!range) return '';
-  const hasFrom=range.from instanceof Date;
-  const hasTo=range.to instanceof Date;
-  const fromLabel=hasFrom ? toDMY(range.from) : null;
-  const toLabel=hasTo ? toDMY(range.to) : null;
-  if(hasFrom && hasTo) return `${fromLabel} — ${toLabel}`;
-  if(hasFrom) return `${fromLabel} →`;
-  if(hasTo) return `→ ${toLabel}`;
-  return 'Custom Range';
-}
-function updateMonthCustomSummary(){
-  if(!el.monthCustom) return;
-  const summaryEl=el.monthCustom.summary;
-  const clearBtn=el.monthCustom.clear;
-  const btn=el.monthCustom.btn;
-  if(!summaryEl || !clearBtn || !btn) return;
-  if(state.customRange){
-    summaryEl.textContent=formatRangeLabel(state.customRange);
-    summaryEl.hidden=false;
-    clearBtn.hidden=false;
-    btn.textContent='✎ Edit Range';
-  }else{
-    summaryEl.hidden=true;
-    clearBtn.hidden=true;
-    btn.textContent='➕ Custom Range';
-  }
-}
 function updateMonthSummary(){
   const sumEl=el.monthDD.querySelector('.dd-summary');
-  if(!sumEl){ updateMonthCustomSummary(); return; }
-  const range=state.customRange;
-  if(range){
-    sumEl.textContent=formatRangeLabel(range);
-    if(el.clearMonthBtn) el.clearMonthBtn.style.display='inline-block';
-    updateMonthCustomSummary();
-    return;
-  }
   const n=state.monthSel.size;
-  if(n===0){ sumEl.textContent='All'; if(el.clearMonthBtn) el.clearMonthBtn.style.display='none'; }
-  else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; if(el.clearMonthBtn) el.clearMonthBtn.style.display='inline-block'; }
-  else { sumEl.textContent=`${n} months`; if(el.clearMonthBtn) el.clearMonthBtn.style.display='inline-block'; }
-  updateMonthCustomSummary();
+  if(n===0){ sumEl.textContent='All'; el.clearMonthBtn.style.display='none'; }
+  else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; el.clearMonthBtn.style.display='inline-block'; }
+  else { sumEl.textContent=`${n} months`; el.clearMonthBtn.style.display='inline-block'; }
 }
 function applyMonthFilters(force=false){
   if(!state.hasData) return;
@@ -846,83 +718,6 @@ function applyMonthFilters(force=false){
     state.monthDirty=false;
     updateAllFilterOptions(null);
     renderAll();
-  }
-}
-
-function toInputDateValue(date){
-  if(!(date instanceof Date)) return '';
-  const y=date.getFullYear();
-  const m=String(date.getMonth()+1).padStart(2,'0');
-  const d=String(date.getDate()).padStart(2,'0');
-  return `${y}-${m}-${d}`;
-}
-function openMonthCustomForm(){
-  if(!el.monthCustom?.form) return;
-  el.monthCustom.form.hidden=false;
-  const startField=el.monthCustom.start;
-  const endField=el.monthCustom.end;
-  const existing=state.customRange;
-  const bounds=state.dateBounds||{};
-  const defaultStart = existing?.from || bounds.min;
-  const defaultEndRaw = existing?.to ? new Date(existing.to.getFullYear(), existing.to.getMonth(), existing.to.getDate()) : bounds.max;
-  if(startField){
-    startField.min = bounds.min ? toInputDateValue(bounds.min) : '';
-    startField.max = bounds.max ? toInputDateValue(bounds.max) : '';
-  }
-  if(endField){
-    endField.min = bounds.min ? toInputDateValue(bounds.min) : '';
-    endField.max = bounds.max ? toInputDateValue(bounds.max) : '';
-  }
-  if(startField) startField.value = existing?.from ? toInputDateValue(existing.from) : (defaultStart ? toInputDateValue(defaultStart) : '');
-  if(endField) endField.value = existing?.to ? toInputDateValue(new Date(existing.to.getFullYear(), existing.to.getMonth(), existing.to.getDate())) : (defaultEndRaw ? toInputDateValue(defaultEndRaw) : '');
-  if(startField) startField.focus();
-}
-function closeMonthCustomForm(){
-  if(!el.monthCustom?.form) return;
-  el.monthCustom.form.hidden=true;
-}
-function parseInputDateValue(value){
-  if(!value) return null;
-  const parts=value.split('-');
-  if(parts.length!==3) return null;
-  const [y,m,d]=parts.map(Number);
-  if(!y || !m || !d) return null;
-  const date=new Date(y,m-1,d);
-  return isNaN(+date)?null:date;
-}
-function applyCustomRange(){
-  if(!el.monthCustom) return;
-  const startValue=el.monthCustom.start?.value||'';
-  const endValue=el.monthCustom.end?.value||'';
-  const startDate=parseInputDateValue(startValue);
-  const endDate=parseInputDateValue(endValue);
-  if(startDate && endDate && startDate>endDate){
-    alert('End date must be after start date.');
-    return;
-  }
-  if(startDate || endDate){
-    const toDate=endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23,59,59,999) : null;
-    state.customRange={from:startDate||null,to:toDate};
-    state.monthSel.clear();
-    if(el.monthList) el.monthList.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
-  }else{
-    state.customRange=null;
-  }
-  state.monthDirty=true;
-  updateMonthSummary();
-  closeMonthCustomForm();
-  el.monthDD?.classList.remove('open');
-  applyMonthFilters(true);
-}
-function clearCustomRange(apply=true){
-  if(!state.customRange) return;
-  state.customRange=null;
-  if(el.monthCustom?.start) el.monthCustom.start.value='';
-  if(el.monthCustom?.end) el.monthCustom.end.value='';
-  updateMonthSummary();
-  if(apply){
-    state.monthDirty=true;
-    applyMonthFilters(true);
   }
 }
 
@@ -1027,7 +822,15 @@ function initFilters(){
   syncFilterLabels();
   Object.values(el.dd).forEach(root=>root && ddBuild(root));
   buildOptionsAll();
-  if(el.search) el.search.addEventListener('input', debounce(()=>updateAllFilterOptions(null),150));
+
+  const dateKey = state.columns.date ? normalize(state.columns.date.name) : null;
+  if(dateKey){
+    const dates = state.rows.map(r=>r[dateKey]).filter(Boolean).sort((a,b)=>a-b);
+    el.start.value = dates[0]?toDMY(dates[0]):'';
+    el.end.value   = dates[dates.length-1]?toDMY(dates[dates.length-1]):'';
+  }else{ el.start.value=''; el.end.value=''; }
+  [el.start,el.end].forEach(n=>n.addEventListener('input', debounce(()=>{ const d=parseDMY(n.value); if(d) n.value=toDMY(d); updateAllFilterOptions(null); },150)));
+  el.search.addEventListener('input', debounce(()=>updateAllFilterOptions(null),150));
 
   el.filters.hidden=false;
 }
@@ -1064,18 +867,19 @@ function activeSelections(excludeRoot){
     const vals=ddGetSelected(root); if(vals.length) act[keyOf(k)] = new Set(vals.map(String));
   });
   const dateKey=keyOf('date');
-  const range = dateKey && state.customRange ? {from:state.customRange.from||null,to:state.customRange.to||null} : null;
+  const from=dateKey && parseDMY(el.start.value);
+  const to=dateKey && parseDMY(el.end.value); if(to) to.setHours(23,59,59,999);
   const monthSet=new Set(state.monthSel);
-  return {act,dateKey,range,termKey:keyOf('term'),monthSet};
+  return {act,dateKey,from,to,termKey:keyOf('term'),monthSet};
 }
 function rowsForFilterContext(excludeRoot){
-  const {act,dateKey,range,termKey,monthSet}=activeSelections(excludeRoot);
+  const {act,dateKey,from,to,termKey,monthSet}=activeSelections(excludeRoot);
   const needle=el.search.value.trim().toLowerCase();
   return state.rows.filter(r=>{
     if(needle && termKey){ const t=(r[termKey]??'').toString().toLowerCase(); if(!t.includes(needle)) return false; }
-    if(dateKey && (monthSet.size || (range && (range.from || range.to)))){
+    if(dateKey && (from||to||monthSet.size)){
       const d=r[dateKey]; if(!(d instanceof Date)) return false;
-      if(range?.from && d<range.from) return false; if(range?.to && d>range.to) return false;
+      if(from && d<from) return false; if(to && d>to) return false;
       if(monthSet.size){ const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(!monthSet.has(ym)) return false; }
     }
     for(const colKey in act){ if(!act[colKey].has(String(r[colKey]))) return false; }
@@ -1289,15 +1093,11 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
 
   const buildMoneyCell = (value)=>`<td class="pivot-num">${escapeHtml(fmt.money0(value))}</td>`;
   const buildAcosCell = (value, isTotal=false)=>{
-    const amountClass = `pivot-amount${isTotal?' pivot-amount-total':''}`;
-    const label = '<span class="pivot-acos-label">ACOS</span>';
-    if(!isFinite(value)){
-      return `<td class="pivot-acos pivot-acos-empty"><div class="pivot-acos-wrap">${label}<div class="pivot-acos-track"><span class="${amountClass}">—</span><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:0%"></div></div></div></div></td>`;
-    }
+    if(!isFinite(value)) return '<td class="pivot-acos pivot-acos-empty">—</td>';
     const pct = value*100;
-    const widthBase = Math.max(0, Math.min(100, barScale ? (pct/barScale)*100 : 0));
-    const width = widthBase>0 ? Math.max(widthBase, 4) : 0;
-    return `<td class="pivot-acos"><div class="pivot-acos-wrap">${label}<div class="pivot-acos-track"><span class="${amountClass}">${pct.toFixed(1)}%</span><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></div></div></td>`;
+    const width = Math.max(0, Math.min(100, barScale ? (pct/barScale)*100 : 0));
+    const cls = `pivot-amount${isTotal?' pivot-amount-total':''}`;
+    return `<td class="pivot-acos"><div class="pivot-acos-wrap"><span class="${cls}">${pct.toFixed(1)}%</span><div class="pivot-bar"><div class="pivot-bar-fill acos" style="width:${width}%"></div></div></div></td>`;
   };
 
   const bodyRows = labels.map((label,i)=>{
@@ -1451,7 +1251,9 @@ function snapshotFilters(){
     if(col && col.aliasOf) return;
     snap[key]=ddGetSelected(root);
   });
-  snap.search=el.search?.value||'';
+  snap.start=el.start.value;
+  snap.end=el.end.value;
+  snap.search=el.search.value;
   state.snapshot=snap;
 }
 function restoreSnapshot(){
@@ -1465,28 +1267,15 @@ function restoreSnapshot(){
     ddUpdateSummary(root);
     ddSyncSelectAll(root);
   });
-  if(el.search) el.search.value=s.search??'';
+  el.start.value=s.start??'';
+  el.end.value=s.end??'';
+  el.search.value=s.search??'';
   updateAllFilterOptions(null);
 }
 function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); el.modal.setAttribute('aria-hidden','false'); }
 function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); }
 function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); renderAll(); }
-function clearAllFilters(){
-  Object.values(el.dd).forEach(root=>{
-    if(!root) return;
-    root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=false);
-    ddUpdateSummary(root);
-    ddSyncSelectAll(root);
-  });
-  if(el.search) el.search.value='';
-  state.monthSel.clear();
-  state.customRange=null;
-  state.monthDirty=true;
-  if(el.monthList) el.monthList.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
-  updateMonthSummary();
-  closeMonthCustomForm();
-  applyMonthFilters(true);
-}
+function clearAllFilters(){ Object.values(el.dd).forEach(root=> root && root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=false)); el.start.value=''; el.end.value=''; el.search.value=''; updateAllFilterOptions(null); }
 
 </script>
 </body>
