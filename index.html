@@ -305,7 +305,8 @@ body.has-data #tipPill{display:none !important}
 
     <section class="filters" id="filtersSection" hidden>
       <div class="filter" data-col-wrapper="category"><label data-col-label="category" data-default="Category">Category</label><div id="categoryMS" class="dd"></div></div>
-      <div class="filter" data-col-wrapper="lo"><label data-col-label="lo" data-default="Store">Store</label><div id="loMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="store"><label data-col-label="store" data-default="Store">Store</label><div id="storeMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="lo"><label data-col-label="lo" data-default="LO">LO</label><div id="loMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="ttype"><label data-col-label="ttype" data-default="Targeting Type">Targeting Type</label><div id="ttypeMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="tsub"><label data-col-label="tsub" data-default="Targeting Sub Type">Targeting Sub Type</label><div id="tsubMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="tsub2"><label data-col-label="tsub2" data-default="Targeting Sub Type2">Targeting Sub Type2</label><div id="tsub2MS" class="dd"></div></div>
@@ -397,7 +398,7 @@ function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' 
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),clearMonthBtn:document.getElementById('clearMonth'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},start:document.getElementById('startDate'),end:document.getElementById('endDate'),search:document.getElementById('searchFilter')};
 const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview' };
 let pivotLayoutFrame=null;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
@@ -647,7 +648,7 @@ async function parseExcel(buf){
     portfolio:  findIndexByTokens(headers,['portfolioname','portfolio']),
   };
   const mapCols={}; for(const [k,idx] of Object.entries(cols)){ if(idx>-1) mapCols[k]={name:headers[idx],idx}; }
-  if(mapCols.store && !mapCols.lo) mapCols.lo = mapCols.store; // fallback
+  if(mapCols.store && !mapCols.lo) mapCols.lo = {...mapCols.store, aliasOf:'store'}; // fallback
   state.columns=mapCols;
 
   const rows=[];
@@ -810,9 +811,10 @@ function syncFilterLabels(){
     if(!key) return;
     const fallback=label.getAttribute('data-default') || label.textContent;
     const col=state.columns[key];
+    const isAlias=col && col.aliasOf;
     label.textContent = col?.name || fallback;
     const wrapper=label.closest('[data-col-wrapper]');
-    if(wrapper) wrapper.hidden = !col;
+    if(wrapper) wrapper.hidden = !col || isAlias;
   });
 }
 
@@ -834,20 +836,21 @@ function initFilters(){
 }
 function buildOptionsAll(){
   for(const [k,root] of Object.entries(el.dd)){
-    if(!state.columns[k]) continue;
+    const col=state.columns[k];
+    if(!col || col.aliasOf) continue;
     const values=uniqValues(k).map(v=>({v,count:0}));
     ddSetOptions(root, values, false);
   }
   updateAllFilterOptions(null);
 }
 function uniqValues(kind){
-  const col=state.columns[kind]; if(!col) return [];
+  const col=state.columns[kind]; if(!col || col.aliasOf) return [];
   const key=normalize(col.name); const set=new Set();
   state.rows.forEach(r=>{ const v=r[key]; if(v==null || v==="") return; set.add(String(v)); });
   return Array.from(set).sort((a,b)=>String(a).localeCompare(String(b)));
 }
 function optionsWithCounts(kind, rows){
-  const col=state.columns[kind]; if(!col) return [];
+  const col=state.columns[kind]; if(!col || col.aliasOf) return [];
   const key=normalize(col.name); const map=new Map();
   rows.forEach(r=>{ const v=r[key]; if(v==null||v==="") return; map.set(String(v),(map.get(String(v))||0)+1); });
   const root=el.dd[kind]; const selected=new Set(ddGetSelected(root));
@@ -858,7 +861,9 @@ function activeSelections(excludeRoot){
   const keyOf = n => state.columns[n] ? normalize(state.columns[n].name) : null;
   const act={};
   Object.entries(el.dd).forEach(([k,root])=>{
-    if(!state.columns[k]) return; if(excludeRoot && root===excludeRoot) return;
+    const col=state.columns[k];
+    if(!col || col.aliasOf) return;
+    if(excludeRoot && root===excludeRoot) return;
     const vals=ddGetSelected(root); if(vals.length) act[keyOf(k)] = new Set(vals.map(String));
   });
   const dateKey=keyOf('date');
@@ -884,7 +889,8 @@ function rowsForFilterContext(excludeRoot){
 function updateAllFilterOptions(excludeRoot){
   const base=rowsForFilterContext(excludeRoot||null);
   Object.entries(el.dd).forEach(([k,root])=>{
-    if(!state.columns[k]) return;
+    const col=state.columns[k];
+    if(!col || col.aliasOf) return;
     ddSetOptions(root, optionsWithCounts(k, base), true);
   });
 }
@@ -1241,6 +1247,8 @@ function snapshotFilters(){
   const snap={};
   Object.entries(el.dd).forEach(([key,root])=>{
     if(!root) return;
+    const col=state.columns[key];
+    if(col && col.aliasOf) return;
     snap[key]=ddGetSelected(root);
   });
   snap.start=el.start.value;
@@ -1252,6 +1260,8 @@ function restoreSnapshot(){
   const s=state.snapshot||{};
   Object.entries(el.dd).forEach(([key,root])=>{
     if(!root) return;
+    const col=state.columns[key];
+    if(col && col.aliasOf) return;
     const selected=Array.isArray(s[key])?s[key]:[];
     root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=selected.includes(cb.value));
     ddUpdateSummary(root);
