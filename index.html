@@ -297,7 +297,7 @@ body.has-data #tipPill{display:none !important}
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
         <div id="monthFilter" class="month-dd">
-          <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
+          <div class="dd-control"><span class="dd-summary">Date Range</span><span class="dd-chev">▾</span></div>
           <div class="dd-panel">
             <div id="monthList"></div>
             <div class="month-custom">
@@ -1395,7 +1395,7 @@ function updateMonthSummary(){
     return;
   }
   const n=state.monthSel.size;
-  if(n===0){ sumEl.textContent='All'; }
+  if(n===0){ sumEl.textContent='Date Range'; }
   else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; }
   else { sumEl.textContent=`${n} months`; }
 }
