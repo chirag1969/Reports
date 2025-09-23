@@ -166,12 +166,12 @@ body.has-data #tipPill{display:none !important}
 .pivot-table thead th:first-child{text-align:left}
 .pivot-table thead th.pivot-acos{text-align:right}
 .pivot-table thead th.pivot-acos-bar{padding-left:0;text-align:left;width:90px}
-.pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
+.pivot-table tbody th{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
 .pivot-label-btn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .pivot-label-btn:hover,.pivot-label-btn:focus-visible{color:var(--accent)}
 .pivot-label-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 .pivot-label-text{display:inline-block}
-.pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.pivot-table tbody td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
 .pivot-table tbody tr:hover{background:var(--chip)}
 .pivot-table td.pivot-num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
@@ -297,7 +297,7 @@ body.has-data #tipPill{display:none !important}
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
         <div id="monthFilter" class="month-dd">
-          <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
+          <div class="dd-control"><span class="dd-summary">Date Range</span><span class="dd-chev">▾</span></div>
           <div class="dd-panel">
             <div id="monthList"></div>
             <div class="month-custom">
@@ -1395,7 +1395,7 @@ function updateMonthSummary(){
     return;
   }
   const n=state.monthSel.size;
-  if(n===0){ sumEl.textContent='All'; }
+  if(n===0){ sumEl.textContent='Date Range'; }
   else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; }
   else { sumEl.textContent=`${n} months`; }
 }
@@ -2032,6 +2032,11 @@ function buildPivotAcosCells(value, barScale, isTotal){
 }
 
 function comparePivotRows(a,b,key,dir){
+  const aHasAcos=Number.isFinite(a?.acos);
+  const bHasAcos=Number.isFinite(b?.acos);
+  if(aHasAcos!==bHasAcos){
+    return aHasAcos ? -1 : 1;
+  }
   if(key==='label'){
     const cmp=PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
     return dir==='desc' ? -cmp : cmp;
