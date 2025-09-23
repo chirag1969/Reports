@@ -283,7 +283,7 @@ body.has-data #tipPill{display:none !important}
           <button type="button" class="pivot-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview Pivots</button>
           <button type="button" class="pivot-tab" data-tab="overall" role="tab" aria-selected="false" tabindex="-1">Overall Pivots</button>
           <button type="button" class="pivot-tab" data-tab="campaignPortfolio" role="tab" aria-selected="false" tabindex="-1">Campaign / Portfolio</button>
-          <button type="button" class="pivot-tab" data-tab="conversion" role="tab" aria-selected="false" tabindex="-1">ST-ASIN Conversion</button>
+          <button type="button" class="pivot-tab" data-tab="conversion" role="tab" aria-selected="false" tabindex="-1">ST / ASIN Conversion</button>
         </div>
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
@@ -471,6 +471,15 @@ body.has-data #tipPill{display:none !important}
 <script>
 'use strict';
 
+const DEFAULT_CONVERSION_PAGE_SIZE=500;
+const MAX_CONVERSION_ROWS=(()=>{
+  const globalValue=(typeof window!=='undefined')?Number(window.MAX_CONVERSION_ROWS ?? window.CONVERSION_PAGE_SIZE):NaN;
+  if(Number.isFinite(globalValue)){
+    return globalValue>0?Math.floor(globalValue):0;
+  }
+  return DEFAULT_CONVERSION_PAGE_SIZE;
+})();
+
 function ensureConversionElements(){
   const tabsList=document.getElementById('pivotTabs');
   if(tabsList && !tabsList.querySelector('[data-tab="conversion"]')){
@@ -481,7 +490,7 @@ function ensureConversionElements(){
     btn.setAttribute('role','tab');
     btn.setAttribute('aria-selected','false');
     btn.setAttribute('tabindex','-1');
-    btn.textContent='ST-ASIN Conversion';
+    btn.textContent='ST / ASIN Conversion';
     tabsList.appendChild(btn);
   }
 
@@ -492,10 +501,13 @@ function ensureConversionElements(){
     const nav=document.createElement('div');
     nav.className='pivot-pagination';
     nav.dataset.pivot=type;
+    const chunkLabel=(MAX_CONVERSION_ROWS && MAX_CONVERSION_ROWS>0)
+      ? `${MAX_CONVERSION_ROWS.toLocaleString()} rows`
+      : 'page';
     const prev=document.createElement('button');
     prev.type='button';
     prev.className='pivot-nav-btn prev';
-    prev.setAttribute('aria-label','Previous 500 rows');
+    prev.setAttribute('aria-label',`Previous ${chunkLabel}`);
     prev.textContent='‹';
     prev.disabled=true;
     const label=document.createElement('span');
@@ -504,7 +516,7 @@ function ensureConversionElements(){
     const next=document.createElement('button');
     next.type='button';
     next.className='pivot-nav-btn next';
-    next.setAttribute('aria-label','Next 500 rows');
+    next.setAttribute('aria-label',`Next ${chunkLabel}`);
     next.textContent='›';
     next.disabled=true;
     nav.append(prev,label,next);
