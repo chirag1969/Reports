@@ -1952,24 +1952,27 @@ function buildAgg(rows, keyCol, spendKey, salesKey, options={}){
     const spend=+r[spendKey]||0;
     const sales=+r[salesKey]||0;
     if(spend===0 && sales===0) continue;
-    const hasRaw = !(rawValue==null || rawValue==='');
-    const label=hasRaw ? String(rawValue) : '(Unspecified)';
-    const key=caseInsensitive ? label.trim().toLocaleLowerCase() : label;
+
+    const rawString=rawValue==null ? '' : String(rawValue);
+    const trimmedLabel=rawString.trim();
+    if(!trimmedLabel) continue;
+
+    const key=caseInsensitive ? trimmedLabel.toLocaleLowerCase() : rawString;
     let entry=agg.get(key);
     if(entry){
       entry.spend+=spend;
       entry.sales+=sales;
-      if(caseInsensitive && hasRaw){
-        entry.variants.add(String(rawValue));
+      if(caseInsensitive && rawString){
+        entry.variants?.add(rawString);
       }
     }else{
       const variants=caseInsensitive?new Set():null;
-      if(variants && hasRaw) variants.add(String(rawValue));
+      if(variants && rawString) variants.add(rawString);
       entry={
         spend,
         sales,
-        rawValue:hasRaw?rawValue:null,
-        displayLabel:label,
+        rawValue,
+        displayLabel:rawString || trimmedLabel,
         matchKey:caseInsensitive?key:null,
         variants
       };
@@ -2377,16 +2380,18 @@ function renderConversionPivots(rows, spendKey, salesKey){
     const bucket=type==='st'?buckets.st:type==='asin'?buckets.asin:null;
     if(!bucket) continue;
     const rawValue=row[termKey];
-    const label=String(rawValue ?? '(Unspecified)');
+    const labelStr=rawValue==null ? '' : String(rawValue);
+    const trimmedLabel=labelStr.trim();
+    if(!trimmedLabel) continue;
     const spend=+row[spendKey]||0;
     const sales=+row[salesKey]||0;
     if(spend===0 && sales===0) continue;
-    const entry=bucket.get(label);
+    const entry=bucket.get(labelStr);
     if(entry){
       entry.spend+=spend;
       entry.sales+=sales;
     }else{
-      bucket.set(label,{spend,sales,rawValue});
+      bucket.set(labelStr,{spend,sales,rawValue});
     }
   }
 
