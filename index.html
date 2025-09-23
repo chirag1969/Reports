@@ -123,6 +123,11 @@ body.has-data #tipPill{display:none !important}
 .pivot[data-mode="conversion"] #pivotCatCard,
 .pivot[data-mode="conversion"] #pivotPlacementCard{display:none !important}
 @media(min-width:960px){
+  .pivot[data-mode="overview"]{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .pivot[data-mode="overview"] #pivotStoreCard,
+  .pivot[data-mode="overview"] #pivotPortfolioCard{grid-column:1 / 2;}
+  .pivot[data-mode="overview"] #pivotLoCard,
+  .pivot[data-mode="overview"] #pivotCatCard{grid-column:2 / 3;}
   .pivot[data-mode="overall"]{grid-template-columns:repeat(2,minmax(0,1fr));}
   .pivot[data-mode="overall"] .pivot-card{grid-column:1 / -1;}
   .pivot[data-mode="overall"] .pivot-overall-left{grid-column:1 / 2;}
@@ -162,6 +167,10 @@ body.has-data #tipPill{display:none !important}
 .pivot-table thead th.pivot-acos{text-align:right}
 .pivot-table thead th.pivot-acos-bar{padding-left:0;text-align:left;width:90px}
 .pivot-table tbody th{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
+.pivot-label-btn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pivot-label-btn:hover,.pivot-label-btn:focus-visible{color:var(--accent)}
+.pivot-label-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.pivot-label-text{display:inline-block}
 .pivot-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
 .pivot-table tbody tr:hover{background:var(--chip)}
@@ -282,7 +291,7 @@ body.has-data #tipPill{display:none !important}
         <div id="pivotTabs" class="pivot-tabs" role="tablist" aria-label="Pivot views">
           <button type="button" class="pivot-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview Pivots</button>
           <button type="button" class="pivot-tab" data-tab="overall" role="tab" aria-selected="false" tabindex="-1">Overall Pivots</button>
-          <button type="button" class="pivot-tab" data-tab="campaignPortfolio" role="tab" aria-selected="false" tabindex="-1">Campaign / Portfolio</button>
+          <button type="button" class="pivot-tab" data-tab="campaignPortfolio" role="tab" aria-selected="false" tabindex="-1">Campaign / Ad Group</button>
           <button type="button" class="pivot-tab" data-tab="conversion" role="tab" aria-selected="false" tabindex="-1">ST / ASIN Conversion</button>
         </div>
       </div>
@@ -345,6 +354,17 @@ body.has-data #tipPill{display:none !important}
       <table id="pivotTableStore" class="pivot-table"></table>
     </div>
   </div>
+  <div class="chart-card pivot-card" id="pivotPortfolioCard">
+    <div class="chart-title">
+      <span class="chart-title-text">Portfolio Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTablePortfolio" title="Copy Portfolio Performance Pivot table" aria-label="Copy Portfolio Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
+    <div class="pivot-body">
+      <table id="pivotTablePortfolio" class="pivot-table"></table>
+    </div>
+  </div>
   <div class="chart-card pivot-card pivot-overall-left" id="pivotLoCard">
     <div class="chart-title">
       <span class="chart-title-text">LO Performance Pivot</span>
@@ -356,17 +376,6 @@ body.has-data #tipPill{display:none !important}
       <table id="pivotTableLo" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card pivot-overall-left" id="pivotCustTypeCard">
-    <div class="chart-title">
-      <span class="chart-title-text">Customer Search Term - TYPE Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCustType" title="Copy Customer Search Term - TYPE Performance Pivot table" aria-label="Copy Customer Search Term - TYPE Performance Pivot table">
-        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
-      </button>
-    </div>
-    <div class="pivot-body">
-      <table id="pivotTableCustType" class="pivot-table"></table>
-    </div>
-  </div>
   <div class="chart-card pivot-card pivot-overall-right" id="pivotCatCard">
     <div class="chart-title">
       <span class="chart-title-text">Category Performance Pivot</span>
@@ -376,6 +385,17 @@ body.has-data #tipPill{display:none !important}
     </div>
     <div class="pivot-body">
       <table id="pivotTableCat" class="pivot-table"></table>
+    </div>
+  </div>
+  <div class="chart-card pivot-card pivot-overall-left" id="pivotCustTypeCard">
+    <div class="chart-title">
+      <span class="chart-title-text">Customer Search Term - TYPE Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCustType" title="Copy Customer Search Term - TYPE Performance Pivot table" aria-label="Copy Customer Search Term - TYPE Performance Pivot table">
+        <span class="pivot-copy-icon" aria-hidden="true">📋</span>
+      </button>
+    </div>
+    <div class="pivot-body">
+      <table id="pivotTableCustType" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-overall-right" id="pivotPlacementCard">
@@ -400,15 +420,15 @@ body.has-data #tipPill{display:none !important}
       <table id="pivotTableCampaign" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card" id="pivotPortfolioCard">
+  <div class="chart-card pivot-card" id="pivotAdGroupCard">
     <div class="chart-title">
-      <span class="chart-title-text">Portfolio Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTablePortfolio" title="Copy Portfolio Performance Pivot table" aria-label="Copy Portfolio Performance Pivot table">
+      <span class="chart-title-text">Ad Group Performance Pivot</span>
+      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableAdGroup" title="Copy Ad Group Performance Pivot table" aria-label="Copy Ad Group Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">📋</span>
       </button>
     </div>
     <div class="pivot-body">
-      <table id="pivotTablePortfolio" class="pivot-table"></table>
+      <table id="pivotTableAdGroup" class="pivot-table"></table>
     </div>
   </div>
   <div class="chart-card pivot-card pivot-conversion" id="pivotConversionStCard">
@@ -453,6 +473,7 @@ body.has-data #tipPill{display:none !important}
       <div class="filter" data-col-wrapper="tsub"><label data-col-label="tsub" data-default="Targeting Sub Type">Targeting Sub Type</label><div id="tsubMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="tsub2"><label data-col-label="tsub2" data-default="Targeting Sub Type2">Targeting Sub Type2</label><div id="tsub2MS" class="dd"></div></div>
       <div class="filter grow" data-col-wrapper="campaign"><label data-col-label="campaign" data-default="Campaign Name">Campaign Name</label><div id="campaignMS" class="dd"></div></div>
+      <div class="filter grow" data-col-wrapper="adgroup"><label data-col-label="adgroup" data-default="Ad Group Name">Ad Group Name</label><div id="adgroupMS" class="dd"></div></div>
       <div class="filter grow" data-col-wrapper="portfolio"><label data-col-label="portfolio" data-default="Portfolio Name">Portfolio Name</label><div id="portfolioMS" class="dd"></div></div>
 
       <div class="filter search"><label for="searchFilter">Search Term</label>
@@ -718,7 +739,7 @@ function deactivateCustomRange(){
 }
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
 const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, conversionPage:{st:0,asin:0}, lastTabIndex:0 };
 const TAB_ORDER=['overview','overall','campaignPortfolio','conversion'];
 const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
@@ -732,6 +753,7 @@ if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[
 const PIVOT_CONFIG={
   overview:[
     {slot:'store', column:'store', fallback:'Store'},
+    {slot:'portfolio', column:'portfolio', fallback:'Portfolio Name'},
     {slot:'lo', column:'lo', fallback:'LO'},
     {slot:'cat', column:'category', fallback:'Category'}
   ],
@@ -744,7 +766,7 @@ const PIVOT_CONFIG={
   ],
   campaignPortfolio:[
     {slot:'campaign', column:'campaign', fallback:'Campaign Name'},
-    {slot:'portfolio', column:'portfolio', fallback:'Portfolio Name'}
+    {slot:'adGroup', column:'adgroup', fallback:'Ad Group Name'}
   ],
   conversion:[]
 };
@@ -903,6 +925,13 @@ function handlePivotSectionClick(event){
     handlePivotCopy(copyBtn);
     return;
   }
+  const labelBtn=event.target.closest?.('.pivot-label-btn');
+  if(labelBtn){
+    event.preventDefault();
+    event.stopPropagation();
+    handlePivotLabelButton(labelBtn);
+    return;
+  }
   const header=event.target.closest?.('th[data-sort-key]');
   if(header){
     event.preventDefault();
@@ -917,6 +946,63 @@ function handlePivotHeaderKeydown(event){
     event.preventDefault();
     togglePivotSort(header);
   }
+}
+
+function handlePivotLabelButton(button){
+  if(!button) return;
+  const table=button.closest('table.pivot-table');
+  if(!table) return;
+  const value=button.dataset.pivotValue;
+  applyPivotLabelFilter(table, value);
+}
+
+function applyPivotLabelFilter(table, rawValue){
+  if(!table) return;
+  const data=table._pivotData;
+  if(!data) return;
+  const dimension=data.dimension;
+  if(!dimension) return;
+  const {stateKey,columnKey}=dimension;
+  if(!stateKey || !columnKey) return;
+
+  if(stateKey==='term'){
+    const term=String(rawValue??'').trim();
+    if(!term) return;
+    if(el.search) el.search.value=term;
+    updateAllFilterOptions(null);
+    resetConversionPaging();
+    renderAll();
+    return;
+  }
+
+  const value=rawValue==null ? '' : String(rawValue);
+  if(!value && value!=='0') return;
+  const root=el.dd?.[stateKey];
+  if(!root) return;
+  if(!root.querySelector('.dd-panel')) ddBuild(root);
+
+  let found=false;
+  root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>{
+    const match=cb.value===value;
+    cb.checked=match;
+    if(match) found=true;
+  });
+
+  if(!found){
+    ddSetOptions(root, [{v:value,count:0}], false);
+    root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>{
+      cb.checked=(cb.value===value);
+    });
+    found=true;
+  }
+
+  if(!found) return;
+
+  ddUpdateSummary(root);
+  ddSyncSelectAll(root);
+  updateAllFilterOptions(null);
+  resetConversionPaging();
+  renderAll();
 }
 
 function togglePivotSort(header){
@@ -1217,6 +1303,7 @@ async function parseExcel(buf){
     customerType:findIndexByTokens(headers,['customersearchtermtype','searchtermtype']),
     placement:  findIndexByTokens(headers,['placement','placements']),
     campaign:   findIndexByTokens(headers,['campaignname','campaign']),
+    adgroup:    findIndexByTokens(headers,['adgroupname','ad group name','adgroup']),
     portfolio:  findIndexByTokens(headers,['portfolioname','portfolio']),
   };
   const mapCols={}; for(const [k,idx] of Object.entries(cols)){ if(idx>-1) mapCols[k]={name:headers[idx],idx}; }
@@ -1678,7 +1765,8 @@ function finalizeAgg(map, limit, options={}){
     const spend=+value.spend||0;
     const sales=+value.sales||0;
     const acos=sales>0 ? spend/sales : (spend>0 ? Infinity : NaN);
-    entries.push({label:String(label), spend, sales, acos});
+    const rawValue = Object.prototype.hasOwnProperty.call(value,'rawValue') ? value.rawValue : label;
+    entries.push({label:String(label), rawValue, spend, sales, acos});
     totalSpend+=spend;
     totalSales+=sales;
   });
@@ -1725,6 +1813,7 @@ function finalizeAgg(map, limit, options={}){
   const truncated=!!(maxRows && entries.length>output.length);
   return {
     labels:output.map(e=>e.label),
+    rawValues:output.map(e=>e.rawValue),
     spend:output.map(e=>e.spend),
     sales:output.map(e=>e.sales),
     acos:output.map(e=>e.acos),
@@ -1743,15 +1832,17 @@ function buildAgg(rows, keyCol, spendKey, salesKey){
   }
   const agg=new Map();
   for(const r of rows){
-    const label=String(r[keyCol] ?? '(Unspecified)');
+    const rawValue=r[keyCol];
     const spend=+r[spendKey]||0;
     const sales=+r[salesKey]||0;
+    if(spend===0 && sales===0) continue;
+    const label=(rawValue==null || rawValue==='') ? '(Unspecified)' : String(rawValue);
     const entry=agg.get(label);
     if(entry){
       entry.spend+=spend;
       entry.sales+=sales;
     }else{
-      agg.set(label,{spend,sales});
+      agg.set(label,{spend,sales,rawValue});
     }
   }
   return finalizeAgg(agg);
@@ -1845,6 +1936,7 @@ function renderPivotTable(table){
   }
 
   const rows=Array.isArray(data.rows)?data.rows.slice():[];
+  const dimension=data.dimension||null;
   if(sort.key){
     rows.sort((a,b)=>comparePivotRows(a,b,sort.key,sort.dir));
   }
@@ -1861,7 +1953,7 @@ function renderPivotTable(table){
 
   const barScale=Number.isFinite(data.barScale) && data.barScale>0 ? data.barScale : 100;
   const bodyRows=rows.map(row=>{
-    const labelCell=`<th scope="row">${escapeHtml(row.label)}</th>`;
+    const labelCell=buildPivotLabelCell(row, dimension);
     const spendCell=buildPivotMoneyCell(row.spend);
     const salesCell=buildPivotMoneyCell(row.sales);
     const acosCells=buildPivotAcosCells(row.acos, barScale, false);
@@ -1888,6 +1980,20 @@ function buildPivotHead(columnLabel, activeKey, activeDir){
     '<th scope="col" class="pivot-acos-bar" aria-hidden="true"></th>'
   ];
   return `<thead><tr>${cells.join('')}</tr></thead>`;
+}
+
+function buildPivotLabelCell(row, dimension){
+  const label=String(row?.label ?? '');
+  const safeLabel=escapeHtml(label);
+  const rawValue = Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : label;
+  const hasDimension = dimension && dimension.stateKey && dimension.columnKey;
+  const rawString = rawValue==null ? '' : String(rawValue);
+  const isFilterable = hasDimension && (dimension.stateKey==='term' ? rawString.trim().length>0 : !(rawValue==null || rawString===''));
+  if(!isFilterable){
+    return `<th scope="row"><span class="pivot-label-text">${safeLabel}</span></th>`;
+  }
+  const valueAttr=escapeHtml(rawString);
+  return `<th scope="row"><button type="button" class="pivot-label-btn" data-pivot-value="${valueAttr}">${safeLabel}</button></th>`;
 }
 
 function buildPivotHeadCell(key, title, extraClass, activeKey, activeDir){
@@ -1930,21 +2036,45 @@ function comparePivotRows(a,b,key,dir){
     const cmp=PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
     return dir==='desc' ? -cmp : cmp;
   }
-  const va=pivotSortWeight(a[key]);
-  const vb=pivotSortWeight(b[key]);
-  if(va!==vb){
-    const diff=va-vb;
-    return dir==='desc' ? -diff : diff;
+  const av=pivotSortInfo(a[key]);
+  const bv=pivotSortInfo(b[key]);
+
+  if(key==='acos'){
+    if(av.isNumber && !bv.isNumber) return -1;
+    if(!av.isNumber && bv.isNumber) return 1;
+  }else{
+    if(av.isNumber && !bv.isNumber) return -1;
+    if(!av.isNumber && bv.isNumber) return 1;
   }
+
+  if(av.isNumber && bv.isNumber){
+    if(av.value===bv.value){
+      return PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
+    }
+    if(!Number.isFinite(av.value) || !Number.isFinite(bv.value)){
+      if(dir==='desc'){
+        if(av.value===Infinity && bv.value!==Infinity) return -1;
+        if(av.value!==Infinity && bv.value===Infinity) return 1;
+        if(av.value===-Infinity && bv.value!==-Infinity) return 1;
+        if(av.value!==-Infinity && bv.value===-Infinity) return -1;
+      }else{
+        if(av.value===Infinity && bv.value!==Infinity) return 1;
+        if(av.value!==Infinity && bv.value===Infinity) return -1;
+        if(av.value===-Infinity && bv.value!==-Infinity) return -1;
+        if(av.value!==-Infinity && bv.value===-Infinity) return 1;
+      }
+    }
+    const diff = dir==='desc' ? (bv.value - av.value) : (av.value - bv.value);
+    if(diff!==0) return diff;
+    return PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
+  }
+
   return PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
 }
 
-function pivotSortWeight(value){
-  if(typeof value!=='number' || Number.isNaN(value)) return -1e14;
-  if(value===Infinity) return 1e15;
-  if(value===-Infinity) return -1e15;
-  return value;
-
+function pivotSortInfo(value){
+  const isNumber=typeof value==='number' && !Number.isNaN(value);
+  return {isNumber,value:isNumber?value:0};
 }
 
 function setPivotNote(card, text){
@@ -2043,8 +2173,10 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   const barMaxPct = Math.min(100, maxPct + 10);
   const barScale = barMaxPct > 0 ? barMaxPct : 100;
 
+  const rawVals = Array.isArray(agg?.rawValues) ? agg.rawValues : labels.map(()=>null);
   const rowData = labels.map((label,i)=>({
     label:String(label),
+    rawValue:rawVals[i],
     spend:spendVals[i],
     sales:salesVals[i],
     acos:acosVals[i]
@@ -2054,7 +2186,8 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     displayName,
     rows:rowData,
     totals:{spend:totalSpend,sales:totalSales,acos:totalAcos},
-    barScale
+    barScale,
+    dimension: target.dimension || null
   };
 
   if(!target.table._pivotSort){
@@ -2073,6 +2206,9 @@ function renderConversionPivots(rows, spendKey, salesKey){
   const typeCol=state.columns.customerType;
   const hasBasics = !!(spendKey && salesKey && termCol && typeCol);
   const baseLabel = termCol?.name || 'Customer Search Term';
+
+  if(targetSt) targetSt.dimension = hasBasics ? {stateKey:'term', columnKey:normalize(termCol.name)} : null;
+  if(targetAsin) targetAsin.dimension = hasBasics ? {stateKey:'term', columnKey:normalize(termCol.name)} : null;
 
   if(!hasBasics){
     if(targetSt) renderPivotCard(targetSt, `${baseLabel} (ST)`, null, false);
@@ -2100,15 +2236,17 @@ function renderConversionPivots(rows, spendKey, salesKey){
     const type=mapTypeValue(row[typeKey]);
     const bucket=type==='st'?buckets.st:type==='asin'?buckets.asin:null;
     if(!bucket) continue;
-    const label=String(row[termKey] ?? '(Unspecified)');
+    const rawValue=row[termKey];
+    const label=String(rawValue ?? '(Unspecified)');
     const spend=+row[spendKey]||0;
     const sales=+row[salesKey]||0;
+    if(spend===0 && sales===0) continue;
     const entry=bucket.get(label);
     if(entry){
       entry.spend+=spend;
       entry.sales+=sales;
     }else{
-      bucket.set(label,{spend,sales});
+      bucket.set(label,{spend,sales,rawValue});
     }
   }
 
@@ -2143,6 +2281,7 @@ function hideUnusedPivotSlots(activeSlots){
       target.card.hidden=true;
       target.card.style.removeProperty('grid-row-end');
     }
+    if(target) target.dimension=null;
     if(target?.table){
       target.table.innerHTML='';
       target.table._pivotData=null;
@@ -2178,6 +2317,7 @@ function renderAll(){
       const columnDef=state.columns[column];
       const columnName=columnDef?.name || fallback;
       const columnKey=columnDef ? normalize(columnDef.name) : null;
+      target.dimension = columnKey ? {stateKey:column, columnKey} : null;
       const hasMetrics = spendKey && salesKey && columnKey;
       const agg = hasMetrics ? buildAgg(rows, columnKey, spendKey, salesKey) : null;
       const rendered = renderPivotCard(target, columnName, agg, !!columnKey);
