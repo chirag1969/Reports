@@ -8,6 +8,7 @@
 <!-- Libs -->
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.9.0/sql-wasm.js"></script>
 
 <style>
 :root{
@@ -577,6 +578,66 @@ body.has-data #tipPill{display:none !important}
 <script>
 'use strict';
 
+let sqlLibPromise=null;
+function loadSqlLibrary(){
+  if(!sqlLibPromise){
+    if(typeof initSqlJs!=='function'){
+      sqlLibPromise=Promise.reject(new Error('SQL.js failed to load'));
+    }else{
+      sqlLibPromise=initSqlJs({ locateFile:(file)=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.9.0/${file}` });
+    }
+  }
+  return sqlLibPromise;
+}
+function getSqlDb(){ return state.sql?.db || null; }
+function sqlQueryAll(sql, params=[]){
+  const db=getSqlDb();
+  if(!db) return [];
+  const stmt=db.prepare(sql);
+  try{
+    if(params && params.length) stmt.bind(params);
+    const rows=[];
+    while(stmt.step()) rows.push(stmt.getAsObject());
+    return rows;
+  }finally{
+    stmt.free();
+  }
+}
+function sqlRun(sql){ const db=getSqlDb(); if(db) db.exec(sql); }
+function combineWhere(conditions, extra){
+  const list=[...(conditions||[])];
+  if(extra){
+    if(Array.isArray(extra)) list.push(...extra);
+    else list.push(extra);
+  }
+  const filtered=list.filter(cond=>cond && cond.sql);
+  if(!filtered.length) return {sql:'',params:[]};
+  const sql='WHERE '+filtered.map(cond=>`(${cond.sql})`).join(' AND ');
+  const params=[];
+  filtered.forEach(cond=>{ if(Array.isArray(cond.params)) params.push(...cond.params); });
+  return {sql,params};
+}
+function makeSqlColumnName(base,fallback,used){
+  let name=String(base||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+/, '');
+  if(!name) name=fallback;
+  if(/^[0-9]/.test(name)) name=`c_${name}`;
+  let candidate=name;
+  let counter=1;
+  while(used.has(candidate)) candidate=`${name}_${counter++}`;
+  used.add(candidate);
+  return candidate;
+}
+function getSqlColumn(normalizedKey){
+  if(!state.sql || !state.sql.columnMap) return null;
+  return state.sql.columnMap.get(normalizedKey||'') || null;
+}
+function getSqlInfoForStateKey(key){
+  const col=state.columns[key];
+  if(!col) return null;
+  const normalized=normalize(col.name);
+  return getSqlColumn(normalized);
+}
+
 const DEFAULT_CONVERSION_PAGE_SIZE=500;
 const MAX_CONVERSION_ROWS=(()=>{
   const globalValue=(typeof window!=='undefined')?Number(window.MAX_CONVERSION_ROWS ?? window.CONVERSION_PAGE_SIZE):NaN;
@@ -828,7 +889,21 @@ function deactivateCustomRange(){
 
 /* ===== elements/state ===== */
 const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
-const state={ rows:[], columns:{}, monthSel:new Set(), monthOptions:[], monthDirty:false, snapshot:{}, hasData:false, activeTab:'overview', customRange:{start:null,end:null,active:false}, dateBounds:{min:null,max:null}, conversionPage:{st:0,asin:0}, lastTabIndex:0 };
+const state={
+  rows:[],
+  columns:{},
+  monthSel:new Set(),
+  monthOptions:[],
+  monthDirty:false,
+  snapshot:{},
+  hasData:false,
+  activeTab:'overview',
+  customRange:{start:null,end:null,active:false},
+  dateBounds:{min:null,max:null},
+  conversionPage:{st:0,asin:0},
+  lastTabIndex:0,
+  sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0}
+};
 const TAB_ORDER=['overview','overall','campaignPortfolio','targeting','conversion'];
 const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
 
@@ -1317,6 +1392,10 @@ function setHasData(has){
     if(el.monthList) el.monthList.innerHTML='';
     syncFilterLabels();
     state.activeTab='overview';
+    if(state.sql?.db){
+      try{ state.sql.db.close(); }catch(_){ }
+    }
+    state.sql={db:null, table:'', columns:[], columnMap:new Map(), rowCount:0};
     state.lastTabIndex=TAB_ORDER.indexOf('overview');
     resetKpis();
     hideCustomRangePanel();
@@ -1379,6 +1458,8 @@ async function attemptDefaultWorkbook(){
   }
 }
 async function parseExcel(buf){
+  const SQL = await loadSqlLibrary();
+  if(!SQL) throw new Error('Unable to initialize SQL engine');
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
   let best=null,score=-1;
   for(const name of wb.SheetNames){
@@ -1420,36 +1501,104 @@ async function parseExcel(buf){
   const mapCols={}; for(const [k,idx] of Object.entries(cols)){ if(idx>-1) mapCols[k]={name:headers[idx],idx}; }
   if(mapCols.store && !mapCols.lo) mapCols.lo = {...mapCols.store, aliasOf:'store'}; // fallback
   state.columns=mapCols;
+  const numericIdx=new Set([mapCols.impressions?.idx,mapCols.clicks?.idx,mapCols.revenue?.idx,mapCols.spend?.idx].filter(idx=>Number.isInteger(idx)));
+  const usedNames=new Set();
+  const columnInfo=headers.map((header,idx)=>{
+    const normalized=normalize(header);
+    const fallback=`column_${idx+1}`;
+    const sqlName=makeSqlColumnName(normalized,fallback,usedNames);
+    const isDate=mapCols.date && idx===mapCols.date.idx;
+    const type=isDate?'TEXT':(numericIdx.has(idx)?'REAL':'TEXT');
+    return {index:idx, header, normalized, sqlName, type, isDate};
+  });
+  const columnMap=new Map();
+  columnInfo.forEach(info=>{ const key=info.normalized||''; if(!columnMap.has(key)) columnMap.set(key,info); });
 
-  const rows=[];
+  const dataRows=[];
   for(let r=0;r<dataR.length;r++){
     const rr=dataR[r]||[], tt=dataT[r]||[];
-    const o={};
-    headers.forEach((h,i)=>{
-      const key=normalize(h);
+    const rowValues=new Array(columnInfo.length);
+    let hasValue=false;
+    for(let i=0;i<columnInfo.length;i++){
+      const info=columnInfo[i];
       let v=tt[i];
-      if(mapCols.date && i===mapCols.date.idx){
-        if(typeof rr[i]==='number'){ const d=XLSX.SSF.parse_date_code(rr[i]); v=(d&&d.y)?new Date(d.y,d.m-1,d.d):null; }
-        else if(v){ const d=new Date(v); v=isNaN(+d)?null:d; }
-        else v=null;
-      }else if([mapCols.impressions?.idx,mapCols.clicks?.idx,mapCols.revenue?.idx,mapCols.spend?.idx].includes(i)){
+      if(info.isDate){
+        let dateVal=null;
+        if(typeof rr[i]==='number'){ const d=XLSX.SSF.parse_date_code(rr[i]); dateVal=(d&&d.y)?new Date(d.y,d.m-1,d.d):null; }
+        else if(v){ const d=new Date(v); dateVal=isNaN(+d)?null:d; }
+        if(dateVal instanceof Date){ v=toInputDate(dateVal); }
+        else if(typeof v==='string' && v){
+          const parsed=parseInputDate(v) || (isNaN(+new Date(v))?null:new Date(v));
+          v=parsed instanceof Date?toInputDate(parsed):null;
+        }else{
+          v=null;
+        }
+      }else if(numericIdx.has(i)){
         v=parseNumber(v);
       }
-      o[key]=v;
-    });
-    if(Object.values(o).some(val => (val!=='' && val!=null))) rows.push(o);
+      if(!info.isDate && !numericIdx.has(i)){
+        if(v==null) v='';
+        else v=String(v);
+      }
+      if(info.isDate && !v) v=null;
+      rowValues[i]=v;
+      if(v!=='' && v!=null) hasValue=true;
+    }
+    if(hasValue) dataRows.push(rowValues);
   }
-  state.rows=rows;
+
+  if(state.sql?.db){
+    try{ state.sql.db.close(); }catch(_){ }
+  }
+  const db=new SQL.Database();
+  const tableName='search_terms';
+  const columnDefs=columnInfo.map(info=>`"${info.sqlName}" ${info.type}`);
+  db.exec(`CREATE TABLE "${tableName}" (${columnDefs.join(',')});`);
+  if(dataRows.length){
+    const placeholders=columnInfo.map(()=>'?').join(',');
+    const stmt=db.prepare(`INSERT INTO "${tableName}" VALUES (${placeholders})`);
+    db.exec('BEGIN TRANSACTION;');
+    for(const rowValues of dataRows){
+      const prepared=rowValues.map(value=>value===undefined?null:value);
+      stmt.run(prepared);
+    }
+    stmt.free();
+    db.exec('COMMIT;');
+  }
+
+  state.sql={db, table:tableName, columns:columnInfo, columnMap, rowCount:dataRows.length};
+  state.rows=[];
   state.monthSel.clear();
   resetConversionPaging();
-  buildMonths(); initFilters(); renderAll();
+  buildSqlIndexes();
+  buildMonths();
+  initFilters();
+  renderAll();
+}
+
+function buildSqlIndexes(){
+  const db=getSqlDb();
+  if(!db || !state.sql?.table) return;
+  const table=state.sql.table;
+  const keys=['date','store','lo','category','campaign','adgroup','portfolio','term','customerType','ttype','tsub','tsub2','placement','targetingAsin','targetingCat'];
+  keys.forEach(key=>{
+    const info=getSqlInfoForStateKey(key);
+    if(!info) return;
+    const indexName=`idx_${table}_${info.sqlName}`;
+    try{
+      db.exec(`CREATE INDEX IF NOT EXISTS "${indexName}" ON "${table}"("${info.sqlName}")`);
+    }catch(err){
+      console.warn('Index creation failed:', indexName, err);
+    }
+  });
 }
 
 /* ===== months & filters ===== */
 function buildMonths(){
   state.monthDirty=false;
-  const dateCol = state.columns.date ? normalize(state.columns.date.name) : null;
-  if(!dateCol){
+  const db=getSqlDb();
+  const dateInfo=getSqlInfoForStateKey('date');
+  if(!db || !dateInfo){
     state.monthOptions=[];
     state.dateBounds={min:null,max:null};
     clearCustomRange({skipRender:true, skipFilters:true});
@@ -1459,21 +1608,22 @@ function buildMonths(){
     updateMonthSummary();
     return;
   }
-  const map=new Map();
-  let minDate=null, maxDate=null;
-  for(const r of state.rows){
-    const d=r[dateCol]; if(!(d instanceof Date)) continue;
-    if(!minDate || d<minDate) minDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-    if(!maxDate || d>maxDate) maxDate=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-    const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-    map.set(ym,(map.get(ym)||0)+1);
-  }
-  const arr=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  state.monthOptions=arr.map(([ym])=>{
-    const monthIndex=+ym.slice(5)-1;
+
+  const table=state.sql.table;
+  const bounds=sqlQueryAll(`SELECT MIN("${dateInfo.sqlName}") AS minDate, MAX("${dateInfo.sqlName}") AS maxDate FROM "${table}" WHERE "${dateInfo.sqlName}" IS NOT NULL AND "${dateInfo.sqlName}" <> ''`)[0] || {};
+  const minDateStr=bounds.minDate||null;
+  const maxDateStr=bounds.maxDate||null;
+  const minDate=minDateStr?parseInputDate(minDateStr):null;
+  const maxDate=maxDateStr?parseInputDate(maxDateStr):null;
+  state.dateBounds={min:minDate,max:maxDate};
+
+  const monthRows=sqlQueryAll(`SELECT substr("${dateInfo.sqlName}",1,7) AS ym, COUNT(*) AS c FROM "${table}" WHERE "${dateInfo.sqlName}" IS NOT NULL AND "${dateInfo.sqlName}" <> '' GROUP BY ym ORDER BY ym`);
+  state.monthOptions=monthRows.filter(row=>row.ym).map(row=>{
+    const ym=String(row.ym);
+    const monthIndex=Number(ym.slice(5))-1;
     return {ym,label:MONTH_NAMES[monthIndex]||ym};
   });
-  state.dateBounds={min:minDate,max:maxDate};
+
   el.monthList.innerHTML=state.monthOptions.map(o=>`
     <label class="month-row">
       <input type="checkbox" value="${o.ym}" ${state.monthSel.has(o.ym)?'checked':''}/>
@@ -1658,14 +1808,20 @@ function buildOptionsAll(){
 }
 function uniqValues(kind){
   const col=state.columns[kind]; if(!col || col.aliasOf) return [];
-  const key=normalize(col.name); const set=new Set();
-  state.rows.forEach(r=>{ const v=r[key]; if(v==null || v==="") return; set.add(String(v)); });
-  return Array.from(set).sort((a,b)=>String(a).localeCompare(String(b)));
+  const info=getSqlInfoForStateKey(kind); if(!info) return [];
+  const table=state.sql?.table; if(!table) return [];
+  const rows=sqlQueryAll(`SELECT DISTINCT "${info.sqlName}" AS val FROM "${table}" WHERE "${info.sqlName}" IS NOT NULL AND "${info.sqlName}" <> ''`);
+  return rows.map(r=>String(r.val)).sort((a,b)=>String(a).localeCompare(String(b)));
 }
-function optionsWithCounts(kind, rows){
+function optionsWithCounts(kind, context){
   const col=state.columns[kind]; if(!col || col.aliasOf) return [];
-  const key=normalize(col.name); const map=new Map();
-  rows.forEach(r=>{ const v=r[key]; if(v==null||v==="") return; map.set(String(v),(map.get(String(v))||0)+1); });
+  const info=getSqlInfoForStateKey(kind); if(!info) return [];
+  const table=state.sql?.table; if(!table) return [];
+  const extraCond={sql:`"${info.sqlName}" IS NOT NULL AND "${info.sqlName}" <> ''`};
+  const {sql,params}=combineWhere(context.conditions, extraCond);
+  const rows=sqlQueryAll(`SELECT "${info.sqlName}" AS val, COUNT(*) AS cnt FROM "${table}" ${sql} GROUP BY "${info.sqlName}" ORDER BY cnt DESC, val COLLATE NOCASE`, params);
+  const map=new Map();
+  rows.forEach(row=>{ const value=row.val; if(value==null || value==='') return; map.set(String(value), Number(row.cnt)||0); });
   const root=el.dd[kind]; const selected=new Set(ddGetSelected(root));
   selected.forEach(v=>{ if(!map.has(v)) map.set(v,0); });
   return [...map.entries()].sort((a,b)=> b[1]-a[1] || String(a[0]).localeCompare(String(b[0])) ).map(([v,count])=>({v,count}));
@@ -1688,81 +1844,112 @@ function activeSelections(excludeRoot){
   const monthSet=new Set(state.monthSel);
   return {act,dateKey,from,to,termKey:keyOf('term'),monthSet};
 }
-function rowsForFilterContext(excludeRoot){
-  const {act,dateKey,from,to,termKey,monthSet}=activeSelections(excludeRoot);
-  const needle=el.search.value.trim().toLowerCase();
-  return state.rows.filter(r=>{
-    if(needle && termKey){ const t=(r[termKey]??'').toString().toLowerCase(); if(!t.includes(needle)) return false; }
-    if(dateKey && (from||to||monthSet.size)){
-      const d=r[dateKey]; if(!(d instanceof Date)) return false;
-      if(from && d<from) return false; if(to && d>to) return false;
-      if(monthSet.size){ const ym=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; if(!monthSet.has(ym)) return false; }
-    }
-    for(const colKey in act){ if(!act[colKey].has(String(r[colKey]))) return false; }
-    return true;
+function buildFilterContext(excludeRoot){
+  const selection=activeSelections(excludeRoot);
+  const {act,dateKey,from,to,termKey,monthSet}=selection;
+  const conditions=[];
+  const dateInfo=dateKey?getSqlColumn(dateKey):null;
+  const termInfo=termKey?getSqlColumn(termKey):null;
+  const searchText=(el.search?.value||'').trim().toLowerCase();
+  if(searchText && termInfo){
+    conditions.push({sql:`LOWER("${termInfo.sqlName}") LIKE ?`, params:[`%${searchText}%`]});
+  }
+  if((from||to||monthSet.size) && !dateInfo){
+    conditions.push({sql:'0'});
+    return {conditions, meta:{dateInfo:null, termInfo, from, to, monthSet, search:searchText}};
+  }
+  if(from && dateInfo){
+    conditions.push({sql:`"${dateInfo.sqlName}" >= ?`, params:[toInputDate(from)]});
+  }
+  if(to && dateInfo){
+    conditions.push({sql:`"${dateInfo.sqlName}" <= ?`, params:[toInputDate(to)]});
+  }
+  if(monthSet.size && dateInfo){
+    const months=Array.from(monthSet).sort();
+    const placeholders=months.map(()=>'?').join(',');
+    conditions.push({sql:`substr("${dateInfo.sqlName}",1,7) IN (${placeholders})`, params:months});
+  }
+  Object.entries(act).forEach(([colKey,set])=>{
+    if(!set || !set.size) return;
+    const info=getSqlColumn(colKey);
+    if(!info) return;
+    const values=Array.from(set);
+    const placeholders=values.map(()=>'?').join(',');
+    conditions.push({sql:`CAST("${info.sqlName}" AS TEXT) IN (${placeholders})`, params:values});
   });
+  return {conditions, meta:{dateInfo, termInfo, from, to, monthSet, search:searchText}};
 }
 function updateAllFilterOptions(excludeRoot){
-  const base=rowsForFilterContext(excludeRoot||null);
+  const context=buildFilterContext(excludeRoot||null);
   Object.entries(el.dd).forEach(([k,root])=>{
     const col=state.columns[k];
     if(!col || col.aliasOf) return;
-    ddSetOptions(root, optionsWithCounts(k, base), true);
+    ddSetOptions(root, optionsWithCounts(k, context), true);
   });
 }
 
 /* ===== KPIs ===== */
-function getFilteredRows(){ return rowsForFilterContext(null); }
-function computeKPIs(rows){
-  const k={
-    imp:   state.columns.impressions ? normalize(state.columns.impressions.name) : null,
-    clk:   state.columns.clicks ? normalize(state.columns.clicks.name) : null,
-    rev:   state.columns.revenue ? normalize(state.columns.revenue.name) : null,
-    spend: state.columns.spend ? normalize(state.columns.spend.name) : null
-  };
-  let I=0,C=0,R=0,S=0;
-  for(const r of rows){ I+=(+r[k.imp]||0); C+=(+r[k.clk]||0); R+=(+r[k.rev]||0); S+=(+r[k.spend]||0); }
+function computeKPIs(context){
+  const table=state.sql?.table;
+  if(!table) return {I:0,C:0,R:0,S:0,ctr:NaN,acos:NaN,roas:NaN,avgcpc:NaN};
+  const imprInfo=getSqlInfoForStateKey('impressions');
+  const clicksInfo=getSqlInfoForStateKey('clicks');
+  const revenueInfo=getSqlInfoForStateKey('revenue');
+  const spendInfo=getSqlInfoForStateKey('spend');
+  const parts=[
+    imprInfo?`SUM(COALESCE("${imprInfo.sqlName}",0)) AS impressions`:'0 AS impressions',
+    clicksInfo?`SUM(COALESCE("${clicksInfo.sqlName}",0)) AS clicks`:'0 AS clicks',
+    revenueInfo?`SUM(COALESCE("${revenueInfo.sqlName}",0)) AS revenue`:'0 AS revenue',
+    spendInfo?`SUM(COALESCE("${spendInfo.sqlName}",0)) AS spend`:'0 AS spend'
+  ];
+  const {sql,params}=combineWhere(context.conditions);
+  const row=sqlQueryAll(`SELECT ${parts.join(', ')} FROM "${table}" ${sql}`, params)[0] || {};
+  const I=Number(row.impressions)||0;
+  const C=Number(row.clicks)||0;
+  const R=Number(row.revenue)||0;
+  const S=Number(row.spend)||0;
   const ctr = I>0 ? C/I : NaN;
-  const acos = R>0 ? S/R : NaN;
+  const acos = R>0 ? S/R : (S>0 ? Infinity : NaN);
   const roas = S>0 ? R/S : NaN;
   const avgcpc = C>0 ? S/C : NaN;
   return {I,C,R,S,ctr,acos,roas,avgcpc};
 }
-function buildKpiSeries(rows){
+function buildKpiSeries(context){
   const series={spend:[], revenue:[], acos:[], clicks:[], impressions:[], ctr:[], roas:[], avgcpc:[]};
-  const dateCol=state.columns.date ? normalize(state.columns.date.name) : null;
-  if(!Array.isArray(rows) || !rows.length || !dateCol) return series;
-  const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
-  const revenueKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
-  const clicksKey = state.columns.clicks ? normalize(state.columns.clicks.name) : null;
-  const imprKey = state.columns.impressions ? normalize(state.columns.impressions.name) : null;
-  const hasSpend=!!spendKey, hasRevenue=!!revenueKey, hasClicks=!!clicksKey, hasImpr=!!imprKey;
-  const buckets=new Map();
-  for(const row of rows){
-    const d=row[dateCol];
-    if(!(d instanceof Date)) continue;
-    const key=`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    let bucket=buckets.get(key);
-    if(!bucket){
-      bucket={date:new Date(d.getFullYear(),d.getMonth(),d.getDate()), spend:0,revenue:0,clicks:0,impressions:0};
-      buckets.set(key,bucket);
-    }
-    if(hasSpend) bucket.spend += +row[spendKey]||0;
-    if(hasRevenue) bucket.revenue += +row[revenueKey]||0;
-    if(hasClicks) bucket.clicks += +row[clicksKey]||0;
-    if(hasImpr) bucket.impressions += +row[imprKey]||0;
-  }
-  const sorted=[...buckets.values()].sort((a,b)=>a.date-b.date);
-  for(const entry of sorted){
-    if(hasSpend) series.spend.push(entry.spend);
-    if(hasRevenue) series.revenue.push(entry.revenue);
-    if(hasSpend && hasRevenue) series.acos.push(entry.revenue>0 ? entry.spend/entry.revenue : NaN);
-    if(hasClicks) series.clicks.push(entry.clicks);
-    if(hasImpr) series.impressions.push(entry.impressions);
-    if(hasClicks && hasImpr) series.ctr.push(entry.impressions>0 ? entry.clicks/entry.impressions : NaN);
-    if(hasSpend && hasRevenue) series.roas.push(entry.spend>0 ? entry.revenue/entry.spend : NaN);
-    if(hasSpend && hasClicks) series.avgcpc.push(entry.clicks>0 ? entry.spend/entry.clicks : NaN);
-  }
+  const table=state.sql?.table;
+  const dateInfo=getSqlInfoForStateKey('date');
+  if(!table || !dateInfo) return series;
+  const spendInfo=getSqlInfoForStateKey('spend');
+  const revenueInfo=getSqlInfoForStateKey('revenue');
+  const clicksInfo=getSqlInfoForStateKey('clicks');
+  const imprInfo=getSqlInfoForStateKey('impressions');
+  const hasSpend=!!spendInfo;
+  const hasRevenue=!!revenueInfo;
+  const hasClicks=!!clicksInfo;
+  const hasImpr=!!imprInfo;
+  const extra={sql:`"${dateInfo.sqlName}" IS NOT NULL AND "${dateInfo.sqlName}" <> ''`};
+  const {sql,params}=combineWhere(context.conditions, extra);
+  const selects=[`"${dateInfo.sqlName}" AS date_value`];
+  if(hasSpend) selects.push(`SUM(COALESCE("${spendInfo.sqlName}",0)) AS spend`);
+  if(hasRevenue) selects.push(`SUM(COALESCE("${revenueInfo.sqlName}",0)) AS revenue`);
+  if(hasClicks) selects.push(`SUM(COALESCE("${clicksInfo.sqlName}",0)) AS clicks`);
+  if(hasImpr) selects.push(`SUM(COALESCE("${imprInfo.sqlName}",0)) AS impressions`);
+  const query=`SELECT ${selects.join(', ')} FROM "${table}" ${sql} GROUP BY "${dateInfo.sqlName}" ORDER BY "${dateInfo.sqlName}"`;
+  const rows=sqlQueryAll(query, params);
+  rows.forEach(row=>{
+    const spend=hasSpend?Number(row.spend)||0:0;
+    const revenue=hasRevenue?Number(row.revenue)||0:0;
+    const clicks=hasClicks?Number(row.clicks)||0:0;
+    const impr=hasImpr?Number(row.impressions)||0:0;
+    if(hasSpend) series.spend.push(spend);
+    if(hasRevenue) series.revenue.push(revenue);
+    if(hasSpend && hasRevenue) series.acos.push(revenue>0?spend/revenue:(spend>0?Infinity:NaN));
+    if(hasClicks) series.clicks.push(clicks);
+    if(hasImpr) series.impressions.push(impr);
+    if(hasClicks && hasImpr) series.ctr.push(impr>0?clicks/impr:NaN);
+    if(hasSpend && hasRevenue) series.roas.push(spend>0?revenue/spend:NaN);
+    if(hasSpend && hasClicks) series.avgcpc.push(clicks>0?spend/clicks:NaN);
+  });
   return series;
 }
 function renderKPIs(x, series){
@@ -1941,45 +2128,41 @@ function finalizeAgg(map, limit, options={}){
   };
 }
 
-function buildAgg(rows, keyCol, spendKey, salesKey, options={}){
-  if(!Array.isArray(rows) || !rows.length || !keyCol){
-    return {labels:[], spend:[], sales:[], acos:[]};
-  }
+function buildAggSql(context, columnKey, spendInfo, salesInfo, options={}){
+  const table=state.sql?.table;
+  if(!table) return {labels:[], spend:[], sales:[], acos:[]};
+  const columnInfo=getSqlColumn(columnKey);
+  if(!columnInfo || !spendInfo || !salesInfo) return {labels:[], spend:[], sales:[], acos:[]};
   const caseInsensitive=!!options.caseInsensitive;
-  const agg=new Map();
-  for(const r of rows){
-    const rawValue=r[keyCol];
-    const spend=+r[spendKey]||0;
-    const sales=+r[salesKey]||0;
-    if(spend===0 && sales===0) continue;
-
-    const rawString=rawValue==null ? '' : String(rawValue);
-    const trimmedLabel=rawString.trim();
-    if(!trimmedLabel) continue;
-
-    const key=caseInsensitive ? trimmedLabel.toLocaleLowerCase() : rawString;
-    let entry=agg.get(key);
-    if(entry){
-      entry.spend+=spend;
-      entry.sales+=sales;
-      if(caseInsensitive && rawString){
-        entry.variants?.add(rawString);
+  const labelExpr=`"${columnInfo.sqlName}"`;
+  const groupExpr=caseInsensitive?`LOWER(${labelExpr})`:labelExpr;
+  const displayExpr=caseInsensitive?`MAX(${labelExpr})`:labelExpr;
+  const extraCond={sql:`TRIM(${labelExpr}) <> ''`};
+  const {sql,params}=combineWhere(context.conditions, extraCond);
+  const query=`SELECT ${groupExpr} AS group_key, ${displayExpr} AS display_label, SUM(COALESCE("${spendInfo.sqlName}",0)) AS total_spend, SUM(COALESCE("${salesInfo.sqlName}",0)) AS total_sales FROM "${table}" ${sql} GROUP BY ${groupExpr} HAVING total_spend <> 0 OR total_sales <> 0`;
+  const rows=sqlQueryAll(query, params);
+  const map=new Map();
+  rows.forEach(row=>{
+    const display=row.display_label==null?'':String(row.display_label);
+    const trimmed=display.trim();
+    if(!trimmed) return;
+    const spend=Number(row.total_spend)||0;
+    const sales=Number(row.total_sales)||0;
+    if(caseInsensitive){
+      const key=String(row.group_key||'');
+      const entry=map.get(key);
+      if(entry){
+        entry.spend+=spend;
+        entry.sales+=sales;
+        if(!entry.displayLabel && display) entry.displayLabel=display;
+      }else{
+        map.set(key,{spend,sales,rawValue:display,displayLabel:display,matchKey:key});
       }
     }else{
-      const variants=caseInsensitive?new Set():null;
-      if(variants && rawString) variants.add(rawString);
-      entry={
-        spend,
-        sales,
-        rawValue,
-        displayLabel:rawString || trimmedLabel,
-        matchKey:caseInsensitive?key:null,
-        variants
-      };
-      agg.set(key,entry);
+      map.set(display,{spend,sales,rawValue:display,displayLabel:display});
     }
-  }
-  return finalizeAgg(agg, undefined, {caseInsensitive});
+  });
+  return finalizeAgg(map, undefined, {caseInsensitive});
 }
 
 function updatePivotFootSpace(table){
@@ -2341,14 +2524,14 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
   return true;
 }
 
-function renderConversionPivots(rows, spendKey, salesKey){
+function renderConversionPivots(context, spendInfo, salesInfo){
   const result={st:false,asin:false};
   const targetSt=el.pivot?.conversionSt;
   const targetAsin=el.pivot?.conversionAsin;
   const termCol=state.columns.term;
   const typeCol=state.columns.customerType;
-  const hasBasics = !!(spendKey && salesKey && termCol && typeCol);
   const baseLabel = termCol?.name || 'Customer Search Term';
+  const hasBasics = !!(spendInfo && salesInfo && termCol && typeCol);
 
   if(targetSt) targetSt.dimension = hasBasics ? {stateKey:'term', columnKey:normalize(termCol.name)} : null;
   if(targetAsin) targetAsin.dimension = hasBasics ? {stateKey:'term', columnKey:normalize(termCol.name)} : null;
@@ -2359,11 +2542,18 @@ function renderConversionPivots(rows, spendKey, salesKey){
     return result;
   }
 
-  const termKey = normalize(termCol.name);
-  const typeKey = normalize(typeCol.name);
-  const normalizeTypeRaw = (value)=>String(value??'').trim().toLowerCase();
+  const table=state.sql?.table;
+  const termInfo=getSqlInfoForStateKey('term');
+  const typeInfo=getSqlInfoForStateKey('customerType');
+  if(!table || !termInfo || !typeInfo){
+    if(targetSt) renderPivotCard(targetSt, `${baseLabel} (ST)`, null, false);
+    if(targetAsin) renderPivotCard(targetAsin, `${baseLabel} (ASIN)`, null, false);
+    return result;
+  }
+
+  const normalizeTypeRaw=value=>String(value??'').trim().toLowerCase();
   const typeCache=new Map();
-  const mapTypeValue=(value)=>{
+  const mapTypeValue=value=>{
     const raw=normalizeTypeRaw(value);
     if(typeCache.has(raw)) return typeCache.get(raw);
     let mapped;
@@ -2374,18 +2564,25 @@ function renderConversionPivots(rows, spendKey, salesKey){
     return mapped;
   };
 
+  const extra=[
+    {sql:`TRIM("${termInfo.sqlName}") <> ''`},
+    {sql:`TRIM("${typeInfo.sqlName}") <> ''`}
+  ];
+  const {sql,params}=combineWhere(context.conditions, extra);
+  const query=`SELECT LOWER(TRIM("${typeInfo.sqlName}")) AS type_key, "${termInfo.sqlName}" AS term_value, SUM(COALESCE("${spendInfo.sqlName}",0)) AS total_spend, SUM(COALESCE("${salesInfo.sqlName}",0)) AS total_sales FROM "${table}" ${sql} GROUP BY type_key, term_value HAVING total_spend <> 0 OR total_sales <> 0`;
+  const rows=sqlQueryAll(query, params);
   const buckets={st:new Map(), asin:new Map()};
-  for(const row of rows){
-    const type=mapTypeValue(row[typeKey]);
-    const bucket=type==='st'?buckets.st:type==='asin'?buckets.asin:null;
-    if(!bucket) continue;
-    const rawValue=row[termKey];
-    const labelStr=rawValue==null ? '' : String(rawValue);
-    const trimmedLabel=labelStr.trim();
-    if(!trimmedLabel) continue;
-    const spend=+row[spendKey]||0;
-    const sales=+row[salesKey]||0;
-    if(spend===0 && sales===0) continue;
+  rows.forEach(row=>{
+    const mappedType=mapTypeValue(row.type_key);
+    const bucket=mappedType==='st'?buckets.st:mappedType==='asin'?buckets.asin:null;
+    if(!bucket) return;
+    const rawValue=row.term_value;
+    const labelStr=rawValue==null?'':String(rawValue);
+    const trimmed=labelStr.trim();
+    if(!trimmed) return;
+    const spend=Number(row.total_spend)||0;
+    const sales=Number(row.total_sales)||0;
+    if(spend===0 && sales===0) return;
     const entry=bucket.get(labelStr);
     if(entry){
       entry.spend+=spend;
@@ -2393,7 +2590,7 @@ function renderConversionPivots(rows, spendKey, salesKey){
     }else{
       bucket.set(labelStr,{spend,sales,rawValue});
     }
-  }
+  });
 
   const renderBucket=(target,map,labelSuffix,key)=>{
     if(!target) return false;
@@ -2438,19 +2635,19 @@ function hideUnusedPivotSlots(activeSlots){
 
 /* ===== render & CSV ===== */
 function renderAll(){
-  const rows=getFilteredRows();
-  const series=buildKpiSeries(rows);
-  renderKPIs(computeKPIs(rows), series);
+  const context=buildFilterContext(null);
+  const series=buildKpiSeries(context);
+  renderKPIs(computeKPIs(context), series);
 
-  const spendKey = state.columns.spend ? normalize(state.columns.spend.name) : null;
-  const salesKey = state.columns.revenue ? normalize(state.columns.revenue.name) : null;
+  const spendInfo=getSqlInfoForStateKey('spend');
+  const salesInfo=getSqlInfoForStateKey('revenue');
   if(el.pivot?.section) el.pivot.section.dataset.mode = state.activeTab || 'overview';
 
   const activeSlots=new Set();
   let anyPivot=false;
 
   if(state.activeTab==='conversion'){
-    const result=renderConversionPivots(rows, spendKey, salesKey);
+    const result=renderConversionPivots(context, spendInfo, salesInfo);
     if(result.st) activeSlots.add('conversionSt');
     if(result.asin) activeSlots.add('conversionAsin');
     anyPivot = result.st || result.asin;
@@ -2464,8 +2661,8 @@ function renderAll(){
       const columnKey=columnDef ? normalize(columnDef.name) : null;
       const opts=options||{};
       target.dimension = columnKey ? {stateKey:column, columnKey, caseInsensitive:!!opts.caseInsensitive} : null;
-      const hasMetrics = spendKey && salesKey && columnKey;
-      const agg = hasMetrics ? buildAgg(rows, columnKey, spendKey, salesKey, opts) : null;
+      const hasMetrics = spendInfo && salesInfo && columnKey;
+      const agg = hasMetrics ? buildAggSql(context, columnKey, spendInfo, salesInfo, opts) : null;
       const rendered = renderPivotCard(target, columnName, agg, !!columnKey);
       if(rendered) activeSlots.add(slot);
       return rendered;
@@ -2481,12 +2678,26 @@ function renderAll(){
 }
 
 function onDownloadCsv(){
-  const rows=getFilteredRows();
+  const table=state.sql?.table;
+  const columns=state.sql?.columns||[];
+  if(!table || !columns.length){ alert('No data available for export.'); return; }
+  const context=buildFilterContext(null);
+  const {sql,params}=combineWhere(context.conditions);
+  const selectList=columns.map(info=>`"${info.sqlName}"`).join(', ');
+  const rows=sqlQueryAll(`SELECT ${selectList} FROM "${table}" ${sql}`, params);
   if(!rows.length){ alert('No rows to download for current filters.'); return; }
-  const headers=Object.keys(state.rows[0]||{});
+  const headers=columns.map(info=>{
+    const norm=info.normalized && info.normalized.trim();
+    return norm || info.header || info.sqlName;
+  });
   const esc=v=>{ if(v==null) return ''; const s=String(v); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; };
   const head=headers.map(esc).join(',')+'\n';
-  const body=rows.map(r=>headers.map(h=>esc(r[h])).join(',')).join('\n');
+  const body=rows.map(row=>{
+    return columns.map(info=>{
+      const value=row[info.sqlName];
+      return esc(value==null?'' : value);
+    }).join(',');
+  }).join('\n');
   const blob=new Blob([head+body],{type:'text/csv;charset=utf-8'});
   saveAs(blob,'filtered.csv');
 }
