@@ -579,6 +579,7 @@ body.has-data #tipPill{display:none !important}
 'use strict';
 
 let sqlLibPromise=null;
+let sqlReadyPromise=null;
 function loadSqlLibrary(){
   if(!sqlLibPromise){
     if(typeof initSqlJs!=='function'){
@@ -1287,6 +1288,7 @@ function boot(){
   setHasData(false);
   setupTabs();
   initConversionNav();
+  sqlReadyPromise = loadSqlLibrary();
   const triggerPicker=()=>{ if(el.fileInput) el.fileInput.click(); };
   if(el.pickLocalBtn) el.pickLocalBtn.addEventListener('click', triggerPicker);
   if(el.emptyOpen){
@@ -1458,7 +1460,7 @@ async function attemptDefaultWorkbook(){
   }
 }
 async function parseExcel(buf){
-  const SQL = await loadSqlLibrary();
+  const SQL = await (sqlReadyPromise || loadSqlLibrary());
   if(!SQL) throw new Error('Unable to initialize SQL engine');
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
   let best=null,score=-1;
