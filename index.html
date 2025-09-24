@@ -1361,6 +1361,9 @@ function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.te
 
 function setHasData(has){
   state.hasData=!!has;
+  if(has){
+    showLoading(false);
+  }
   document.body.classList.toggle('has-data', !!has);
   if(has){
     if(el.topLine) el.topLine.style.display='flex';
@@ -1856,9 +1859,10 @@ function buildFilterContext(excludeRoot){
   const conditions=[];
   const dateInfo=dateKey?getSqlColumn(dateKey):null;
   const termInfo=termKey?getSqlColumn(termKey):null;
-  const searchText=(el.search?.value||'').trim().toLowerCase();
+  const searchRaw=(el.search?.value||'').trim();
+  const searchText=searchRaw.toLowerCase();
   if(searchText && termInfo){
-    conditions.push({sql:`LOWER("${termInfo.sqlName}") LIKE ?`, params:[`%${searchText}%`]});
+    conditions.push({sql:`LOWER("${termInfo.sqlName}") = ?`, params:[searchText]});
   }
   if((from||to||monthSet.size) && !dateInfo){
     conditions.push({sql:'0'});
