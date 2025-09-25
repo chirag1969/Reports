@@ -37,6 +37,7 @@ html,body{height:100%}
 body{margin:0;font:13.5px/1.45 system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial,"Noto Sans";color:var(--text);background:var(--bg);display:flex;flex-direction:column;min-height:100%}
 [hidden]{display:none !important}
 h1{margin:0;font-weight:800;letter-spacing:.2px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* Buttons */
 button{border:1px solid var(--border);background:var(--panel);color:var(--text);padding:10px 12px;border-radius:12px;cursor:pointer;transition:transform .12s, box-shadow .25s, background .2s, border-color .2s}
@@ -61,6 +62,29 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .header-filter{grid-template-columns:1fr;min-width:0;width:min(420px,100%)}
 .header-filter label{text-align:center;justify-self:center}
 .header-search .dd{width:100%}
+.term-search{width:100%}
+.dd-search-mode{position:relative;width:100%}
+.dd-search-mode .dd-search-shell{position:relative;display:flex;flex-direction:column;gap:6px}
+.dd-search-mode .dd-search{width:100%;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:12px;padding:12px 14px;font-size:15px;box-shadow:var(--shadow);transition:border-color .2s, box-shadow .25s}
+.dd-search-mode .dd-search:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:var(--accent);box-shadow:0 10px 24px rgba(37,99,235,.22)}
+.dd-search-mode .dd-search::placeholder{color:var(--muted)}
+.dd-search-mode .dd-search-summary{font-size:12px;color:var(--muted);padding-left:2px}
+.dd-search-mode .dd-search-summary[data-state="all"]{display:none}
+.dd-search-mode .dd-panel{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);max-height:360px;overflow:auto;z-index:40}
+.dd-search-mode:not(.open) .dd-panel{display:none}
+.dd-search-mode .dd-head{display:none}
+.dd-search-mode .dd-list{padding:6px}
+.dd-search-mode .dd-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;transition:background .2s ease, transform .12s ease, box-shadow .25s ease}
+.dd-search-mode .dd-item:hover{background:color-mix(in srgb,var(--chip) 85%, transparent);transform:translateY(-1px);box-shadow:0 6px 16px rgba(15,23,42,.18)}
+.dd-search-mode .dd-only{display:none}
+.dd-search-mode .dd-left{flex:1;display:flex;align-items:center;gap:10px;position:relative}
+.dd-search-mode .dd-left input[type=checkbox]{position:absolute;inset:0;opacity:0;cursor:pointer;border:0;margin:0}
+.dd-search-mode .dd-text{font-weight:600;color:var(--text)}
+.dd-search-mode .dd-item.is-selected{background:color-mix(in srgb,var(--accent) 25%, var(--chip));box-shadow:0 10px 24px rgba(37,99,235,.18)}
+.dd-search-mode .dd-item.is-selected .dd-text{color:var(--accent)}
+.dd-search-mode .dd-item.is-selected .dd-text::after{content:'\2713';margin-left:6px;font-weight:700}
+.dd-search-mode .dd-count{color:var(--muted);font-size:12px}
+.dd-search-mode .dd-empty{padding:18px 12px;font-weight:600;color:var(--muted)}
 @media(max-width:900px){
   .app-header{grid-template-columns:1fr;justify-items:center;text-align:center}
   .header-title{justify-content:center}
@@ -306,9 +330,9 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
 <header id="appHeader" class="app-header">
   <div class="header-title"><h1>🔎 Search Terms Analytics</h1></div>
   <div class="header-search">
-    <div class="filter header-filter" data-col-wrapper="term">
-      <label data-col-label="term" data-default="Search Term">Search Term</label>
-      <div id="termMS" class="dd"></div>
+    <div class="filter header-filter term-search" data-col-wrapper="term">
+      <label data-col-label="term" data-default="Search Term" class="sr-only">Search Term</label>
+      <div id="termMS" class="dd dd-search-mode" data-placeholder="Search terms"></div>
     </div>
   </div>
   <div class="actions">
@@ -1678,7 +1702,16 @@ function boot(){
       monthRoot.classList.remove('open');
       applyMonthFilters();
     }
-    const dd=e.target.closest('.dd'); document.querySelectorAll('.dd.open').forEach(d=>{ if(d!==dd) d.classList.remove('open');});
+    const clickedDd=e.target.closest('.dd');
+    document.querySelectorAll('.dd.open').forEach(d=>{
+      if(d!==clickedDd){
+        d.classList.remove('open');
+        if(d.classList.contains('dd-search-mode')){
+          const panel=d.querySelector('.dd-panel');
+          if(panel) panel.hidden=true;
+        }
+      }
+    });
   });
 
   setupPivotInteractions();
@@ -2062,34 +2095,110 @@ function updateResetButtonVisibility(){
 
 /* dropdowns */
 function ddBuild(root){
-  root.innerHTML = `
-    <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
-    <div class="dd-panel">
-      <div class="dd-head">
-        <label class="select-all"><input type="checkbox" class="dd-select-all"/><span>Select All</span></label>
-        <input type="search" class="dd-search" placeholder="Type to search"/>
-        <div class="rc">Record Count</div>
+  const isSearchMode=root.classList.contains('dd-search-mode');
+  if(isSearchMode){
+    const wrapper=root.closest('[data-col-wrapper]');
+    const labelNode=wrapper?.querySelector('[data-col-label]');
+    const labelText=labelNode?labelNode.textContent.trim():'';
+    const rawPlaceholder=root.getAttribute('data-placeholder');
+    const placeholder=computeSearchPlaceholder(labelText, rawPlaceholder);
+    const safePlaceholder=escapeHtml(placeholder);
+    root.innerHTML = `
+      <div class="dd-search-shell">
+        <input type="search" class="dd-search" placeholder="${safePlaceholder}" autocomplete="off" aria-label="${safePlaceholder}"/>
+        <div class="dd-summary dd-search-summary" data-state="all">All terms</div>
       </div>
-      <div class="dd-list"></div>
-      <div class="dd-empty">No results</div>
-    </div>`;
-  const control=root.querySelector('.dd-control');
-  control.addEventListener('click', ()=>{
-    const willOpen=!root.classList.contains('open');
-    document.querySelectorAll('.dd.open').forEach(n=>n.classList.remove('open'));
-    root.classList.toggle('open', willOpen);
-    if(willOpen){ clampPanelRight(root.querySelector('.dd-panel')); root.querySelector('.dd-search').focus(); ddApplySearchFilter(root); }
-  });
-  root.querySelector('.dd-panel').addEventListener('click', (e)=> e.stopPropagation());
+      <div class="dd-panel" hidden>
+        <div class="dd-list"></div>
+        <div class="dd-empty">No results</div>
+      </div>`;
+  }else{
+    root.innerHTML = `
+      <div class="dd-control"><span class="dd-summary">All</span><span class="dd-chev">▾</span></div>
+      <div class="dd-panel">
+        <div class="dd-head">
+          <label class="select-all"><input type="checkbox" class="dd-select-all"/><span>Select All</span></label>
+          <input type="search" class="dd-search" placeholder="Type to search"/>
+          <div class="rc">Record Count</div>
+        </div>
+        <div class="dd-list"></div>
+        <div class="dd-empty">No results</div>
+      </div>`;
+  }
+  const panel=root.querySelector('.dd-panel');
+  if(!panel) return;
+  panel.addEventListener('click', (e)=> e.stopPropagation());
+  if(isSearchMode){
+    panel.addEventListener('mousedown', e=>e.preventDefault());
+  }
   const searchEl=root.querySelector('.dd-search');
-  searchEl.addEventListener('input', ()=>ddApplySearchFilter(root));
-  searchEl.addEventListener('search', ()=>ddApplySearchFilter(root));
-  root.querySelector('.dd-select-all').addEventListener('change', (e)=>{
-    const on = e.target.checked;
-    const vis = root.querySelectorAll('.dd-item:not([hidden]) input[type=checkbox]');
-    vis.forEach(cb=>cb.checked = on);
+  if(searchEl){
+    const handleSearch=()=>ddApplySearchFilter(root);
+    searchEl.addEventListener('input', handleSearch);
+    searchEl.addEventListener('search', handleSearch);
+    if(isSearchMode){
+      searchEl.addEventListener('focus', ()=>ddApplySearchFilter(root));
+      searchEl.addEventListener('blur', ()=>{
+        setTimeout(()=>{
+          if(root.contains(document.activeElement)) return;
+          root.classList.remove('open');
+          panel.hidden=true;
+        },120);
+      });
+      searchEl.addEventListener('keydown', (ev)=>{
+        if(ev.key==='Escape'){
+          if(searchEl.value){
+            searchEl.value='';
+            ddApplySearchFilter(root);
+          }
+          root.classList.remove('open');
+          panel.hidden=true;
+          searchEl.blur();
+        }
+      });
+    }
+  }
+  if(!isSearchMode){
+    const control=root.querySelector('.dd-control');
+    if(control){
+      control.addEventListener('click', ()=>{
+        const willOpen=!root.classList.contains('open');
+        document.querySelectorAll('.dd.open').forEach(n=>n.classList.remove('open'));
+        root.classList.toggle('open', willOpen);
+        if(willOpen){
+          clampPanelRight(panel);
+          const search=root.querySelector('.dd-search');
+          if(search){
+            search.focus();
+            ddApplySearchFilter(root);
+          }
+        }
+      });
+    }
+  }
+  const selectAll=root.querySelector('.dd-select-all');
+  if(selectAll){
+    selectAll.addEventListener('change', (e)=>{
+      const on=e.target.checked;
+      const vis=root.querySelectorAll('.dd-item:not([hidden]) input[type=checkbox]');
+      vis.forEach(cb=>cb.checked=on);
+      ddUpdateSummary(root);
+      ddSyncSelectAll(root);
+      if(isSearchMode){
+        ddRefreshSearchSelections(root);
+        if(state.hasData){
+          updateAllFilterOptions(root);
+          resetConversionPaging();
+          renderAll();
+          updateResetButtonVisibility();
+        }
+      }
+    });
+  }
+  if(isSearchMode){
     ddUpdateSummary(root);
-  });
+    panel.hidden=true;
+  }
 }
 function ddSetOptions(root, items, keepSel=true){
   if(!root.querySelector('.dd-panel')) ddBuild(root);
@@ -2108,23 +2217,75 @@ function ddSetOptions(root, items, keepSel=true){
     btn.addEventListener('click', ()=>{
       const val=btn.getAttribute('data-val');
       root.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=(cb.value===val));
-      ddUpdateSummary(root); root.classList.remove('open');
+      ddUpdateSummary(root);
+      ddSyncSelectAll(root);
+      ddRefreshSearchSelections(root);
+      if(root.classList.contains('dd-search-mode')){
+        ddApplyImmediateFilters(root);
+        const panel=root.querySelector('.dd-panel');
+        if(panel){
+          panel.hidden=true;
+        }
+      }
+      root.classList.remove('open');
     });
   });
   list.querySelectorAll('input[type=checkbox]').forEach(cb=>{
-    cb.addEventListener('change', ()=>{ ddUpdateSummary(root); ddSyncSelectAll(root); });
+    cb.addEventListener('change', ()=>{
+      ddUpdateSummary(root);
+      ddSyncSelectAll(root);
+      ddRefreshSearchSelections(root);
+      ddApplyImmediateFilters(root);
+    });
   });
   ddApplySearchFilter(root);
   ddUpdateSummary(root);
+  ddRefreshSearchSelections(root);
 }
 function ddGetSelected(root){ return Array.from(root.querySelectorAll('.dd-list input[type=checkbox]:checked')).map(cb=>cb.value); }
+function computeSearchPlaceholder(labelText, fallback){
+  const primary=String(labelText||'').trim();
+  if(primary){
+    return primary.toLowerCase().includes('search') ? primary : `Search ${primary}`;
+  }
+  const secondary=String(fallback||'').trim();
+  if(secondary){
+    return secondary.toLowerCase().includes('search') ? secondary : `Search ${secondary}`;
+  }
+  return 'Search';
+}
+function ddApplyImmediateFilters(root){
+  if(!root?.classList?.contains('dd-search-mode')) return;
+  if(!state.hasData) return;
+  updateAllFilterOptions(root);
+  resetConversionPaging();
+  renderAll();
+  updateResetButtonVisibility();
+}
+function ddRefreshSearchSelections(root){
+  if(!root?.classList?.contains('dd-search-mode')) return;
+  root.querySelectorAll('.dd-item').forEach(item=>{
+    const cb=item.querySelector('input[type=checkbox]');
+    item.classList.toggle('is-selected', !!cb?.checked);
+  });
+}
 function ddUpdateSummary(root){
+  if(!root) return;
+  const summary=root.querySelector('.dd-summary');
+  if(!summary) return;
   const sel = ddGetSelected(root);
-  root.querySelector('.dd-summary').textContent = sel.length===0 ? 'All' : sel.length===1 ? sel[0] : `${sel.length} selected`;
+  const allLabel = root.classList.contains('dd-search-mode') ? 'All terms' : 'All';
+  summary.textContent = sel.length===0 ? allLabel : sel.length===1 ? sel[0] : `${sel.length} selected`;
+  if(summary.classList.contains('dd-search-summary')){
+    summary.dataset.state = sel.length ? 'active' : 'all';
+  }
 }
 function ddSyncSelectAll(root){
+  if(!root) return;
+  const selectAll=root.querySelector('.dd-select-all');
+  if(!selectAll) return;
   const vis=Array.from(root.querySelectorAll('.dd-item:not([hidden]) input[type=checkbox]'));
-  root.querySelector('.dd-select-all').checked = (vis.length && vis.every(cb=>cb.checked));
+  selectAll.checked = (vis.length && vis.every(cb=>cb.checked));
 }
 function ddApplySearchFilter(root){
   if(!root) return;
@@ -2140,6 +2301,28 @@ function ddApplySearchFilter(root){
   });
   root.classList.toggle('no-results', matches===0);
   ddSyncSelectAll(root);
+  if(root.classList.contains('dd-search-mode')){
+    const panel=root.querySelector('.dd-panel');
+    if(panel){
+      const active=document.activeElement===searchEl;
+      const query=searchEl?searchEl.value.trim():'';
+      const shouldOpen=active && query.length>0;
+      if(shouldOpen){
+        if(panel.hidden){
+          panel.hidden=false;
+          panel.removeAttribute('hidden');
+        }
+        if(!root.classList.contains('open')){
+          root.classList.add('open');
+          clampPanelRight(panel);
+        }
+      }else{
+        if(!panel.hidden) panel.hidden=true;
+        root.classList.remove('open');
+      }
+    }
+    ddRefreshSearchSelections(root);
+  }
 }
 
 function syncFilterLabels(){
@@ -2152,7 +2335,20 @@ function syncFilterLabels(){
     const isAlias=col && col.aliasOf;
     label.textContent = col?.name || fallback;
     const wrapper=label.closest('[data-col-wrapper]');
-    if(wrapper) wrapper.hidden = !col || isAlias;
+    if(wrapper){
+      wrapper.hidden = !col || isAlias;
+      const searchRoot=wrapper.querySelector('.dd-search-mode');
+      if(searchRoot){
+        const input=searchRoot.querySelector('.dd-search');
+        if(input){
+          const labelText=label.textContent.trim();
+          const dataPlaceholder=searchRoot.getAttribute('data-placeholder') || fallback || '';
+          const computedPlaceholder = computeSearchPlaceholder(labelText, dataPlaceholder);
+          input.placeholder = computedPlaceholder;
+          input.setAttribute('aria-label', computedPlaceholder);
+        }
+      }
+    }
   });
 }
 
