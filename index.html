@@ -633,10 +633,38 @@ let sqlLibPromise=null;
 let sqlReadyPromise=null;
 function loadSqlLibrary(){
   if(!sqlLibPromise){
-    if(typeof initSqlJs!=='function'){
-      sqlLibPromise=Promise.reject(new Error('SQL.js failed to load'));
+    const ensureInit=()=>{
+      if(typeof initSqlJs==='function'){
+        try{
+          return initSqlJs({ locateFile:(file)=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.9.0/${file}` });
+        }catch(err){
+          return Promise.reject(err);
+        }
+      }
+      return null;
+    };
+
+    const direct=ensureInit();
+    if(direct){
+      sqlLibPromise=direct;
     }else{
-      sqlLibPromise=initSqlJs({ locateFile:(file)=>`https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.9.0/${file}` });
+      sqlLibPromise=new Promise((resolve,reject)=>{
+        const started=Date.now();
+        const timeout=8000;
+        const poll=()=>{
+          const ready=ensureInit();
+          if(ready){
+            ready.then(resolve,reject);
+            return;
+          }
+          if(Date.now()-started>timeout){
+            reject(new Error('SQL.js failed to load'));
+            return;
+          }
+          setTimeout(poll,50);
+        };
+        poll();
+      });
     }
   }
   return sqlLibPromise;
