@@ -54,8 +54,19 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .btn-mode{display:inline-flex;align-items:center;gap:0;border-radius:14px;padding:10px;border:1px solid var(--modeBtnBg);background:var(--modeBtnBg);color:var(--modeIcon);width:42px;justify-content:center}
 
 /* Header */
-.app-header{display:flex;align-items:center;justify-content:space-between;padding:12px clamp(14px,3vw,28px);border-bottom:1px solid var(--border);background:var(--header-grad);position:sticky;top:0;backdrop-filter:blur(6px);z-index:20}
-.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.app-header{display:grid;grid-template-columns:auto minmax(260px,1fr) auto;align-items:center;gap:clamp(12px,2vw,24px);padding:12px clamp(14px,3vw,28px);border-bottom:1px solid var(--border);background:var(--header-grad);position:sticky;top:0;backdrop-filter:blur(6px);z-index:20}
+.header-title{display:flex;align-items:center;gap:10px;min-width:0}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.header-search{display:flex;justify-content:center;min-width:0}
+.header-filter{grid-template-columns:1fr;min-width:0;width:min(420px,100%)}
+.header-filter label{text-align:center;justify-self:center}
+.header-search .dd{width:100%}
+@media(max-width:900px){
+  .app-header{grid-template-columns:1fr;justify-items:center;text-align:center}
+  .header-title{justify-content:center}
+  .actions{justify-content:center}
+  .header-search{width:100%}
+}
 body:not(.has-data) .app-header{display:none}
 
 /* Layout */
@@ -293,7 +304,13 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
 <body>
 
 <header id="appHeader" class="app-header">
-  <div><h1>🔎 Search Terms Analytics</h1></div>
+  <div class="header-title"><h1>🔎 Search Terms Analytics</h1></div>
+  <div class="header-search">
+    <div class="filter header-filter" data-col-wrapper="term">
+      <label data-col-label="term" data-default="Search Term">Search Term</label>
+      <div id="termMS" class="dd"></div>
+    </div>
+  </div>
   <div class="actions">
     <button id="resetFilters" class="btn-reset">Reset</button>
     <button id="openFilters" class="btn-filters" style="display:none">Filters</button>
@@ -599,9 +616,6 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
       <div class="filter grow" data-col-wrapper="adgroup"><label data-col-label="adgroup" data-default="Ad Group Name">Ad Group Name</label><div id="adgroupMS" class="dd"></div></div>
       <div class="filter grow" data-col-wrapper="portfolio"><label data-col-label="portfolio" data-default="Portfolio Name">Portfolio Name</label><div id="portfolioMS" class="dd"></div></div>
 
-      <div class="filter search"><label for="searchFilter">Search Term</label>
-        <input id="searchFilter" type="search" placeholder="Type to filter terms…" style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--panel);color:var(--text)">
-      </div>
     </section>
 
     <div class="modal-actions">
@@ -926,7 +940,7 @@ function deactivateCustomRange(){
 }
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),targetingAsin:document.getElementById('targetingAsinMS'),targetingCat:document.getElementById('targetingCatMS'),customerType:document.getElementById('customerTypeMS'),placement:document.getElementById('placementMS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),targetingAsin:document.getElementById('targetingAsinMS'),targetingCat:document.getElementById('targetingCatMS'),customerType:document.getElementById('customerTypeMS'),placement:document.getElementById('placementMS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS'),term:document.getElementById('termMS')}}};
 el.skuPopup={
   root:document.getElementById('skuPopup'),
   card:document.getElementById('skuPopupCard'),
@@ -1298,16 +1312,6 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
   const {stateKey,columnKey}=dimension;
   if(!stateKey || !columnKey) return;
 
-  if(stateKey==='term'){
-    const term=String(rawValue??'').trim();
-    if(!term) return;
-    if(el.search) el.search.value=term;
-    updateAllFilterOptions(null);
-    resetConversionPaging();
-    renderAll();
-    return;
-  }
-
   const value=rawValue==null ? '' : String(rawValue);
   const root=el.dd?.[stateKey];
   if(!root) return;
@@ -1320,12 +1324,26 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
 
   if((!value && value!=='0') && !(caseInsensitive && normalizedMatch)) return;
 
+  const normalizeValue = val => caseInsensitive
+    ? String(val??'').trim().toLocaleLowerCase()
+    : String(val??'');
+  const targetKey = normalizeValue(normalizedMatch || value);
+
+  const currentSelected=new Set(ddGetSelected(root).map(val=>normalizeValue(val)));
+  if(currentSelected.size===1 && currentSelected.has(targetKey)){
+    root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>cb.checked=false);
+    ddUpdateSummary(root);
+    ddSyncSelectAll(root);
+    updateAllFilterOptions(null);
+    resetConversionPaging();
+    renderAll();
+    return;
+  }
+
   let found=false;
   root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>{
     const candidate=String(cb.value??'');
-    const match=caseInsensitive
-      ? (normalizedMatch ? candidate.trim().toLocaleLowerCase()===normalizedMatch : false)
-      : candidate===value;
+    const match=normalizeValue(candidate)===targetKey;
     cb.checked=match;
     if(match) found=true;
   });
@@ -1336,9 +1354,7 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
       ddSetOptions(root, [{v:fallbackValue,count:0}], false);
       root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>{
         const candidate=String(cb.value??'');
-        const match=caseInsensitive
-          ? (normalizedMatch ? candidate.trim().toLocaleLowerCase()===normalizedMatch : false)
-          : candidate===value;
+        const match=normalizeValue(candidate)===targetKey;
         cb.checked=match;
         if(match) found=true;
       });
@@ -1907,7 +1923,6 @@ function hasActiveFilters(){
   if(!state.hasData) return false;
   if(state.monthSel.size) return true;
   if(state.customRange.active) return true;
-  if(el.search && el.search.value.trim()) return true;
   for(const root of Object.values(el.dd||{})){
     if(!root) continue;
     if(root.querySelector('.dd-list input[type=checkbox]:checked')) return true;
@@ -2021,11 +2036,6 @@ function initFilters(){
   syncFilterLabels();
   Object.values(el.dd).forEach(root=>root && ddBuild(root));
   buildOptionsAll();
-  if(el.search){
-    el.search.value='';
-    el.search.addEventListener('input', debounce(()=>updateAllFilterOptions(null),150));
-  }
-
   el.filters.hidden=false;
 }
 function buildOptionsAll(){
@@ -2073,22 +2083,16 @@ function activeSelections(excludeRoot){
     to=cloneDate(state.customRange.end); if(to) to.setHours(23,59,59,999);
   }
   const monthSet=new Set(state.monthSel);
-  return {act,dateKey,from,to,termKey:keyOf('term'),monthSet};
+  return {act,dateKey,from,to,monthSet};
 }
 function buildFilterContext(excludeRoot){
   const selection=activeSelections(excludeRoot);
-  const {act,dateKey,from,to,termKey,monthSet}=selection;
+  const {act,dateKey,from,to,monthSet}=selection;
   const conditions=[];
   const dateInfo=dateKey?getSqlColumn(dateKey):null;
-  const termInfo=termKey?getSqlColumn(termKey):null;
-  const searchRaw=(el.search?.value||'').trim();
-  const searchText=searchRaw.toLowerCase();
-  if(searchText && termInfo){
-    conditions.push({sql:`LOWER("${termInfo.sqlName}") = ?`, params:[searchText]});
-  }
   if((from||to||monthSet.size) && !dateInfo){
     conditions.push({sql:'0'});
-    return {conditions, meta:{dateInfo:null, termInfo, from, to, monthSet, search:searchText}};
+    return {conditions, meta:{dateInfo:null, from, to, monthSet}};
   }
   if(from && dateInfo){
     conditions.push({sql:`"${dateInfo.sqlName}" >= ?`, params:[toInputDate(from)]});
@@ -2109,7 +2113,7 @@ function buildFilterContext(excludeRoot){
     const placeholders=values.map(()=>'?').join(',');
     conditions.push({sql:`CAST("${info.sqlName}" AS TEXT) IN (${placeholders})`, params:values});
   });
-  return {conditions, meta:{dateInfo, termInfo, from, to, monthSet, search:searchText}};
+  return {conditions, meta:{dateInfo, from, to, monthSet}};
 }
 function updateAllFilterOptions(excludeRoot){
   const context=buildFilterContext(excludeRoot||null);
@@ -2317,6 +2321,14 @@ function finalizeAgg(map, limit, options={}){
     if(bAcos<aAcos) return -1;
     return String(a.label).localeCompare(String(b.label));
   });
+  const allRows=entries.map(entry=>({
+    label:entry.label,
+    rawValue:entry.rawValue,
+    spend:entry.spend,
+    sales:entry.sales,
+    acos:entry.acos,
+    matchKey:entry.matchKey
+  }));
   const maxRows=(Number.isFinite(limit)&&limit>0)?Math.floor(limit):null;
   let output=entries;
   let pageMeta={start:0,count:entries.length,size:maxRows||entries.length,current:0,totalPages:maxRows?Math.ceil(entries.length/(maxRows||1)): (entries.length?1:0),hasPrev:false,hasNext:false,total:entries.length};
@@ -2356,7 +2368,8 @@ function finalizeAgg(map, limit, options={}){
     totalSpend,
     totalSales,
     limit:maxRows,
-    page:pageMeta
+    page:pageMeta,
+    allRows
   };
 }
 
@@ -2484,24 +2497,45 @@ function renderPivotTable(table){
     sort.dir='desc';
   }
 
-  const rows=Array.isArray(data.rows)?data.rows.slice():[];
+  const baseRows = Array.isArray(data.allRows) && data.allRows.length
+    ? data.allRows.slice()
+    : Array.isArray(data.rows)?data.rows.slice():[];
   const dimension=data.dimension||null;
   if(sort.key){
-    rows.sort((a,b)=>comparePivotRows(a,b,sort.key,sort.dir));
+    baseRows.sort((a,b)=>comparePivotRows(a,b,sort.key,sort.dir));
   }
 
   const head=buildPivotHead(safeColumn, sort.key, sort.dir);
 
-  if(!rows.length){
+  if(!baseRows.length){
     table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
     table.classList.remove('has-grand-total');
     updatePivotFootSpace(table);
     schedulePivotLayout();
+    data.visibleRows=[];
     return;
   }
 
+  const page=data.page||null;
+  const pageStart=page && Number.isFinite(page.start) ? Math.max(0, page.start) : 0;
+  const pageCount=page && Number.isFinite(page.count) ? Math.max(0, page.count)
+    : page && Number.isFinite(page.size) ? Math.max(0, page.size)
+    : baseRows.length;
+  const visibleRows=baseRows.slice(pageStart, Math.min(baseRows.length, pageStart+pageCount));
+
+  if(!visibleRows.length){
+    table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} rows on this page.</td></tr></tbody>`;
+    table.classList.remove('has-grand-total');
+    updatePivotFootSpace(table);
+    schedulePivotLayout();
+    data.visibleRows=[];
+    return;
+  }
+
+  data.visibleRows=visibleRows;
+
   const barScale=Number.isFinite(data.barScale) && data.barScale>0 ? data.barScale : 100;
-  const bodyRows=rows.map(row=>{
+  const bodyRows=visibleRows.map(row=>{
     const labelCell=buildPivotLabelCell(row, dimension, data);
     const spendCell=buildPivotMoneyCell(row.spend);
     const salesCell=buildPivotMoneyCell(row.sales);
@@ -2767,13 +2801,33 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     matchKey:matchKeys[i]
   }));
 
+  const allRows = Array.isArray(agg?.allRows)
+    ? agg.allRows.map(row=>({
+        label:String(row?.label??''),
+        rawValue:Object.prototype.hasOwnProperty.call(row||{},'rawValue')?row.rawValue:row?.label??'',
+        spend:+row?.spend||0,
+        sales:+row?.sales||0,
+        acos:typeof row?.acos==='number'?row.acos:parseAcosValue(row?.acos),
+        matchKey:row?.matchKey??null
+      }))
+    : rowData.map(r=>({...r}));
+
+  const pageMeta = agg?.page
+    ? {...agg.page}
+    : {start:0,count:rowData.length,size:rowData.length,current:0,totalPages:rowData.length?1:0,hasPrev:false,hasNext:false,total:rowData.length};
+
   target.table._pivotData={
     displayName,
-    rows:rowData,
+    rows:allRows,
+    allRows,
+    visibleRows:rowData,
     totals:{spend:totalSpend,sales:totalSales,acos:totalAcos},
     barScale,
     dimension: target.dimension || null,
-    slot: target.table?target.table._pivotSlot||null
+    slot: target.table?target.table._pivotSlot||null,
+    page:pageMeta,
+    limit,
+    totalCount
   };
 
   if(!target.table._pivotSort){
@@ -2976,7 +3030,6 @@ function snapshotFilters(){
     if(col && col.aliasOf) return;
     snap[key]=ddGetSelected(root);
   });
-  snap.search=el.search.value;
   snap.customRange={
     active:state.customRange.active,
     start:state.customRange.start?toInputDate(state.customRange.start):'',
@@ -2995,7 +3048,6 @@ function restoreSnapshot(){
     ddUpdateSummary(root);
     ddSyncSelectAll(root);
   });
-  el.search.value=s.search??'';
   if(s.customRange){
     const start=parseInputDate(s.customRange.start);
     const end=parseInputDate(s.customRange.end);
@@ -3022,7 +3074,6 @@ function clearAllFilters(){
     ddSyncSelectAll(root);
   });
   clearCustomRange({skipRender:true, skipFilters:true});
-  el.search.value='';
   updateAllFilterOptions(null);
   updateMonthSummary();
   updateResetButtonVisibility();
