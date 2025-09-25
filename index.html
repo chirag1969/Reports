@@ -174,6 +174,14 @@ body.has-data #tipPill{display:none !important}
 .pivot-label-btn:hover,.pivot-label-btn:focus-visible{color:var(--accent)}
 .pivot-label-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 .pivot-label-text{display:inline-block}
+.pivot-label-wrap{display:flex;align-items:center;gap:8px}
+.pivot-label-wrap .pivot-label-btn{flex:1;min-width:0}
+.pivot-label-wrap .pivot-label-text{display:block;flex:1;min-width:0}
+.pivot-info-btn{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:13px;font-weight:700;line-height:1;cursor:pointer;opacity:0;transform:translateX(6px);transition:opacity .18s ease,transform .18s ease,color .2s ease,background .2s ease,border-color .2s ease}
+.pivot-info-btn span{line-height:1;font-size:13px}
+.pivot-info-btn:hover,.pivot-info-btn:focus-visible{color:var(--accent);background:color-mix(in srgb,var(--panel) 55%, var(--chip));border-color:color-mix(in srgb,var(--accent) 65%, var(--border))}
+.pivot-info-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pivot-label-wrap:hover .pivot-info-btn,.pivot-label-wrap:focus-within .pivot-info-btn,.pivot-table tbody tr:hover .pivot-info-btn{opacity:1;transform:translateX(0)}
 .pivot-table tbody td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
 .pivot-table tbody tr:hover{background:var(--chip)}
@@ -193,6 +201,20 @@ body.has-data #tipPill{display:none !important}
 .pivot-bar-fill.acos{background:linear-gradient(90deg,rgba(239,68,68,.9),rgba(220,38,38,.95))}
 .pivot-table tr.pivot-total th,.pivot-table tr.pivot-total td{font-weight:800}
 .pivot-empty{text-align:center;padding:24px 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+
+.sku-popup{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(15,18,22,.75);backdrop-filter:blur(6px)}
+body.light .sku-popup{background:rgba(15,23,42,.35)}
+.sku-popup[hidden]{display:none !important}
+.sku-popup-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);width:clamp(280px,90vw,420px);max-height:min(70vh,520px);display:flex;flex-direction:column;overflow:hidden}
+.sku-popup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
+.sku-popup-title{margin:0;font-size:16px;font-weight:800;color:var(--text)}
+.sku-popup-body{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.sku-popup-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sku-popup-list li{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:color-mix(in srgb,var(--chip) 70%, var(--panel));font-weight:600;color:var(--text)}
+.sku-popup-empty{padding:10px 0;color:var(--muted);font-weight:600}
+.sku-popup-close{border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1;cursor:pointer;transition:background .2s ease,color .2s ease,transform .15s ease,border-color .2s ease}
+.sku-popup-close:hover{color:var(--text);background:color-mix(in srgb,var(--panel) 55%, var(--chip));transform:scale(1.05)}
+.sku-popup-close:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
 .pivot-metric{display:flex;flex-direction:column;gap:6px}
 .pivot-amount{font-weight:600;font-size:13.5px}
@@ -542,6 +564,17 @@ body.has-data #tipPill{display:none !important}
 </section>
 
 </main>
+
+<!-- ASIN SKU Popup -->
+<div id="skuPopup" class="sku-popup" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="skuPopupTitle" tabindex="-1">
+  <div class="sku-popup-card" id="skuPopupCard">
+    <div class="sku-popup-head">
+      <h3 class="sku-popup-title" id="skuPopupTitle">Advertised SKUs</h3>
+      <button type="button" class="sku-popup-close" id="skuPopupClose" aria-label="Close advertised SKU popup">✕</button>
+    </div>
+    <div class="sku-popup-body" id="skuPopupBody" role="document"></div>
+  </div>
+</div>
 
 <!-- Filters Modal -->
 <div id="filtersModal" class="modal" aria-hidden="true" role="dialog" aria-label="Filters">
@@ -894,6 +927,13 @@ function deactivateCustomRange(){
 
 /* ===== elements/state ===== */
 const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),targetingAsin:document.getElementById('targetingAsinMS'),targetingCat:document.getElementById('targetingCatMS'),customerType:document.getElementById('customerTypeMS'),placement:document.getElementById('placementMS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS')},search:document.getElementById('searchFilter')};
+el.skuPopup={
+  root:document.getElementById('skuPopup'),
+  card:document.getElementById('skuPopupCard'),
+  title:document.getElementById('skuPopupTitle'),
+  body:document.getElementById('skuPopupBody'),
+  close:document.getElementById('skuPopupClose')
+};
 const state={
   rows:[],
   columns:{},
@@ -905,6 +945,9 @@ const state={
   activeTab:'overview',
   customRange:{start:null,end:null,active:false},
   dateBounds:{min:null,max:null},
+  skuPopupReturn:null,
+  asinSkuMap:new Map(),
+  asinSkuLoaded:false,
   conversionPage:{st:0,asin:0},
   lastTabIndex:0,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0}
@@ -943,7 +986,107 @@ const PIVOT_CONFIG={
   conversion:[]
 };
 const DEFAULT_WORKBOOK='Products Search Term.xlsx';
+const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
+let asinSkuPromise=null;
 
+function ensureAsinSkuMap(){
+  if(state.asinSkuLoaded){
+    return Promise.resolve(state.asinSkuMap instanceof Map ? state.asinSkuMap : new Map());
+  }
+  if(asinSkuPromise){
+    return asinSkuPromise;
+  }
+  asinSkuPromise=loadAsinSkuWorkbook().then(map=>{
+    state.asinSkuMap = map instanceof Map ? map : new Map();
+    state.asinSkuLoaded=true;
+    if(state.hasData){
+      renderAll();
+    }
+    return state.asinSkuMap;
+  }).catch(()=>{
+    state.asinSkuMap=new Map();
+    state.asinSkuLoaded=true;
+    return state.asinSkuMap;
+  });
+  return asinSkuPromise;
+}
+
+async function loadAsinSkuWorkbook(){
+  const file=ASIN_SKU_WORKBOOK && ASIN_SKU_WORKBOOK.trim();
+  if(!file) return new Map();
+  try{
+    let targetUrl;
+    try{
+      targetUrl=new URL(file, document.baseURI).href;
+    }catch(_){
+      targetUrl=encodeURI(file);
+    }
+    const response=await fetch(targetUrl,{cache:'no-store'});
+    if(!response.ok && response.status!==0) throw new Error('ASIN SKU workbook not found');
+    const buf=await response.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array',cellDates:false,cellNF:false,cellText:false});
+    if(!wb.SheetNames || !wb.SheetNames.length) return new Map();
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    if(!ws) return new Map();
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+    if(!rows || rows.length<2) return new Map();
+    const sanitizeRow=row=>(row||[]).map(v=>String(v??'').trim());
+    let headerIndex=rows.length>1?1:0;
+    let headers=sanitizeRow(rows[headerIndex]);
+    let asinIdx=findIndexByTokens(headers,['advertisedasin','asin']);
+    let skuIdx=findIndexByTokens(headers,['advertisedsku','sku']);
+    if(asinIdx<0 || skuIdx<0){
+      for(let i=0;i<Math.min(rows.length,6);i++){
+        const candidate=sanitizeRow(rows[i]);
+        const aIdx=findIndexByTokens(candidate,['advertisedasin','asin']);
+        const sIdx=findIndexByTokens(candidate,['advertisedsku','sku']);
+        if(aIdx>-1 && sIdx>-1){
+          headerIndex=i;
+          headers=candidate;
+          asinIdx=aIdx;
+          skuIdx=sIdx;
+          break;
+        }
+      }
+    }
+    if(asinIdx<0 || skuIdx<0) return new Map();
+    const dataRows=rows.slice(headerIndex+1);
+    const map=new Map();
+    dataRows.forEach(row=>{
+      const safeRow=Array.isArray(row)?row:[];
+      const asin=String(safeRow[asinIdx]??'').trim();
+      const sku=String(safeRow[skuIdx]??'').trim();
+      if(!asin || !sku) return;
+      const asinKey=normalizeAsinKey(asin);
+      if(!asinKey) return;
+      let list=map.get(asinKey);
+      if(!list){
+        list=[];
+        map.set(asinKey,list);
+      }
+      if(!list.includes(sku)) list.push(sku);
+    });
+    const collator=new Intl.Collator(undefined,{sensitivity:'base',numeric:true});
+    map.forEach(list=>list.sort((a,b)=>collator.compare(String(a),String(b))));
+    return map;
+  }catch(err){
+    console.warn('ASIN SKU mapping load failed:', err);
+    return new Map();
+  }
+}
+
+function normalizeAsinKey(value){
+  return value==null ? '' : String(value).trim().toUpperCase();
+}
+
+function lookupAsinSkus(value){
+  const key=normalizeAsinKey(value);
+  if(!key) return null;
+  const map=state.asinSkuMap;
+  if(!(map instanceof Map)) return null;
+  const list=map.get(key);
+  return Array.isArray(list) && list.length ? list : null;
+}
 
 function resetConversionPaging(){
   state.conversionPage={st:0,asin:0};
@@ -1097,6 +1240,13 @@ function handlePivotSectionClick(event){
     handlePivotCopy(copyBtn);
     return;
   }
+  const infoBtn=event.target.closest?.('.pivot-info-btn');
+  if(infoBtn){
+    event.preventDefault();
+    event.stopPropagation();
+    handlePivotInfoButton(infoBtn);
+    return;
+  }
   const labelBtn=event.target.closest?.('.pivot-label-btn');
   if(labelBtn){
     event.preventDefault();
@@ -1127,6 +1277,16 @@ function handlePivotLabelButton(button){
   const value=button.dataset.pivotValue;
   const matchKey=button.dataset.pivotMatch;
   applyPivotLabelFilter(table, value, matchKey);
+}
+
+function handlePivotInfoButton(button){
+  if(!button) return;
+  const asin=button.dataset.asin;
+  if(!asin) return;
+  const label=button.dataset.asinLabel || asin;
+  const skus=lookupAsinSkus(asin);
+  const list=Array.isArray(skus)?skus.slice():[];
+  showSkuPopup(button, label, list);
 }
 
 function applyPivotLabelFilter(table, rawValue, matchKey){
@@ -1192,6 +1352,50 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
   updateAllFilterOptions(null);
   resetConversionPaging();
   renderAll();
+}
+
+function showSkuPopup(trigger, asinLabel, skus){
+  const popup=el.skuPopup;
+  if(!popup?.root) return;
+  const titleText=asinLabel ? `Advertised SKUs for ${asinLabel}` : 'Advertised SKUs';
+  if(popup.title) popup.title.textContent=titleText;
+  if(popup.body){
+    if(Array.isArray(skus) && skus.length){
+      const items=skus.map(sku=>`<li>${escapeHtml(String(sku))}</li>`).join('');
+      popup.body.innerHTML=`<ul class="sku-popup-list">${items}</ul>`;
+    }else{
+      popup.body.innerHTML='<div class="sku-popup-empty">No advertised SKUs found.</div>';
+    }
+  }
+  state.skuPopupReturn=trigger||null;
+  popup.root.removeAttribute('hidden');
+  popup.root.setAttribute('aria-hidden','false');
+  popup.root.classList.add('is-open');
+  requestAnimationFrame(()=>{
+    try{
+      popup.root.focus({preventScroll:true});
+    }catch(_){ }
+    if(popup.close){
+      try{ popup.close.focus({preventScroll:true}); }catch(_){ }
+    }
+  });
+}
+
+function hideSkuPopup(){
+  const popup=el.skuPopup;
+  if(!popup?.root || popup.root.hasAttribute('hidden')) return false;
+  popup.root.setAttribute('hidden','');
+  popup.root.setAttribute('aria-hidden','true');
+  popup.root.classList.remove('is-open');
+  if(popup.body) popup.body.innerHTML='';
+  const focusTarget=state.skuPopupReturn;
+  state.skuPopupReturn=null;
+  if(focusTarget && typeof focusTarget.focus==='function'){
+    requestAnimationFrame(()=>{
+      try{ focusTarget.focus({preventScroll:true}); }catch(_){ }
+    });
+  }
+  return true;
 }
 
 function togglePivotSort(header){
@@ -1350,6 +1554,23 @@ function boot(){
 
   setupPivotInteractions();
 
+  ensureAsinSkuMap();
+  if(el.skuPopup?.close) el.skuPopup.close.addEventListener('click', hideSkuPopup);
+  if(el.skuPopup?.root){
+    el.skuPopup.root.addEventListener('click', ev=>{
+      if(ev.target===el.skuPopup.root) hideSkuPopup();
+    });
+  }
+
+  document.addEventListener('keydown', (ev)=>{
+    if(ev.key==='Escape' || ev.key==='Esc'){
+      if(hideSkuPopup()){
+        ev.stopPropagation();
+        ev.preventDefault();
+      }
+    }
+  });
+
   showLoading(false);
   el.tipPill.hidden=true;
   el.monthsWrap.hidden=true;
@@ -1390,6 +1611,7 @@ function setHasData(has){
     if(el.monthCustomToggle) el.monthCustomToggle.disabled=true;
     if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
+    hideSkuPopup();
     state.columns={};
     state.rows=[];
     state.monthSel.clear();
@@ -2280,7 +2502,7 @@ function renderPivotTable(table){
 
   const barScale=Number.isFinite(data.barScale) && data.barScale>0 ? data.barScale : 100;
   const bodyRows=rows.map(row=>{
-    const labelCell=buildPivotLabelCell(row, dimension);
+    const labelCell=buildPivotLabelCell(row, dimension, data);
     const spendCell=buildPivotMoneyCell(row.spend);
     const salesCell=buildPivotMoneyCell(row.sales);
     const acosCells=buildPivotAcosCells(row.acos, barScale, false);
@@ -2309,20 +2531,47 @@ function buildPivotHead(columnLabel, activeKey, activeDir){
   return `<thead><tr>${cells.join('')}</tr></thead>`;
 }
 
-function buildPivotLabelCell(row, dimension){
+function buildPivotLabelCell(row, dimension, meta){
   const label=String(row?.label ?? '');
   const safeLabel=escapeHtml(label);
   const rawValue = Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : label;
   const matchKey = typeof row?.matchKey==='string' ? row.matchKey : null;
   const hasDimension = dimension && dimension.stateKey && dimension.columnKey;
   const rawString = rawValue==null ? '' : String(rawValue);
-  const isFilterable = hasDimension && (dimension.stateKey==='term' ? rawString.trim().length>0 : !(rawValue==null || rawString===''));
+  const trimmedRaw = rawString.trim();
+  const isFilterable = hasDimension && (dimension.stateKey==='term' ? trimmedRaw.length>0 : !(rawValue==null || rawString===''));
+  const asinCandidate = trimmedRaw || label;
+  const infoButton = buildPivotInfoButton(meta?.slot, asinCandidate, label);
+
+  const wrapIfNeeded=(content)=>{
+    if(!infoButton) return `<th scope="row">${content}</th>`;
+    return `<th scope="row"><span class="pivot-label-wrap">${content}${infoButton}</span></th>`;
+  };
+
   if(!isFilterable){
-    return `<th scope="row"><span class="pivot-label-text">${safeLabel}</span></th>`;
+    const content=`<span class="pivot-label-text">${safeLabel}</span>`;
+    return wrapIfNeeded(content);
   }
+
   const valueAttr=escapeHtml(rawString);
   const matchAttr = matchKey ? ` data-pivot-match="${escapeHtml(String(matchKey))}"` : '';
-  return `<th scope="row"><button type="button" class="pivot-label-btn" data-pivot-value="${valueAttr}"${matchAttr}>${safeLabel}</button></th>`;
+  const button=`<button type="button" class="pivot-label-btn" data-pivot-value="${valueAttr}"${matchAttr}><span class="pivot-label-text">${safeLabel}</span></button>`;
+  return wrapIfNeeded(button);
+}
+
+function buildPivotInfoButton(slot, asinValue, displayLabel){
+  if(slot!=='targetingAsin') return '';
+  const skus=lookupAsinSkus(asinValue);
+  if(!skus || !skus.length) return '';
+  const normalized=normalizeAsinKey(asinValue);
+  if(!normalized) return '';
+  const count=skus.length;
+  const countLabel=count===1?'1 SKU':`${count} SKUs`;
+  const labelForUi=String(asinValue&&asinValue.trim?asinValue.trim():asinValue||displayLabel||normalized) || normalized;
+  const safeAsin=escapeHtml(normalized);
+  const safeLabel=escapeHtml(labelForUi);
+  const title=escapeHtml(`View ${countLabel}`);
+  return `<button type="button" class="pivot-info-btn" data-asin="${safeAsin}" data-asin-label="${safeLabel}" title="${title}" aria-label="View advertised SKUs for ${safeLabel}"><span aria-hidden="true">ℹ</span></button>`;
 }
 
 function buildPivotHeadCell(key, title, extraClass, activeKey, activeDir){
@@ -2523,7 +2772,8 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     rows:rowData,
     totals:{spend:totalSpend,sales:totalSales,acos:totalAcos},
     barScale,
-    dimension: target.dimension || null
+    dimension: target.dimension || null,
+    slot: target.table?target.table._pivotSlot||null
   };
 
   if(!target.table._pivotSort){
@@ -2542,6 +2792,9 @@ function renderConversionPivots(context, spendInfo, salesInfo){
   const typeCol=state.columns.customerType;
   const baseLabel = termCol?.name || 'Customer Search Term';
   const hasBasics = !!(spendInfo && salesInfo && termCol && typeCol);
+
+  if(targetSt?.table) targetSt.table._pivotSlot='conversionSt';
+  if(targetAsin?.table) targetAsin.table._pivotSlot='conversionAsin';
 
   if(targetSt) targetSt.dimension = hasBasics ? {stateKey:'term', columnKey:normalize(termCol.name)} : null;
   if(targetAsin) targetAsin.dimension = hasBasics ? {stateKey:'term', columnKey:normalize(termCol.name)} : null;
@@ -2637,6 +2890,7 @@ function hideUnusedPivotSlots(activeSlots){
     if(target?.table){
       target.table.innerHTML='';
       target.table._pivotData=null;
+      target.table._pivotSlot=null;
       target.table.classList.remove('has-grand-total');
       updatePivotFootSpace(target.table);
     }
@@ -2666,6 +2920,7 @@ function renderAll(){
     const visibilities=config.map(({slot,column,fallback,options})=>{
       const target=el.pivot?.[slot];
       if(!target) return false;
+      if(target.table) target.table._pivotSlot=slot;
       const columnDef=state.columns[column];
       const columnName=columnDef?.name || fallback;
       const columnKey=columnDef ? normalize(columnDef.name) : null;
