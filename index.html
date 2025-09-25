@@ -968,7 +968,7 @@ function deactivateCustomRange(){
 }
 
 /* ===== elements/state ===== */
-const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeToggle'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),targetingAsin:document.getElementById('targetingAsinMS'),targetingCat:document.getElementById('targetingCatMS'),customerType:document.getElementById('customerTypeMS'),placement:document.getElementById('placementMS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS'),term:document.getElementById('termMS')}}};
+const el={header:document.getElementById('appHeader'),topLine:document.getElementById('topLine'),tipPill:document.getElementById('tipPill'),monthsWrap:document.getElementById('monthsWrap'),monthDD:document.getElementById('monthFilter'),monthList:document.getElementById('monthList'),monthCustomToggle:document.getElementById('customRangeToggle'),monthCustomPanel:document.getElementById('customRangePanel'),monthCustomStart:document.getElementById('customRangeStart'),monthCustomEnd:document.getElementById('customRangeEnd'),monthCustomApply:document.getElementById('customRangeApply'),monthCustomClear:document.getElementById('customRangeClear'),tabs:{bar:document.getElementById('pivotTabsBar'),list:document.getElementById('pivotTabs')},status:document.getElementById('statusArea'),kpis:document.getElementById('kpiSection'),pivot:{section:document.getElementById('pivotSection'),store:{card:document.getElementById('pivotStoreCard'),table:document.getElementById('pivotTableStore')},lo:{card:document.getElementById('pivotLoCard'),table:document.getElementById('pivotTableLo')},cat:{card:document.getElementById('pivotCatCard'),table:document.getElementById('pivotTableCat')},custType:{card:document.getElementById('pivotCustTypeCard'),table:document.getElementById('pivotTableCustType')},placement:{card:document.getElementById('pivotPlacementCard'),table:document.getElementById('pivotTablePlacement')},campaign:{card:document.getElementById('pivotCampaignCard'),table:document.getElementById('pivotTableCampaign')},adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},conversionSt:{card:document.getElementById('pivotConversionStCard'),table:document.getElementById('pivotTableConversionSt'),nav:document.querySelector('#pivotConversionStCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionStCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionStCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionStCard .pivot-nav-label')},conversionAsin:{card:document.getElementById('pivotConversionAsinCard'),table:document.getElementById('pivotTableConversionAsin'),nav:document.querySelector('#pivotConversionAsinCard .pivot-pagination'),navPrev:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.prev'),navNext:document.querySelector('#pivotConversionAsinCard .pivot-nav-btn.next'),navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')}},pickLocalBtn:document.getElementById('pickLocalBtn'),fileInput:document.getElementById('fileInput'),dlCsv:document.getElementById('downloadCsvBtn'),openFiltersBtn:document.getElementById('openFilters'),resetFiltersBtn:document.getElementById('resetFilters'),modal:document.getElementById('filtersModal'),closeFiltersBtn:document.getElementById('closeFilters'),cancelFiltersBtn:document.getElementById('cancelFilters'),applyFiltersBtn:document.getElementById('applyFilters'),clearAllBtn:document.getElementById('clearAll'),filters:document.getElementById('filtersSection'),themeBtn:document.getElementById('themeBtn'),empty:document.getElementById('emptyState'),emptyOpen:document.getElementById('emptyOpenLink'),kpi:{spend:document.getElementById('kpiSpend'),revenue:document.getElementById('kpiRevenue'),acos:document.getElementById('kpiACOS'),clicks:document.getElementById('kpiClicks'),impr:document.getElementById('kpiImpr'),ctr:document.getElementById('kpiCTR'),roas:document.getElementById('kpiROAS'),avgcpc:document.getElementById('kpiAvgCPC')},dd:{category:document.getElementById('categoryMS'),store:document.getElementById('storeMS'),lo:document.getElementById('loMS'),ttype:document.getElementById('ttypeMS'),tsub:document.getElementById('tsubMS'),tsub2:document.getElementById('tsub2MS'),targetingAsin:document.getElementById('targetingAsinMS'),targetingCat:document.getElementById('targetingCatMS'),customerType:document.getElementById('customerTypeMS'),placement:document.getElementById('placementMS'),campaign:document.getElementById('campaignMS'),adgroup:document.getElementById('adgroupMS'),portfolio:document.getElementById('portfolioMS'),term:document.getElementById('termMS')}}};
 el.skuPopup={
   root:document.getElementById('skuPopup'),
   card:document.getElementById('skuPopupCard'),
@@ -1027,7 +1027,10 @@ const PIVOT_CONFIG={
   ],
   conversion:[]
 };
-const DEFAULT_WORKBOOK='Products Search Term.xlsx';
+const DEFAULT_WORKBOOKS=[
+  'Product Search Term.xlsx',
+  'Products Search Term.xlsx'
+];
 const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
 let asinSkuPromise=null;
 
@@ -1709,24 +1712,35 @@ async function loadWorkbookBuffer(buf){
   setHasData(true);
 }
 async function attemptDefaultWorkbook(){
-  const file=DEFAULT_WORKBOOK && DEFAULT_WORKBOOK.trim();
-  if(!file || state.hasData) return;
+  const list=Array.isArray(DEFAULT_WORKBOOKS)?DEFAULT_WORKBOOKS:[DEFAULT_WORKBOOKS];
+  const files=list.map(file=>typeof file==='string'?file.trim():'').filter(Boolean);
+  if(!files.length || state.hasData) return;
+  showLoading(true);
   try{
-    showLoading(true);
-    let targetUrl;
-    try{
-      targetUrl=new URL(file, document.baseURI).href;
-    }catch(_){
-      targetUrl=encodeURI(file);
+    for(const file of files){
+      if(state.hasData) return;
+      let targetUrl;
+      try{
+        targetUrl=new URL(file, document.baseURI).href;
+      }catch(_){
+        targetUrl=encodeURI(file);
+      }
+      try{
+        const response=await fetch(targetUrl,{cache:'no-store'});
+        if(!response.ok && response.status!==0){
+          console.warn(`Default workbook not available: ${file}`);
+          continue;
+        }
+        if(state.hasData) return;
+        const buf=await response.arrayBuffer();
+        if(state.hasData) return;
+        await loadWorkbookBuffer(buf);
+        if(state.hasData) return;
+        return;
+      }catch(err){
+        console.warn(`Default workbook could not be loaded from ${file}:`, err);
+      }
     }
-    const response=await fetch(targetUrl,{cache:'no-store'});
-    if(!response.ok && response.status!==0) throw new Error('Default workbook not found');
-    if(state.hasData) return;
-    const buf=await response.arrayBuffer();
-    if(state.hasData) return;
-    await loadWorkbookBuffer(buf);
-  }catch(err){
-    console.warn('Default workbook could not be loaded:', err);
     if(!state.hasData) setHasData(false);
   }finally{
     showLoading(false);
