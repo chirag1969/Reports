@@ -174,16 +174,23 @@ body.has-data #tipPill{display:none !important}
   .pivot[data-mode="campaignPortfolio"]{grid-template-columns:repeat(2,minmax(0,1fr));}
   .pivot[data-mode="conversion"]{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
-.chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:visible}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px}
 .chart-title-text{flex:1;min-width:0}
-.pivot-copy-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);cursor:pointer;transition:background .2s ease, color .2s ease, transform .12s ease, box-shadow .25s ease, border-color .2s ease}
+.chart-title-actions{display:inline-flex;align-items:center;gap:6px}
+.pivot-action-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);cursor:pointer;transition:background .2s ease, color .2s ease, transform .12s ease, box-shadow .25s ease, border-color .2s ease}
 .pivot-copy-btn .pivot-copy-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}
-.pivot-copy-btn .pivot-copy-icon svg{width:16px;height:16px;display:block;fill:currentColor}
-.pivot-copy-btn:hover{background:color-mix(in srgb,var(--chip) 88%, var(--panel));color:var(--text);transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,23,42,.28)}
-.pivot-copy-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.pivot-action-btn .pivot-action-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}
+.pivot-action-btn svg{width:16px;height:16px;display:block;fill:currentColor}
+.pivot-action-btn:hover{background:color-mix(in srgb,var(--chip) 88%, var(--panel));color:var(--text);transform:translateY(-1px);box-shadow:0 6px 16px rgba(15,23,42,.2)}
+.pivot-action-btn:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.pivot-action-btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none;transform:none}
+.pivot-action-btn.is-active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 55%, var(--border));background:color-mix(in srgb,var(--accent) 18%, var(--panel));box-shadow:0 6px 18px rgba(37,99,235,.22)}
+.pivot-copy-btn{position:relative}
 .pivot-copy-btn.is-copied{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 60%, var(--border))}
-.pivot-copy-btn.is-copied::after{content:"Copied!";position:absolute;top:calc(100% + 6px);right:0;border-radius:6px;border:1px solid var(--border);background:var(--panel);padding:4px 8px;color:var(--ok);font-size:11px;font-weight:700;white-space:nowrap;box-shadow:var(--shadow);pointer-events:none;z-index:5}
+.pivot-copy-btn.is-copied::after{content:"Copied!";position:absolute;top:calc(100% + 8px);right:0;border-radius:8px;border:1px solid var(--border);background:var(--panel);padding:6px 10px;color:var(--ok);font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 10px 26px rgba(15,23,42,.18);pointer-events:none;z-index:10}
+.pivot-clear-btn{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%, var(--border))}
+.pivot-clear-btn:hover{color:#fff;background:linear-gradient(180deg,var(--danger),color-mix(in srgb,var(--danger) 82%, #000));border-color:transparent;box-shadow:0 10px 22px rgba(220,38,38,.25)}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
 .pivot-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
@@ -422,7 +429,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-overall-left" id="pivotStoreCard">
     <div class="chart-title">
       <span class="chart-title-text">Store Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableStore" title="Copy Store Performance Pivot table" aria-label="Copy Store Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableStore" title="Copy Store Performance Pivot table" aria-label="Copy Store Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -438,7 +445,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card" id="pivotPortfolioCard">
     <div class="chart-title">
       <span class="chart-title-text">Portfolio Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTablePortfolio" title="Copy Portfolio Performance Pivot table" aria-label="Copy Portfolio Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTablePortfolio" title="Copy Portfolio Performance Pivot table" aria-label="Copy Portfolio Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -454,7 +461,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-overall-left" id="pivotLoCard">
     <div class="chart-title">
       <span class="chart-title-text">LO Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableLo" title="Copy LO Performance Pivot table" aria-label="Copy LO Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableLo" title="Copy LO Performance Pivot table" aria-label="Copy LO Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -470,7 +477,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-overall-right" id="pivotCatCard">
     <div class="chart-title">
       <span class="chart-title-text">Category Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCat" title="Copy Category Performance Pivot table" aria-label="Copy Category Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableCat" title="Copy Category Performance Pivot table" aria-label="Copy Category Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -486,7 +493,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-overall-left" id="pivotCustTypeCard">
     <div class="chart-title">
       <span class="chart-title-text">Customer Search Term - TYPE Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCustType" title="Copy Customer Search Term - TYPE Performance Pivot table" aria-label="Copy Customer Search Term - TYPE Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableCustType" title="Copy Customer Search Term - TYPE Performance Pivot table" aria-label="Copy Customer Search Term - TYPE Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -502,7 +509,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-overall-right" id="pivotPlacementCard">
     <div class="chart-title">
       <span class="chart-title-text">Placement Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTablePlacement" title="Copy Placement Performance Pivot table" aria-label="Copy Placement Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTablePlacement" title="Copy Placement Performance Pivot table" aria-label="Copy Placement Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -518,7 +525,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card" id="pivotCampaignCard">
     <div class="chart-title">
       <span class="chart-title-text">Campaign Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableCampaign" title="Copy Campaign Performance Pivot table" aria-label="Copy Campaign Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableCampaign" title="Copy Campaign Performance Pivot table" aria-label="Copy Campaign Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -534,7 +541,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card" id="pivotAdGroupCard">
     <div class="chart-title">
       <span class="chart-title-text">Ad Group Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableAdGroup" title="Copy Ad Group Performance Pivot table" aria-label="Copy Ad Group Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableAdGroup" title="Copy Ad Group Performance Pivot table" aria-label="Copy Ad Group Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
             <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -550,7 +557,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card" id="pivotTargetingAsinCard">
     <div class="chart-title">
       <span class="chart-title-text">Targeting ASIN Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableTargetingAsin" title="Copy Targeting ASIN Performance Pivot table" aria-label="Copy Targeting ASIN Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableTargetingAsin" title="Copy Targeting ASIN Performance Pivot table" aria-label="Copy Targeting ASIN Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
             <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -566,7 +573,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card" id="pivotTargetingCatCard">
     <div class="chart-title">
       <span class="chart-title-text">Targeting CAT Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableTargetingCat" title="Copy Targeting CAT Performance Pivot table" aria-label="Copy Targeting CAT Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableTargetingCat" title="Copy Targeting CAT Performance Pivot table" aria-label="Copy Targeting CAT Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
             <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -582,7 +589,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-conversion" id="pivotConversionStCard">
     <div class="chart-title">
       <span class="chart-title-text">Customer Search Term (ST) Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableConversionSt" title="Copy Customer Search Term (ST) Performance Pivot table" aria-label="Copy Customer Search Term (ST) Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableConversionSt" title="Copy Customer Search Term (ST) Performance Pivot table" aria-label="Copy Customer Search Term (ST) Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -598,7 +605,7 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
   <div class="chart-card pivot-card pivot-conversion" id="pivotConversionAsinCard">
     <div class="chart-title">
       <span class="chart-title-text">Customer Search Term (ASIN) Performance Pivot</span>
-      <button type="button" class="pivot-copy-btn" data-copy-target="pivotTableConversionAsin" title="Copy Customer Search Term (ASIN) Performance Pivot table" aria-label="Copy Customer Search Term (ASIN) Performance Pivot table">
+      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableConversionAsin" title="Copy Customer Search Term (ASIN) Performance Pivot table" aria-label="Copy Customer Search Term (ASIN) Performance Pivot table">
         <span class="pivot-copy-icon" aria-hidden="true">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
           <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
@@ -866,6 +873,7 @@ function ensureConversionElements(){
       body.appendChild(table);
     }
 
+    enhancePivotTitle(card);
     return card;
   };
 
@@ -875,7 +883,7 @@ function ensureConversionElements(){
 
 function createCopyIcon(){
   const span=document.createElement('span');
-  span.className='pivot-copy-icon';
+  span.className='pivot-action-icon pivot-copy-icon';
   span.setAttribute('aria-hidden','true');
   span.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect><rect x="8" y="7" width="12" height="12" rx="3" ry="3"></rect></svg>';
   return span;
@@ -883,7 +891,7 @@ function createCopyIcon(){
 function createPivotCopyButton(tableId,label){
   const btn=document.createElement('button');
   btn.type='button';
-  btn.className='pivot-copy-btn';
+  btn.className='pivot-action-btn pivot-copy-btn';
   if(tableId) btn.dataset.copyTarget=tableId;
   const labelText=label?`Copy ${label} table`:'Copy pivot table';
   btn.title=labelText;
@@ -891,7 +899,220 @@ function createPivotCopyButton(tableId,label){
   btn.appendChild(createCopyIcon());
   return btn;
 }
+const PIVOT_FILTER_ICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M4 5a1 1 0 0 1 1-1h14a1 1 0 0 1 .78 1.63L14 13.21V19a1 1 0 0 1-1.45.89l-3-1.5A1 1 0 0 1 9 17.5v-4.29L4.22 5.63A1 1 0 0 1 4 5z"/></svg>';
+const PIVOT_CLEAR_ICON='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M7.05 7.05a1 1 0 0 1 1.4 0L12 10.59l3.55-3.54a1 1 0 0 1 1.41 1.41L13.41 12l3.55 3.54a1 1 0 0 1-1.41 1.42L12 13.41l-3.55 3.55a1 1 0 0 1-1.41-1.42L10.59 12 7.05 8.46a1 1 0 0 1 0-1.41z"/></svg>';
 ensureConversionElements();
+
+function enhancePivotTitle(card){
+  if(!card) return;
+  const title=card.querySelector('.chart-title');
+  if(!title) return;
+
+  let text=title.querySelector('.chart-title-text');
+  if(!text){
+    const fallback=title.textContent.trim();
+    title.textContent='';
+    text=document.createElement('span');
+    text.className='chart-title-text';
+    text.textContent=fallback;
+    title.appendChild(text);
+  }
+
+  let actions=title.querySelector('.chart-title-actions');
+  if(!actions){
+    actions=document.createElement('div');
+    actions.className='chart-title-actions';
+    title.appendChild(actions);
+  }
+
+  const strayButtons=Array.from(title.querySelectorAll(':scope > .pivot-copy-btn, :scope > .pivot-action-btn'));
+  strayButtons.forEach(btn=>actions.appendChild(btn));
+
+  let filterBtn=actions.querySelector('.pivot-filter-btn');
+  if(!filterBtn){
+    filterBtn=document.createElement('button');
+    filterBtn.type='button';
+    filterBtn.className='pivot-action-btn pivot-filter-btn';
+    filterBtn.title='Filter pivot';
+    filterBtn.setAttribute('aria-label','Filter pivot');
+    filterBtn.innerHTML=`<span class="pivot-action-icon" aria-hidden="true">${PIVOT_FILTER_ICON}</span>`;
+    actions.appendChild(filterBtn);
+  }
+
+  let clearBtn=actions.querySelector('.pivot-clear-btn');
+  if(!clearBtn){
+    clearBtn=document.createElement('button');
+    clearBtn.type='button';
+    clearBtn.className='pivot-action-btn pivot-clear-btn';
+    clearBtn.hidden=true;
+    clearBtn.title='Clear pivot filter';
+    clearBtn.setAttribute('aria-label','Clear pivot filter');
+    clearBtn.innerHTML=`<span class="pivot-action-icon" aria-hidden="true">${PIVOT_CLEAR_ICON}</span>`;
+    actions.insertBefore(clearBtn, filterBtn);
+  }
+
+  let copyBtn=actions.querySelector('.pivot-copy-btn');
+  if(!copyBtn){
+    const tableId=card.querySelector('.pivot-table')?.id || '';
+    const label=text?.textContent?.trim() || 'pivot';
+    copyBtn=createPivotCopyButton(tableId, label);
+    actions.appendChild(copyBtn);
+  }else{
+    if(!copyBtn.classList.contains('pivot-action-btn')){
+      copyBtn.classList.add('pivot-action-btn');
+    }
+    actions.appendChild(copyBtn);
+  }
+}
+
+function assignPivotSlots(){
+  if(!el.pivot) return;
+  Object.entries(el.pivot).forEach(([slot,target])=>{
+    if(slot==='section') return;
+    const card=target?.card;
+    if(!card) return;
+    card.dataset.pivotSlot=slot;
+    enhancePivotTitle(card);
+  });
+}
+
+function findPivotTarget(card){
+  if(!card) return null;
+  const slot=card.dataset.pivotSlot;
+  if(slot && el.pivot?.[slot]?.card===card) return el.pivot[slot];
+  for(const value of Object.values(el.pivot||{})){
+    if(value?.card===card) return value;
+  }
+  return null;
+}
+
+function getPivotFilterContext(card){
+  if(!card) return null;
+  const target=findPivotTarget(card);
+  if(!target) return null;
+  const table=target.table || card.querySelector('.pivot-table');
+  const dimension=table?._pivotData?.dimension || target.dimension || null;
+  const stateKey=dimension?.stateKey || '';
+  const columnInfo=stateKey ? state.columns?.[stateKey] : null;
+  const label=columnInfo?.name || columnInfo?.header || '';
+  const root=stateKey ? el.dd?.[stateKey] : null;
+  const displayName=table?._pivotData?.displayName || label || 'Pivot';
+  return {target, table, dimension, stateKey, label, root, displayName};
+}
+
+function getPivotFilterContextFromButton(button){
+  if(!button) return null;
+  const card=button.closest('.pivot-card');
+  if(!card) return null;
+  enhancePivotTitle(card);
+  const context=getPivotFilterContext(card);
+  if(!context) return null;
+  return {...context, card};
+}
+
+function updatePivotFilterButtons(){
+  if(!el.pivot) return;
+  Object.entries(el.pivot).forEach(([slot,target])=>{
+    if(slot==='section') return;
+    const card=target?.card;
+    if(!card) return;
+    enhancePivotTitle(card);
+    const context=getPivotFilterContext(card);
+    if(!context) return;
+    const {table,stateKey,label,root,displayName}=context;
+    const hasDimension=!!stateKey && !!root;
+    const selectedCount=hasDimension ? ddGetSelected(root).length : 0;
+    const hasActive=selectedCount>0;
+    const filterLabel=hasDimension ? (label || displayName || 'pivot') : 'pivot';
+    const filterBtn=card.querySelector('.pivot-filter-btn');
+    if(filterBtn){
+      const title=hasDimension?`Filter ${filterLabel}`:'Filters unavailable';
+      filterBtn.dataset.pivotStateKey=hasDimension?stateKey:'';
+      filterBtn.title=title;
+      filterBtn.setAttribute('aria-label', title);
+      filterBtn.disabled=!hasDimension;
+      filterBtn.classList.toggle('is-active', hasActive);
+    }
+    const clearBtn=card.querySelector('.pivot-clear-btn');
+    if(clearBtn){
+      const clearTitle=`Clear ${filterLabel} filter`;
+      clearBtn.dataset.pivotStateKey=hasDimension?stateKey:'';
+      clearBtn.title=clearTitle;
+      clearBtn.setAttribute('aria-label', clearTitle);
+      clearBtn.hidden=!hasActive;
+      clearBtn.disabled=!hasActive;
+    }
+    const copyBtn=card.querySelector('.pivot-copy-btn');
+    if(copyBtn){
+      if(!copyBtn.classList.contains('pivot-action-btn')) copyBtn.classList.add('pivot-action-btn');
+      const name=displayName || filterLabel || 'pivot';
+      const copyTitle=`Copy ${name} table`;
+      copyBtn.title=copyTitle;
+      copyBtn.setAttribute('aria-label', copyTitle);
+      if(table?.id) copyBtn.dataset.copyTarget=table.id;
+    }
+    card.dataset.pivotFilterActive = hasActive ? 'true' : 'false';
+  });
+}
+
+function handlePivotFilterButton(button){
+  const context=getPivotFilterContextFromButton(button);
+  if(!context) return;
+  const {root,stateKey}=context;
+  if(!stateKey || !root) return;
+  if(!root.querySelector('.dd-panel')) ddBuild(root);
+  const panel=root.querySelector('.dd-panel');
+  if(!panel) return;
+  const isSearch=root.classList.contains('dd-search-mode');
+  document.querySelectorAll('.dd.open').forEach(node=>{ if(node!==root) node.classList.remove('open'); });
+  root.classList.add('open');
+  panel.hidden=false;
+  if(!isSearch) clampPanelRight(panel);
+  const search=root.querySelector('.dd-search');
+  if(isSearch){
+    ddApplySearchFilter(root);
+    if(search){
+      search.focus({preventScroll:true});
+      if(search.select) search.select();
+    }
+  }else if(search){
+    search.focus({preventScroll:true});
+  }else{
+    const first=panel.querySelector('input[type=checkbox]');
+    first?.focus?.({preventScroll:true});
+  }
+  button.classList.add('is-active');
+  setTimeout(()=>button.classList.remove('is-active'),220);
+}
+
+function handlePivotClearButton(button){
+  const context=getPivotFilterContextFromButton(button);
+  if(!context) return;
+  const {root,stateKey}=context;
+  if(!stateKey || !root) return;
+  if(!root.querySelector('.dd-panel')) ddBuild(root);
+  let changed=false;
+  root.querySelectorAll('.dd-list input[type=checkbox]').forEach(cb=>{
+    if(cb.checked){ cb.checked=false; changed=true; }
+  });
+  ddUpdateSummary(root);
+  ddSyncSelectAll(root);
+  ddRefreshSearchSelections(root);
+  root.classList.remove('open');
+  const panel=root.querySelector('.dd-panel');
+  if(panel) panel.hidden=root.classList.contains('dd-search-mode');
+  if(!changed){
+    updatePivotFilterButtons();
+    return;
+  }
+  if(root.classList.contains('dd-search-mode')){
+    ddApplyImmediateFilters(root);
+  }else{
+    updateAllFilterOptions(null);
+    resetConversionPaging();
+    renderAll();
+  }
+}
 
 /* ===== helpers ===== */
 const fmt={
@@ -1435,6 +1656,20 @@ function handlePivotSectionClick(event){
     handlePivotCopy(copyBtn);
     return;
   }
+  const clearBtn=event.target.closest?.('.pivot-clear-btn');
+  if(clearBtn){
+    event.preventDefault();
+    event.stopPropagation();
+    handlePivotClearButton(clearBtn);
+    return;
+  }
+  const filterBtn=event.target.closest?.('.pivot-filter-btn');
+  if(filterBtn){
+    event.preventDefault();
+    event.stopPropagation();
+    handlePivotFilterButton(filterBtn);
+    return;
+  }
   const infoBtn=event.target.closest?.('.pivot-info-btn');
   if(infoBtn){
     event.preventDefault();
@@ -1721,6 +1956,8 @@ function getPivotConfig(){ return PIVOT_CONFIG[state.activeTab] || PIVOT_CONFIG.
 function boot(){
   setHasData(false);
   setupTabs();
+  assignPivotSlots();
+  updatePivotFilterButtons();
   initConversionNav();
   sqlReadyPromise = loadSqlLibrary();
   const triggerPicker=()=>{ if(el.fileInput) el.fileInput.click(); };
@@ -3386,6 +3623,7 @@ function renderAll(){
 
   if(el.pivot?.section) el.pivot.section.hidden = !anyPivot;
   updateResetButtonVisibility();
+  updatePivotFilterButtons();
   schedulePivotLayout();
 }
 
