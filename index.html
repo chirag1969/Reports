@@ -1185,7 +1185,7 @@ function updatePivotFilterSelection(slot, dimension, rawValue, matchValue, on){
 }
 
 function buildPivotPopupOptions(context){
-  const data=context.table?._pivotData:null;
+  const data=context.table?._pivotData ?? null;
   if(!data) return [];
   const rows=Array.isArray(data.allRows) && data.allRows.length ? data.allRows : (Array.isArray(data.rows)?data.rows:[]);
   const dimension=context.dimension || null;
