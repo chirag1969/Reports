@@ -248,6 +248,13 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
 .sku-popup-body{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
 .sku-popup-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sku-popup-list li{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:color-mix(in srgb,var(--chip) 70%, var(--panel));font-weight:600;color:var(--text)}
+.sku-popup-table{width:100%;border-collapse:collapse;border-spacing:0;font-weight:600;color:var(--text);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent)}
+.sku-popup-table caption{caption-side:top;text-align:left;font-weight:700;margin-bottom:8px;color:var(--muted)}
+.sku-popup-table thead th{padding:10px 12px;text-transform:uppercase;font-size:12px;letter-spacing:.35px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border-strong)}
+.sku-popup-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+.sku-popup-table tbody tr:last-child td{border-bottom:0}
+.sku-popup-table tbody tr:nth-child(even){background:color-mix(in srgb,var(--chip) 82%, var(--panel))}
+.sku-popup-table tbody td span{display:inline-block;min-width:0;max-width:100%;overflow-wrap:anywhere}
 .sku-popup-empty{padding:10px 0;color:var(--muted);font-weight:600}
 .sku-popup-close{border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1;cursor:pointer;transition:background .2s ease,color .2s ease,transform .15s ease,border-color .2s ease}
 .sku-popup-close:hover{color:var(--text);background:color-mix(in srgb,var(--panel) 55%, var(--chip));transform:scale(1.05)}
@@ -1187,29 +1194,43 @@ async function loadAsinSkuWorkbook(){
     let headerIndex=rows.length>1?1:0;
     let headers=sanitizeRow(rows[headerIndex]);
     let asinIdx=findIndexByTokens(headers,['advertisedasin','asin']);
+    let sellerIdx=findIndexByTokens(headers,['sellersku','seller sku','seller-sku']);
+    let plainIdx=findIndexByTokens(headers,['plainsku','plain sku','plain-sku']);
     let skuIdx=findIndexByTokens(headers,['advertisedsku','sku']);
-    if(asinIdx<0 || skuIdx<0){
+    if(
+      asinIdx<0 ||
+      (sellerIdx<0 && plainIdx<0 && skuIdx<0)
+    ){
       for(let i=0;i<Math.min(rows.length,6);i++){
         const candidate=sanitizeRow(rows[i]);
         const aIdx=findIndexByTokens(candidate,['advertisedasin','asin']);
-        const sIdx=findIndexByTokens(candidate,['advertisedsku','sku']);
-        if(aIdx>-1 && sIdx>-1){
+        const sellerCandidate=findIndexByTokens(candidate,['sellersku','seller sku','seller-sku']);
+        const plainCandidate=findIndexByTokens(candidate,['plainsku','plain sku','plain-sku']);
+        const skuCandidate=findIndexByTokens(candidate,['advertisedsku','sku']);
+        if(aIdx>-1 && (sellerCandidate>-1 || plainCandidate>-1 || skuCandidate>-1)){
           headerIndex=i;
           headers=candidate;
           asinIdx=aIdx;
-          skuIdx=sIdx;
+          sellerIdx=sellerCandidate;
+          plainIdx=plainCandidate;
+          skuIdx=skuCandidate;
           break;
         }
       }
     }
-    if(asinIdx<0 || skuIdx<0) return new Map();
+    if(asinIdx<0 || (sellerIdx<0 && plainIdx<0 && skuIdx<0)) return new Map();
     const dataRows=rows.slice(headerIndex+1);
     const map=new Map();
     dataRows.forEach(row=>{
       const safeRow=Array.isArray(row)?row:[];
       const asin=String(safeRow[asinIdx]??'').trim();
-      const sku=String(safeRow[skuIdx]??'').trim();
-      if(!asin || !sku) return;
+      if(!asin) return;
+      const sellerSkuRaw=sellerIdx>-1?String(safeRow[sellerIdx]??'').trim():'';
+      const plainSkuRaw=plainIdx>-1?String(safeRow[plainIdx]??'').trim():'';
+      const fallbackSku=skuIdx>-1?String(safeRow[skuIdx]??'').trim():'';
+      const sellerSku=sellerSkuRaw || fallbackSku;
+      const plainSku=plainSkuRaw || fallbackSku;
+      if(!sellerSku && !plainSku) return;
       const asinKey=normalizeAsinKey(asin);
       if(!asinKey) return;
       let list=map.get(asinKey);
@@ -1217,10 +1238,24 @@ async function loadAsinSkuWorkbook(){
         list=[];
         map.set(asinKey,list);
       }
-      if(!list.includes(sku)) list.push(sku);
+      const entry={
+        sellerSku:sellerSku,
+        plainSku:plainSku
+      };
+      if(!list.some(item=>item && item.sellerSku===entry.sellerSku && item.plainSku===entry.plainSku)){
+        list.push(entry);
+      }
     });
     const collator=new Intl.Collator(undefined,{sensitivity:'base',numeric:true});
-    map.forEach(list=>list.sort((a,b)=>collator.compare(String(a),String(b))));
+    map.forEach(list=>list.sort((a,b)=>{
+      const aSeller=String(a?.sellerSku||a?.plainSku||'');
+      const bSeller=String(b?.sellerSku||b?.plainSku||'');
+      const sellerDiff=collator.compare(aSeller,bSeller);
+      if(sellerDiff!==0) return sellerDiff;
+      const aPlain=String(a?.plainSku||'');
+      const bPlain=String(b?.plainSku||'');
+      return collator.compare(aPlain,bPlain);
+    }));
     return map;
   }catch(err){
     console.warn('ASIN SKU mapping load failed:', err);
@@ -1432,14 +1467,25 @@ function handlePivotLabelButton(button){
   applyPivotLabelFilter(table, value, matchKey);
 }
 
-function handlePivotInfoButton(button){
+async function handlePivotInfoButton(button){
   if(!button) return;
-  const asin=button.dataset.asin;
+  const asinAttr=button.dataset.asin || '';
+  const asin=asinAttr.trim();
   if(!asin) return;
-  const label=button.dataset.asinLabel || asin;
-  const skus=lookupAsinSkus(asin);
-  const list=Array.isArray(skus)?skus.slice():[];
-  showSkuPopup(button, label, list);
+  const labelAttr=button.dataset.asinLabel || asin;
+  try{
+    await ensureAsinSkuMap();
+  }catch(_){
+    /* ignore */
+  }
+  const skus=lookupAsinSkus(asinAttr) || lookupAsinSkus(asin) || [];
+  const list=Array.isArray(skus)
+    ? skus.map(item=>({
+        sellerSku:String(item?.sellerSku??'').trim(),
+        plainSku:String(item?.plainSku??'').trim()
+      }))
+    : [];
+  showSkuPopup(button, labelAttr, list, asin);
 }
 
 function applyPivotLabelFilter(table, rawValue, matchKey){
@@ -1509,17 +1555,35 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
   renderAll();
 }
 
-function showSkuPopup(trigger, asinLabel, skus){
+function showSkuPopup(trigger, asinLabel, skus, asinValue){
   const popup=el.skuPopup;
   if(!popup?.root) return;
-  const titleText=asinLabel ? `Advertised SKUs for ${asinLabel}` : 'Advertised SKUs';
+  const labelText=String(asinLabel??'').trim();
+  const asinText=String(asinValue??'').trim();
+  const heading=labelText || asinText;
+  const titleText=heading ? `Advertised SKUs for ${heading}` : 'Advertised SKUs';
   if(popup.title) popup.title.textContent=titleText;
   if(popup.body){
-    if(Array.isArray(skus) && skus.length){
-      const items=skus.map(sku=>`<li>${escapeHtml(String(sku))}</li>`).join('');
-      popup.body.innerHTML=`<ul class="sku-popup-list">${items}</ul>`;
+    const rows=Array.isArray(skus)?skus.filter(item=>{
+      const seller=String(item?.sellerSku??'').trim();
+      const plain=String(item?.plainSku??'').trim();
+      return seller || plain;
+    }):[];
+    if(rows.length){
+      const bodyRows=rows.map(item=>{
+        const sellerVal=String(item?.sellerSku??'').trim();
+        const plainVal=String(item?.plainSku??'').trim();
+        const seller=sellerVal?escapeHtml(sellerVal):'';
+        const plain=plainVal?escapeHtml(plainVal):'';
+        const sellerCell=seller?`<span>${seller}</span>`:'<span>—</span>';
+        const plainCell=plain?`<span>${plain}</span>`:'<span>—</span>';
+        return `<tr><td>${sellerCell}</td><td>${plainCell}</td></tr>`;
+      }).join('');
+      const caption = asinText ? `<caption>ASIN: ${escapeHtml(asinText)}</caption>` : '';
+      popup.body.innerHTML=`<table class="sku-popup-table">${caption}<thead><tr><th scope="col">Seller SKU</th><th scope="col">Plain SKU</th></tr></thead><tbody>${bodyRows}</tbody></table>`;
     }else{
-      popup.body.innerHTML='<div class="sku-popup-empty">No advertised SKUs found.</div>';
+      const emptyLabel=heading ? `No advertised SKUs found for ${escapeHtml(heading)}.` : 'No advertised SKUs found.';
+      popup.body.innerHTML=`<div class="sku-popup-empty">${emptyLabel}</div>`;
     }
   }
   state.skuPopupReturn=trigger||null;
@@ -2919,17 +2983,15 @@ function buildPivotLabelCell(row, dimension, meta){
 
 function buildPivotInfoButton(slot, asinValue, displayLabel){
   if(slot!=='targetingAsin') return '';
-  const skus=lookupAsinSkus(asinValue);
-  if(!skus || !skus.length) return '';
-  const normalized=normalizeAsinKey(asinValue);
+  const rawAsin=asinValue==null?'' : String(asinValue).trim();
+  const normalized=normalizeAsinKey(rawAsin || displayLabel);
   if(!normalized) return '';
-  const count=skus.length;
-  const countLabel=count===1?'1 SKU':`${count} SKUs`;
-  const labelForUi=String(asinValue&&asinValue.trim?asinValue.trim():asinValue||displayLabel||normalized) || normalized;
-  const safeAsin=escapeHtml(normalized);
+  const labelForUi=String((displayLabel&&String(displayLabel).trim()) || rawAsin || normalized);
+  const safeAsin=escapeHtml(rawAsin || normalized);
   const safeLabel=escapeHtml(labelForUi);
-  const title=escapeHtml(`View ${countLabel}`);
-  return `<button type="button" class="pivot-info-btn" data-asin="${safeAsin}" data-asin-label="${safeLabel}" title="${title}" aria-label="View advertised SKUs for ${safeLabel}"><span aria-hidden="true">ℹ</span></button>`;
+  const titleText=`View advertised SKUs for ${labelForUi}`;
+  const safeTitle=escapeHtml(titleText);
+  return `<button type="button" class="pivot-info-btn" data-asin="${safeAsin}" data-asin-label="${safeLabel}" title="${safeTitle}" aria-label="${safeTitle}" aria-haspopup="dialog"><span aria-hidden="true">i</span></button>`;
 }
 
 function buildPivotHeadCell(key, title, extraClass, activeKey, activeDir){
