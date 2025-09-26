@@ -321,6 +321,8 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
 .filter.search{grid-column:span 12}
 .filter label{font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:.4px;font-size:12px}
 .filter label::after{content:"";display:block;width:18px;height:2px;border-radius:999px;background:var(--accent);margin-top:4px}
+.filter.is-highlighted{outline:2px solid color-mix(in srgb,var(--accent) 65%, transparent);outline-offset:2px;animation:filterPulse 1.2s ease-in-out;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%, transparent)}
+@keyframes filterPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 28%, transparent);}50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--accent) 18%, transparent);}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%, transparent);}}
 
 /* Multi-select */
 .dd{position:relative}
@@ -1449,9 +1451,86 @@ function handlePivotPopupListChange(event){
   }
 }
 
+function getFilterWrapperByStateKey(stateKey){
+  if(!stateKey) return null;
+  const esc=(typeof CSS!=='undefined' && typeof CSS.escape==='function') ? CSS.escape(stateKey) : String(stateKey).replace(/["\\]/g,'\\$&');
+  return document.querySelector(`[data-col-wrapper="${esc}"]`);
+}
+
+function highlightFilterWrapper(wrapper){
+  if(!wrapper) return;
+  wrapper.classList.add('is-highlighted');
+  const existing=filterHighlightTimers.get(wrapper);
+  if(existing) clearTimeout(existing);
+  const timeout=setTimeout(()=>{
+    wrapper.classList.remove('is-highlighted');
+    filterHighlightTimers.delete(wrapper);
+  },1600);
+  filterHighlightTimers.set(wrapper, timeout);
+}
+
+function focusFilterControl(wrapper){
+  if(!wrapper) return;
+  const ddRoot=wrapper.querySelector('.dd');
+  if(!ddRoot) return;
+  const panel=ddRoot.querySelector('.dd-panel');
+  document.querySelectorAll('.dd.open').forEach(node=>{ if(node!==ddRoot) node.classList.remove('open'); });
+  if(ddRoot.classList.contains('dd-search-mode')){
+    if(panel){
+      panel.hidden=false;
+      panel.removeAttribute('hidden');
+      clampPanelRight(panel);
+    }
+    ddRoot.classList.add('open');
+    const input=ddRoot.querySelector('.dd-search');
+    if(input){
+      try{ input.focus({preventScroll:true}); }catch(_){ try{ input.focus(); }catch(__){} }
+      if(typeof input.select==='function') input.select();
+    }
+    ddRefreshSearchSelections(ddRoot);
+  }else{
+    ddRoot.classList.add('open');
+    if(panel){
+      panel.hidden=false;
+      panel.removeAttribute('hidden');
+      clampPanelRight(panel);
+    }
+    const search=ddRoot.querySelector('.dd-search');
+    if(search){
+      try{ search.focus({preventScroll:true}); }catch(_){ try{ search.focus(); }catch(__){} }
+      if(typeof search.select==='function') search.select();
+    }
+  }
+}
+
+function showMainFilterForStateKey(stateKey, trigger){
+  if(!stateKey || !el.modal) return false;
+  const wrapper=getFilterWrapperByStateKey(stateKey);
+  if(!wrapper || wrapper.hidden) return false;
+  if(trigger) state.filtersReturn=trigger;
+  if(!el.modal.classList.contains('open')){
+    openFiltersModal();
+  }
+  requestAnimationFrame(()=>{
+    try{ wrapper.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+    catch(_){ try{ wrapper.scrollIntoView({block:'nearest'}); }catch(__){} }
+    highlightFilterWrapper(wrapper);
+    focusFilterControl(wrapper);
+  });
+  return true;
+}
+
 function handlePivotFilterButton(button){
   const context=getPivotFilterContextFromButton(button);
   if(!context) return;
+  const stateKey=context?.dimension?.stateKey || '';
+  if(stateKey){
+    const opened=showMainFilterForStateKey(stateKey, button);
+    if(opened){
+      closePivotFilterPopup(false);
+      return;
+    }
+  }
   const {dimension,slot}=context;
   if(!dimension || !slot) return;
   const data=context.table?._pivotData;
@@ -1713,6 +1792,7 @@ const state={
   lastTabIndex:0,
   pivotFilters:{},
   activePivotPopup:null,
+  filtersReturn:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0}
 };
 const TAB_ORDER=['overview','overall','campaignPortfolio','targeting','conversion'];
@@ -1720,6 +1800,7 @@ const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
 
 const kpiSparkCache=new Map();
 const copyFeedbackTimers=new WeakMap();
+const filterHighlightTimers=new WeakMap();
 const PIVOT_LABEL_COLLATOR=new Intl.Collator(undefined,{sensitivity:'base'});
 let lastKpiSeries=null;
 let pivotLayoutFrame=null;
@@ -2310,7 +2391,10 @@ function boot(){
   }
   if(el.fileInput) el.fileInput.addEventListener('change', handleLocalFile);
   if(el.dlCsv) el.dlCsv.addEventListener('click', onDownloadCsv);
-  el.openFiltersBtn.addEventListener('click', openFiltersModal);
+  el.openFiltersBtn.addEventListener('click', ()=>{
+    state.filtersReturn=el.openFiltersBtn;
+    openFiltersModal();
+  });
   el.closeFiltersBtn.addEventListener('click', closeFiltersCancel);
   el.cancelFiltersBtn.addEventListener('click', closeFiltersCancel);
   el.applyFiltersBtn.addEventListener('click', closeFiltersApply);
@@ -4064,6 +4148,16 @@ function snapshotFilters(){
   };
   state.snapshot=snap;
 }
+function restoreFiltersTriggerFocus(){
+  const target=state.filtersReturn;
+  state.filtersReturn=null;
+  if(target && typeof target.focus==='function'){
+    requestAnimationFrame(()=>{
+      try{ target.focus({preventScroll:true}); }
+      catch(_){ try{ target.focus(); }catch(__){} }
+    });
+  }
+}
 function restoreSnapshot(){
   const s=state.snapshot||{};
   Object.entries(el.dd).forEach(([key,root])=>{
@@ -4091,8 +4185,8 @@ function restoreSnapshot(){
   updateResetButtonVisibility();
 }
 function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); el.modal.setAttribute('aria-hidden','false'); }
-function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); }
-function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); resetConversionPaging(); renderAll(); }
+function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); restoreFiltersTriggerFocus(); }
+function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); resetConversionPaging(); renderAll(); restoreFiltersTriggerFocus(); }
 function clearAllFilters(){
   Object.values(el.dd).forEach(root=>{
     if(!root) return;
