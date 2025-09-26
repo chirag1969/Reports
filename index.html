@@ -1469,53 +1469,121 @@ function highlightFilterWrapper(wrapper){
   filterHighlightTimers.set(wrapper, timeout);
 }
 
-function focusFilterControl(wrapper){
+function focusFilterControl(wrapper, options={}){
   if(!wrapper) return;
   const ddRoot=wrapper.querySelector('.dd');
   if(!ddRoot) return;
   const panel=ddRoot.querySelector('.dd-panel');
+  const openDropdown = options.openDropdown!==false;
   document.querySelectorAll('.dd.open').forEach(node=>{ if(node!==ddRoot) node.classList.remove('open'); });
-  if(ddRoot.classList.contains('dd-search-mode')){
-    if(panel){
-      panel.hidden=false;
-      panel.removeAttribute('hidden');
-      clampPanelRight(panel);
+  if(openDropdown){
+    if(ddRoot.classList.contains('dd-search-mode')){
+      if(panel){
+        panel.hidden=false;
+        panel.removeAttribute('hidden');
+        clampPanelRight(panel);
+      }
+      ddRoot.classList.add('open');
+      const input=ddRoot.querySelector('.dd-search');
+      if(input){
+        try{ input.focus({preventScroll:true}); }catch(_){ try{ input.focus(); }catch(__){} }
+        if(typeof input.select==='function') input.select();
+      }
+      ddRefreshSearchSelections(ddRoot);
+    }else{
+      ddRoot.classList.add('open');
+      if(panel){
+        panel.hidden=false;
+        panel.removeAttribute('hidden');
+        clampPanelRight(panel);
+      }
+      const search=ddRoot.querySelector('.dd-search');
+      if(search){
+        try{ search.focus({preventScroll:true}); }catch(_){ try{ search.focus(); }catch(__){} }
+        if(typeof search.select==='function') search.select();
+      }
     }
-    ddRoot.classList.add('open');
-    const input=ddRoot.querySelector('.dd-search');
-    if(input){
-      try{ input.focus({preventScroll:true}); }catch(_){ try{ input.focus(); }catch(__){} }
-      if(typeof input.select==='function') input.select();
-    }
-    ddRefreshSearchSelections(ddRoot);
-  }else{
-    ddRoot.classList.add('open');
-    if(panel){
-      panel.hidden=false;
-      panel.removeAttribute('hidden');
-      clampPanelRight(panel);
-    }
-    const search=ddRoot.querySelector('.dd-search');
-    if(search){
-      try{ search.focus({preventScroll:true}); }catch(_){ try{ search.focus(); }catch(__){} }
-      if(typeof search.select==='function') search.select();
-    }
+    return;
+  }
+  ddRoot.classList.remove('open');
+  if(panel){
+    panel.hidden=true;
+    if(typeof panel.setAttribute==='function') panel.setAttribute('hidden','');
+  }
+  const preferred = ddRoot.classList.contains('dd-search-mode')
+    ? ddRoot.querySelector('.dd-search')
+    : ddRoot.querySelector('.dd-control');
+  const focusTarget = preferred || wrapper.querySelector('[data-col-label]') || el.applyFiltersBtn;
+  if(!focusTarget || typeof focusTarget.focus!=='function') return;
+  const prevTabIndex = focusTarget.getAttribute?.('tabindex');
+  if(focusTarget.tabIndex<0){
+    focusTarget.setAttribute('tabindex','-1');
+  }
+  try{ focusTarget.focus({preventScroll:true}); }
+  catch(_){ try{ focusTarget.focus(); }catch(__){} }
+  if(focusTarget){
+    const cleanup=()=>{
+      if(prevTabIndex===null || prevTabIndex===undefined) focusTarget.removeAttribute('tabindex');
+      else focusTarget.setAttribute('tabindex', prevTabIndex);
+    };
+    focusTarget.addEventListener('blur', cleanup, {once:true});
   }
 }
 
-function showMainFilterForStateKey(stateKey, trigger){
+function applyPivotModalSelection(context){
+  if(!context) return false;
+  const slot=context.slot||'';
+  const dimension=context.dimension||null;
+  const stateKey=context.stateKey||'';
+  if(!slot || !dimension || !stateKey) return false;
+  const root=el.dd?.[stateKey];
+  if(!root) return false;
+  const selected=ddGetSelected(root);
+  const existing=getPivotFilterState(slot, dimension, false);
+  const prevRaw=existing ? new Set(existing.raw) : new Set();
+  if(!selected.length){
+    const cleared=clearPivotFilterState(slot);
+    return cleared || prevRaw.size>0;
+  }
+  const entry=getPivotFilterState(slot, dimension, true);
+  if(!entry) return false;
+  entry.raw.clear();
+  if(entry.match) entry.match.clear();
+  selected.forEach(value=>{
+    const keys=pivotMakeValueKeys(value, null, dimension);
+    if(!keys.raw) return;
+    entry.raw.add(keys.raw);
+    if(entry.match) entry.match.add(keys.normalized);
+  });
+  const newRaw=new Set(entry.raw);
+  let changed=newRaw.size!==prevRaw.size;
+  if(!changed){
+    for(const value of newRaw){
+      if(!prevRaw.has(value)){ changed=true; break; }
+    }
+  }
+  if(!entry.raw.size){
+    const cleared=clearPivotFilterState(slot);
+    return cleared || prevRaw.size>0;
+  }
+  return changed;
+}
+
+function showMainFilterForStateKey(stateKey, trigger, options={}){
   if(!stateKey || !el.modal) return false;
   const wrapper=getFilterWrapperByStateKey(stateKey);
   if(!wrapper || wrapper.hidden) return false;
   if(trigger) state.filtersReturn=trigger;
+  const fromPivot=!!options.fromPivot;
   if(!el.modal.classList.contains('open')){
-    openFiltersModal();
+    openFiltersModal({fromPivot});
   }
   requestAnimationFrame(()=>{
     try{ wrapper.scrollIntoView({behavior:'smooth', block:'nearest'}); }
     catch(_){ try{ wrapper.scrollIntoView({block:'nearest'}); }catch(__){} }
     highlightFilterWrapper(wrapper);
-    focusFilterControl(wrapper);
+    const autoOpen = options.autoOpenDropdown!==false;
+    focusFilterControl(wrapper, {openDropdown:autoOpen});
   });
   return true;
 }
@@ -1523,13 +1591,20 @@ function showMainFilterForStateKey(stateKey, trigger){
 function handlePivotFilterButton(button){
   const context=getPivotFilterContextFromButton(button);
   if(!context) return;
+  state.activePivotModal=null;
   const stateKey=context?.dimension?.stateKey || '';
   if(stateKey){
-    const opened=showMainFilterForStateKey(stateKey, button);
+    const opened=showMainFilterForStateKey(stateKey, button, {fromPivot:true, autoOpenDropdown:false});
     if(opened){
+      if(context.slot && context.dimension){
+        state.activePivotModal={slot:context.slot, dimension:context.dimension, stateKey};
+      }else{
+        state.activePivotModal=null;
+      }
       closePivotFilterPopup(false);
       return;
     }
+    state.activePivotModal=null;
   }
   const {dimension,slot}=context;
   if(!dimension || !slot) return;
@@ -1792,6 +1867,7 @@ const state={
   lastTabIndex:0,
   pivotFilters:{},
   activePivotPopup:null,
+  activePivotModal:null,
   filtersReturn:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0}
 };
@@ -2537,6 +2613,7 @@ function setHasData(has){
     state.dateBounds={min:null,max:null};
     state.pivotFilters={};
     state.activePivotPopup=null;
+    state.activePivotModal=null;
     resetConversionPaging();
     if(el.monthList) el.monthList.innerHTML='';
     syncFilterLabels();
@@ -4184,9 +4261,43 @@ function restoreSnapshot(){
   updateAllFilterOptions(null);
   updateResetButtonVisibility();
 }
-function openFiltersModal(){ snapshotFilters(); el.modal.classList.add('open'); el.modal.setAttribute('aria-hidden','false'); }
-function closeFiltersCancel(){ restoreSnapshot(); el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); restoreFiltersTriggerFocus(); }
-function closeFiltersApply(){ el.modal.classList.remove('open'); el.modal.setAttribute('aria-hidden','true'); resetConversionPaging(); renderAll(); restoreFiltersTriggerFocus(); }
+function openFiltersModal(options={}){
+  if(!options.fromPivot) state.activePivotModal=null;
+  snapshotFilters();
+  el.modal.classList.add('open');
+  el.modal.setAttribute('aria-hidden','false');
+}
+function closeFiltersCancel(){
+  state.activePivotModal=null;
+  restoreSnapshot();
+  el.modal.classList.remove('open');
+  el.modal.setAttribute('aria-hidden','true');
+  restoreFiltersTriggerFocus();
+}
+function closeFiltersApply(){
+  const pivotContext=state.activePivotModal;
+  if(pivotContext){
+    const changed=applyPivotModalSelection(pivotContext);
+    restoreSnapshot();
+    el.modal.classList.remove('open');
+    el.modal.setAttribute('aria-hidden','true');
+    state.activePivotModal=null;
+    if(changed){
+      renderAll();
+    }else{
+      updatePivotFilterButtons();
+      refreshActivePivotPopup();
+    }
+    restoreFiltersTriggerFocus();
+    return;
+  }
+  state.activePivotModal=null;
+  el.modal.classList.remove('open');
+  el.modal.setAttribute('aria-hidden','true');
+  resetConversionPaging();
+  renderAll();
+  restoreFiltersTriggerFocus();
+}
 function clearAllFilters(){
   Object.values(el.dd).forEach(root=>{
     if(!root) return;
