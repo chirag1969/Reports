@@ -2679,22 +2679,28 @@ function boot(){
   if(el.monthCustomToggle){
     el.monthCustomToggle.setAttribute('aria-expanded','false');
     el.monthCustomToggle.addEventListener('click', (ev)=>{
+      ev.preventDefault();
       ev.stopPropagation();
+      if(el.monthDD && !el.monthDD.classList.contains('open')){
+        el.monthDD.classList.add('open');
+      }
       const hidden=el.monthCustomPanel?.hasAttribute('hidden');
       if(hidden) showCustomRangePanel(); else hideCustomRangePanel();
     });
   }
   if(el.monthCustomPanel){
     el.monthCustomPanel.addEventListener('click', ev=>ev.stopPropagation());
+    el.monthCustomPanel.addEventListener('mousedown', ev=>ev.stopPropagation());
   }
   if(el.monthCustomApply) el.monthCustomApply.addEventListener('click', applyCustomRangeFromInputs);
   if(el.monthCustomClear) el.monthCustomClear.addEventListener('click', ()=>clearCustomRange());
 
   document.addEventListener('click', (e)=>{
     const monthRoot=el.monthDD;
-    const clickedMonth=e.target.closest('.month-dd');
-    if(monthRoot && !clickedMonth && monthRoot.classList.contains('open')){
+    const clickedInsideMonth=monthRoot?.contains?.(e.target);
+    if(monthRoot && !clickedInsideMonth && monthRoot.classList.contains('open')){
       monthRoot.classList.remove('open');
+      hideCustomRangePanel();
       applyMonthFilters();
     }
     const clickedDd=e.target.closest('.dd');
