@@ -1837,6 +1837,7 @@ function hideCustomRangePanel(){
     state.monthTab='months';
     updateMonthTabs();
   }
+  updateMonthTabs();
 }
 
 function setMonthTab(tab){
@@ -1846,6 +1847,7 @@ function setMonthTab(tab){
   }
   updateMonthTabs();
 }
+
 function updateMonthTabs(){
   const active=state.monthTab==='custom'?'custom':'months';
   const buttons=el.monthTabList ? Array.from(el.monthTabList.querySelectorAll('button[data-tab]')) : [];
