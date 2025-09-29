@@ -1829,6 +1829,17 @@ const cloneDate=d=> (d instanceof Date) ? new Date(d.getTime()) : null;
 function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' && isFinite(v)) return v; let s=String(v).trim(); if(/^\(.*\)$/.test(s)) s='-'+s.slice(1,-1); if(/%$/.test(s)){ const num=parseFloat(s.replace(/[%\s,]/g,'')); return isFinite(num)?num/100:0; } s=s.replace(/[$€£₹¥₩]/g,'').replace(/,/g,'').replace(/[^\d.\-]/g,'').trim(); const num=parseFloat(s); return isFinite(num)?num:0; }
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
+function hideCustomRangePanel(){
+  if(el.monthCustomPanel){
+    el.monthCustomPanel.setAttribute('hidden','');
+  }
+  if(state.monthTab==='custom' && !state.customRange.active){
+    state.monthTab='months';
+    updateMonthTabs();
+  }
+  updateMonthTabs();
+}
+
 function setMonthTab(tab){
   const next=tab==='custom'?'custom':'months';
   if(state.monthTab!==next){
@@ -1836,6 +1847,7 @@ function setMonthTab(tab){
   }
   updateMonthTabs();
 }
+
 function updateMonthTabs(){
   const active=state.monthTab==='custom'?'custom':'months';
   const buttons=el.monthTabList ? Array.from(el.monthTabList.querySelectorAll('button[data-tab]')) : [];
