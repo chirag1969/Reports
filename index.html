@@ -217,6 +217,17 @@ body.has-data #tipPill{display:none !important}
 .pivot-filter-footer{display:flex;justify-content:flex-end}
 .pivot-filter-clear{border:1px solid var(--border-strong);background:transparent;color:var(--muted);border-radius:9px;font-weight:700;padding:8px 12px;cursor:pointer;transition:background .15s ease,color .15s ease}
 .pivot-filter-clear:hover{background:color-mix(in srgb,var(--chip) 85%, transparent);color:var(--text)}
+.pivot-date-tabs{display:flex;align-items:center;gap:6px;padding:4px;border-radius:10px;border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 80%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 4%, transparent)}
+.pivot-date-tab{flex:1 1 0;border:0;background:transparent;color:var(--muted);font-weight:700;padding:8px 12px;border-radius:8px;cursor:pointer;transition:color .2s ease, background .2s ease, transform .12s ease}
+.pivot-date-tab:hover{color:var(--text);background:color-mix(in srgb,var(--chip) 85%, transparent);transform:translateY(-1px)}
+.pivot-date-tab.is-active{color:#fff;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 82%, #000));box-shadow:0 8px 18px rgba(37,99,235,.22);transform:none}
+.pivot-date-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pivot-date-range{margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
+.pivot-date-range h4{margin:0;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+.pivot-date-range-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.pivot-date-range-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:12px;color:var(--muted)}
+.pivot-date-range-fields input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel);color:var(--text)}
+.pivot-date-range-note{font-size:11px;color:var(--muted)}
 .pivot-pagination{display:inline-flex;align-items:center;gap:8px}
 .pivot-pagination.is-idle{opacity:.7}
 .pivot-pagination[hidden]{display:none !important}
@@ -1027,17 +1038,20 @@ function findPivotTarget(card){
   return null;
 }
 
-function getPivotFilterState(slot, dimension, create=false){
+function getPivotFilterState(slot, create=false){
   if(!slot) return null;
   if(!state.pivotFilters) state.pivotFilters={};
   let entry=state.pivotFilters[slot];
   if(!entry && create){
-    entry={raw:new Set(), match:new Set(), caseInsensitive:!!dimension?.caseInsensitive};
+    entry={months:new Set(), start:'', end:''};
     state.pivotFilters[slot]=entry;
   }
   if(entry){
-    entry.caseInsensitive=!!dimension?.caseInsensitive;
-    if(!entry.match) entry.match=new Set();
+    if(!(entry.months instanceof Set)){
+      entry.months=new Set(Array.isArray(entry.months)?entry.months.filter(Boolean):[]);
+    }
+    entry.start=entry.start||'';
+    entry.end=entry.end||'';
   }
   return entry||null;
 }
@@ -1046,6 +1060,12 @@ function clearPivotFilterState(slot){
   if(!slot || !state.pivotFilters || !state.pivotFilters[slot]) return false;
   delete state.pivotFilters[slot];
   return true;
+}
+
+function pivotDateFilterIsActive(entry){
+  if(!entry) return false;
+  const monthActive = entry.months instanceof Set ? entry.months.size>0 : Array.isArray(entry.months) && entry.months.length>0;
+  return monthActive || !!entry.start || !!entry.end;
 }
 
 function getPivotFilterContext(card){
@@ -1079,25 +1099,24 @@ function updatePivotFilterButtons(){
     enhancePivotTitle(card);
     const context=getPivotFilterContext(card);
     if(!context) return;
-    const {table,dimension,label,displayName}=context;
-    const hasDimension=!!dimension && !!dimension.stateKey;
-    const filterState=hasDimension ? getPivotFilterState(context.slot || slot, dimension, false) : null;
-    const selectedCount=filterState?.raw?.size || 0;
-    const hasActive=selectedCount>0;
-    const filterLabel=(label || displayName || 'pivot');
+    const {table,label,displayName}=context;
+    const filterState=getPivotFilterState(context.slot || slot, false);
+    const hasActive=pivotDateFilterIsActive(filterState);
+    const filterLabel=(displayName || label || 'pivot');
+    const allowFilter=(state.monthOptions?.length||0)>0;
     const filterBtn=card.querySelector('.pivot-filter-btn');
     if(filterBtn){
-      const title=hasDimension?`Filter ${filterLabel}`:'Filters unavailable';
-      filterBtn.dataset.pivotSlot=hasDimension?(context.slot || slot || ''):'';
+      const title=allowFilter?`Filter ${filterLabel} by date`:'Date filters unavailable';
+      filterBtn.dataset.pivotSlot=allowFilter?(context.slot || slot || ''):'';
       filterBtn.title=title;
       filterBtn.setAttribute('aria-label', title);
-      filterBtn.disabled=!hasDimension;
+      filterBtn.disabled=!allowFilter;
       filterBtn.classList.toggle('is-active', hasActive);
     }
     const clearBtn=card.querySelector('.pivot-clear-btn');
     if(clearBtn){
-      const clearTitle=`Clear ${filterLabel} filter`;
-      clearBtn.dataset.pivotSlot=hasDimension?(context.slot || slot || ''):'';
+      const clearTitle=`Clear ${filterLabel} date filter`;
+      clearBtn.dataset.pivotSlot=allowFilter?(context.slot || slot || ''):'';
       clearBtn.title=clearTitle;
       clearBtn.setAttribute('aria-label', clearTitle);
       clearBtn.hidden=!hasActive;
@@ -1141,49 +1160,41 @@ function getPivotDimensionForTable(table){
   return context?.dimension || null;
 }
 
-function getPivotFilterValues(slot, dimension){
-  const entry=getPivotFilterState(slot, dimension, false);
-  if(!entry || !entry.raw || !entry.raw.size) return null;
-  const raw=Array.from(entry.raw);
-  const match=dimension?.caseInsensitive ? Array.from(entry.match||[]) : null;
-  return {raw, match};
+function getPivotFilterValues(slot){
+  const entry=getPivotFilterState(slot, false);
+  if(!pivotDateFilterIsActive(entry)) return null;
+  const months = entry?.months instanceof Set ? Array.from(entry.months) : Array.isArray(entry?.months) ? entry.months.slice() : [];
+  const start = entry?.start || '';
+  const end = entry?.end || '';
+  return {
+    months: months.filter(v=>v!=null && v!==''),
+    start,
+    end
+  };
 }
 
-function prunePivotFilter(slot, dimension, rows){
-  const entry=getPivotFilterState(slot, dimension, false);
-  if(!entry) return;
-  const validRaw=new Set();
-  const validMatch=new Set();
-  (Array.isArray(rows)?rows:[]).forEach(row=>{
-    if(!row) return;
-    const source=Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : row?.label;
-    const keys=pivotMakeValueKeys(source, row?.matchKey, dimension);
-    if(!keys.raw) return;
-    validRaw.add(keys.raw);
-    validMatch.add(keys.normalized);
-  });
-  entry.raw.forEach(value=>{ if(!validRaw.has(value)) entry.raw.delete(value); });
-  if(entry.match) entry.match.forEach(value=>{ if(!validMatch.has(value)) entry.match.delete(value); });
-  if(!entry.raw.size) clearPivotFilterState(slot);
-}
-
-function updatePivotFilterSelection(slot, dimension, rawValue, matchValue, on){
-  if(!slot || !dimension) return false;
-  const keys=pivotMakeValueKeys(rawValue, matchValue, dimension);
-  if(!keys.raw) return false;
-  const entry=getPivotFilterState(slot, dimension, on);
-  if(!entry) return false;
-  const alreadySelected=dimension.caseInsensitive ? entry.match.has(keys.normalized) : entry.raw.has(keys.raw);
-  if(on){
-    entry.raw.add(keys.raw);
-    if(entry.match) entry.match.add(keys.normalized);
-    return !alreadySelected;
+function appendDateFilterExtras(extras, filter){
+  if(!filter) return;
+  const dateInfo=getSqlInfoForStateKey('date');
+  if(!dateInfo) return;
+  const months=Array.isArray(filter.months)?filter.months.filter(v=>v!=null && v!==''):[];
+  if(months.length){
+    extras.push({sql:`substr("${dateInfo.sqlName}",1,7) IN (${months.map(()=>'?').join(',')})`, params:months});
   }
-  if(!alreadySelected) return false;
-  entry.raw.delete(keys.raw);
-  if(entry.match) entry.match.delete(keys.normalized);
-  if(!entry.raw.size) clearPivotFilterState(slot);
-  return true;
+  if(filter.start){
+    extras.push({sql:`"${dateInfo.sqlName}" >= ?`, params:[filter.start]});
+  }
+  if(filter.end){
+    extras.push({sql:`"${dateInfo.sqlName}" <= ?`, params:[filter.end]});
+  }
+}
+
+function prunePivotFilter(){
+  /* no-op for date filters */
+}
+
+function updatePivotFilterSelection(){
+  return false;
 }
 
 function buildPivotPopupOptions(context){
@@ -1207,14 +1218,31 @@ function buildPivotPopupOptions(context){
 }
 
 function populatePivotFilterPopup(context, keepSearch){
-  pivotFilterPopupState.options=buildPivotPopupOptions(context);
   pivotFilterPopupState.displayName=context.displayName || context.label || 'Pivot';
+  if(pivotFilterPopupState.mode==='date'){
+    if(!keepSearch) pivotFilterPopupState.search='';
+    if(el.pivotPopup?.title){
+      el.pivotPopup.title.textContent=`Filter ${pivotFilterPopupState.displayName} by date`;
+    }
+    const activeTab=pivotFilterPopupState.dateTab==='custom'?'custom':'months';
+    const searchRow=el.pivotPopup?.search?.closest('.pivot-filter-search-row');
+    if(searchRow) searchRow.hidden=activeTab==='custom';
+    if(el.pivotPopup?.search){
+      el.pivotPopup.search.value=pivotFilterPopupState.search;
+      el.pivotPopup.search.placeholder='Search months';
+      el.pivotPopup.search.removeAttribute('hidden');
+    }
+    renderPivotFilterPopup();
+    return;
+  }
+  pivotFilterPopupState.options=buildPivotPopupOptions(context);
   if(!keepSearch) pivotFilterPopupState.search='';
   if(el.pivotPopup?.title){
     el.pivotPopup.title.textContent=`Filter ${pivotFilterPopupState.displayName}`;
   }
   if(el.pivotPopup?.search){
     el.pivotPopup.search.value=pivotFilterPopupState.search;
+    el.pivotPopup.search.removeAttribute('hidden');
   }
   applyPivotPopupFilter(pivotFilterPopupState.search);
 }
@@ -1222,6 +1250,10 @@ function populatePivotFilterPopup(context, keepSearch){
 function applyPivotPopupFilter(query){
   const value=String(query||'');
   pivotFilterPopupState.search=value;
+  if(pivotFilterPopupState.mode==='date'){
+    renderPivotFilterPopup();
+    return;
+  }
   const q=value.trim().toLocaleLowerCase();
   const list=pivotFilterPopupState.options||[];
   pivotFilterPopupState.filtered = q ? list.filter(opt=>opt.labelLower.includes(q) || opt.raw.toLocaleLowerCase().includes(q)) : list.slice();
@@ -1232,11 +1264,15 @@ function renderPivotFilterPopup(){
   const listEl=el.pivotPopup?.list;
   const emptyEl=el.pivotPopup?.empty;
   if(!listEl) return;
+  if(pivotFilterPopupState.mode==='date'){
+    renderPivotDatePopup();
+    return;
+  }
   listEl.innerHTML='';
   const filtered=pivotFilterPopupState.filtered||[];
   const dimension=pivotFilterPopupState.dimension;
   const slot=pivotFilterPopupState.slot;
-  const entry=getPivotFilterState(slot, dimension, false);
+  const entry=getPivotFilterState(slot, false);
   if(!filtered.length){
     if(emptyEl) emptyEl.hidden=false;
     updatePivotPopupSelectAllState();
@@ -1271,13 +1307,180 @@ function renderPivotFilterPopup(){
   updatePivotPopupSelectAllState();
 }
 
+function renderPivotDatePopup(){
+  const listEl=el.pivotPopup?.list;
+  const emptyEl=el.pivotPopup?.empty;
+  if(!listEl) return;
+  const activeTab=pivotFilterPopupState.dateTab==='custom'?'custom':'months';
+  const searchRow=el.pivotPopup?.search?.closest('.pivot-filter-search-row');
+  if(searchRow) searchRow.hidden=activeTab==='custom';
+  const months=state.monthOptions||[];
+  const query=(pivotFilterPopupState.search||'').trim().toLocaleLowerCase();
+  const filtered=query
+    ? months.filter(opt=>{
+        const label=String(opt?.label||'').toLocaleLowerCase();
+        const ym=String(opt?.ym||'').toLocaleLowerCase();
+        return label.includes(query) || ym.includes(query);
+      })
+    : months.slice();
+  pivotFilterPopupState.filtered=filtered;
+  listEl.innerHTML='';
+
+  const tabs=document.createElement('div');
+  tabs.className='pivot-date-tabs';
+  const makeTab=(tab,value)=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className=`pivot-date-tab${activeTab===tab?' is-active':''}`;
+    btn.dataset.tab=tab;
+    btn.textContent=value;
+    btn.addEventListener('click', handlePivotDateTabClick);
+    return btn;
+  };
+  tabs.appendChild(makeTab('months','Months'));
+  tabs.appendChild(makeTab('custom','Custom'));
+  listEl.appendChild(tabs);
+
+  const entry=getPivotFilterState(pivotFilterPopupState.slot, false);
+  const monthSet=entry?.months instanceof Set ? entry.months : new Set();
+
+  if(activeTab==='months'){
+    if(filtered.length){
+      if(emptyEl) emptyEl.hidden=true;
+      const frag=document.createDocumentFragment();
+      filtered.forEach(opt=>{
+        if(!opt) return;
+        const row=document.createElement('label');
+        row.className='pivot-filter-option';
+        const left=document.createElement('span');
+        left.className='pivot-filter-option-label';
+        const input=document.createElement('input');
+        input.type='checkbox';
+        input.dataset.month=opt.ym;
+        input.checked=monthSet.has(opt.ym);
+        left.appendChild(input);
+        const valueSpan=document.createElement('span');
+        valueSpan.className='pivot-filter-option-value';
+        valueSpan.textContent=opt.label || opt.ym || '—';
+        left.appendChild(valueSpan);
+        row.appendChild(left);
+        frag.appendChild(row);
+      });
+      listEl.appendChild(frag);
+    }else if(emptyEl){
+      emptyEl.hidden=false;
+      emptyEl.textContent=months.length ? 'No matching months' : 'No month data';
+    }
+  }else{
+    if(emptyEl){
+      emptyEl.hidden=true;
+      emptyEl.textContent='';
+    }
+    const range=document.createElement('div');
+    range.className='pivot-date-range';
+    range.innerHTML=`<h4>Custom range</h4><div class="pivot-date-range-fields"><label><span>From</span><input type="date" data-role="pivot-date-start"></label><label><span>To</span><input type="date" data-role="pivot-date-end"></label></div><div class="pivot-date-range-note">Pick a start and end date to refine this pivot.</div>`;
+    listEl.appendChild(range);
+
+    const startInput=range.querySelector('input[data-role="pivot-date-start"]');
+    const endInput=range.querySelector('input[data-role="pivot-date-end"]');
+    const bounds=state.dateBounds || {};
+    const minStr=bounds.min?toInputDate(bounds.min):'';
+    const maxStr=bounds.max?toInputDate(bounds.max):'';
+    if(startInput){
+      if(minStr) startInput.min=minStr; else startInput.removeAttribute('min');
+      if(maxStr) startInput.max=maxStr; else startInput.removeAttribute('max');
+      startInput.value=entry?.start||'';
+      startInput.addEventListener('change', handlePivotDateRangeInput);
+    }
+    if(endInput){
+      if(minStr) endInput.min=minStr; else endInput.removeAttribute('min');
+      if(maxStr) endInput.max=maxStr; else endInput.removeAttribute('max');
+      endInput.value=entry?.end||'';
+      endInput.addEventListener('change', handlePivotDateRangeInput);
+    }
+  }
+
+  updatePivotPopupSelectAllState();
+}
+
+function handlePivotDateTabClick(event){
+  const button=event.target.closest?.('button[data-tab]');
+  if(!button) return;
+  event.preventDefault();
+  const tab=button.dataset.tab==='custom'?'custom':'months';
+  if(tab===pivotFilterPopupState.dateTab) return;
+  pivotFilterPopupState.dateTab=tab;
+  const searchRow=el.pivotPopup?.search?.closest('.pivot-filter-search-row');
+  if(searchRow) searchRow.hidden=tab==='custom';
+  renderPivotDatePopup();
+  updatePivotPopupSelectAllState();
+  if(tab==='months' && el.pivotPopup?.search){
+    try{ el.pivotPopup.search.focus({preventScroll:true}); }catch(_){ }
+  }
+}
+
+function handlePivotDateRangeInput(){
+  const slot=pivotFilterPopupState.slot;
+  if(!slot) return;
+  const entry=getPivotFilterState(slot, true);
+  const popup=el.pivotPopup?.root;
+  if(!popup) return;
+  const startField=popup.querySelector('input[data-role="pivot-date-start"]');
+  const endField=popup.querySelector('input[data-role="pivot-date-end"]');
+  const prevStart=entry.start||'';
+  const prevEnd=entry.end||'';
+  const nextStart=startField?String(startField.value||'').trim():'';
+  const nextEnd=endField?String(endField.value||'').trim():'';
+  if(nextStart && nextEnd && nextStart>nextEnd){
+    alert('Start date must be on or before end date.');
+    if(startField) startField.value=prevStart;
+    if(endField) endField.value=prevEnd;
+    return;
+  }
+  entry.start=nextStart;
+  entry.end=nextEnd;
+  if(!pivotDateFilterIsActive(entry)){
+    clearPivotFilterState(slot);
+  }
+  renderAll();
+  updatePivotFilterButtons();
+  updatePivotPopupSelectAllState();
+}
+
 function updatePivotPopupSelectAllState(){
   const toggle=el.pivotPopup?.selectAll;
   if(!toggle) return;
+  if(pivotFilterPopupState.mode==='date'){
+    const searchRow=toggle.closest?.('.pivot-filter-search-row');
+    const isMonths=pivotFilterPopupState.dateTab!=='custom';
+    if(searchRow) searchRow.hidden=!isMonths;
+    if(!isMonths){
+      toggle.checked=false;
+      toggle.indeterminate=false;
+      toggle.disabled=true;
+      return;
+    }
+    const filtered=pivotFilterPopupState.filtered||[];
+    const slot=pivotFilterPopupState.slot;
+    const entry=getPivotFilterState(slot, false);
+    const monthSet=entry?.months instanceof Set ? entry.months : new Set();
+    if(!filtered.length){
+      toggle.checked=false;
+      toggle.indeterminate=false;
+      toggle.disabled=true;
+      return;
+    }
+    let selectedCount=0;
+    filtered.forEach(opt=>{ if(monthSet.has(opt.ym)) selectedCount++; });
+    toggle.disabled=false;
+    toggle.checked = selectedCount>0 && selectedCount===filtered.length;
+    toggle.indeterminate = selectedCount>0 && selectedCount<filtered.length;
+    return;
+  }
   const filtered=pivotFilterPopupState.filtered||[];
   const dimension=pivotFilterPopupState.dimension;
   const slot=pivotFilterPopupState.slot;
-  const entry=getPivotFilterState(slot, dimension, false);
+  const entry=getPivotFilterState(slot, false);
   if(!filtered.length){
     toggle.checked=false;
     toggle.indeterminate=false;
@@ -1314,14 +1517,19 @@ function positionPivotPopupRoot(trigger){
   popup.style.top=`${Math.round(top)}px`;
 }
 
-function showPivotFilterPopup(context, trigger){
+function showPivotDatePopup(context, trigger){
   const popup=el.pivotPopup?.root;
   if(!popup) return;
   const slot=context.slot || '';
-  if(!slot || !context.dimension || !context.table?._pivotData) return;
+  if(!slot) return;
+  pivotFilterPopupState.mode='date';
   pivotFilterPopupState.slot=slot;
-  pivotFilterPopupState.dimension=context.dimension;
+  pivotFilterPopupState.dimension=null;
   pivotFilterPopupState.button=trigger || null;
+  pivotFilterPopupState.search='';
+  pivotFilterPopupState.filtered=[];
+  pivotFilterPopupState.dateTab='months';
+  pivotFilterPopupState.displayName=context.displayName || context.label || 'Pivot';
   state.activePivotPopup={slot, button:trigger||null};
   populatePivotFilterPopup(context, false);
   popup.hidden=false;
@@ -1334,7 +1542,7 @@ function showPivotFilterPopup(context, trigger){
   popup.style.opacity='';
   requestAnimationFrame(()=>{
     try{
-      if(el.pivotPopup?.search){
+      if(el.pivotPopup?.search && !el.pivotPopup.search.hasAttribute('hidden')){
         el.pivotPopup.search.focus({preventScroll:true});
         el.pivotPopup.search.select();
       }else{
@@ -1355,6 +1563,10 @@ function closePivotFilterPopup(focusReturn=true){
   pivotFilterPopupState.slot='';
   pivotFilterPopupState.dimension=null;
   pivotFilterPopupState.button=null;
+  pivotFilterPopupState.filtered=[];
+  pivotFilterPopupState.search='';
+  pivotFilterPopupState.mode='dimension';
+  pivotFilterPopupState.dateTab='months';
   if(shouldFocus){
     requestAnimationFrame(()=>{
       try{ trigger.focus({preventScroll:true}); }catch(_){ }
@@ -1369,16 +1581,12 @@ function refreshActivePivotPopup(){
   const target=el.pivot?.[active.slot];
   const card=target?.card;
   const table=target?.table || card?.querySelector('.pivot-table');
-  if(!card || !table || !table._pivotData){
+  if(!card){
     closePivotFilterPopup(false);
     return;
   }
-  const dimension=table._pivotData.dimension || target?.dimension || null;
-  if(!dimension){
-    closePivotFilterPopup(false);
-    return;
-  }
-  const context={target, card, table, dimension, slot:active.slot, label:'', displayName:table._pivotData.displayName || ''};
+  const displayName = table?._pivotData?.displayName || card.querySelector('.chart-title-text')?.textContent || '';
+  const context={target, card, table, dimension:null, slot:active.slot, label:'', displayName};
   pivotFilterPopupState.button = active.button && document.body.contains(active.button) ? active.button : card.querySelector('.pivot-filter-btn');
   populatePivotFilterPopup(context, true);
   const popup=el.pivotPopup?.root;
@@ -1399,56 +1607,59 @@ function handlePivotPopupSelectAll(event){
   const checked=!!event.target.checked;
   const filtered=pivotFilterPopupState.filtered||[];
   const slot=pivotFilterPopupState.slot;
-  const dimension=pivotFilterPopupState.dimension;
-  if(!slot || !dimension) return;
-  let changed=false;
-  if(checked){
-    const entry=getPivotFilterState(slot, dimension, true);
-    if(entry){
-      filtered.forEach(opt=>{
-        const already=dimension.caseInsensitive ? entry.match.has(opt.match) : entry.raw.has(opt.raw);
-        if(!already){
-          entry.raw.add(opt.raw);
-          if(entry.match) entry.match.add(opt.match);
-          changed=true;
-        }
-      });
+  if(!slot) return;
+  if(pivotFilterPopupState.mode==='date'){
+    if(pivotFilterPopupState.dateTab==='custom'){
+      updatePivotPopupSelectAllState();
+      return;
     }
-  }else{
-    const entry=getPivotFilterState(slot, dimension, false);
-    if(entry){
-      filtered.forEach(opt=>{
-        const already=dimension.caseInsensitive ? entry.match.has(opt.match) : entry.raw.has(opt.raw);
-        if(already){
-          entry.raw.delete(opt.raw);
-          if(entry.match) entry.match.delete(opt.match);
-          changed=true;
-        }
-      });
-      if(!entry.raw.size) clearPivotFilterState(slot);
+    if(!filtered.length){
+      updatePivotPopupSelectAllState();
+      return;
     }
-  }
-  if(changed){
+    const entry=checked ? getPivotFilterState(slot, true) : getPivotFilterState(slot, false);
+    if(entry){
+      if(!(entry.months instanceof Set)) entry.months=new Set();
+      filtered.forEach(opt=>{
+        if(checked) entry.months.add(opt.ym);
+        else entry.months.delete(opt.ym);
+      });
+      if(!pivotDateFilterIsActive(entry)) clearPivotFilterState(slot);
+    }
     renderAll();
-  }else{
-    updatePivotPopupSelectAllState();
+    updatePivotFilterButtons();
+    renderPivotDatePopup();
+    return;
   }
+  updatePivotPopupSelectAllState();
 }
 
 function handlePivotPopupListChange(event){
   const input=event.target.closest?.('input[type=checkbox]');
   if(!input) return;
   const slot=pivotFilterPopupState.slot;
-  const dimension=pivotFilterPopupState.dimension;
-  if(!slot || !dimension) return;
-  const raw=input.dataset.rawValue || '';
-  const match=input.dataset.matchKey || '';
-  const changed=updatePivotFilterSelection(slot, dimension, raw, match, input.checked);
-  if(changed){
+  if(!slot) return;
+  if(pivotFilterPopupState.mode==='date'){
+    if(pivotFilterPopupState.dateTab==='custom'){
+      return;
+    }
+    const month=input.dataset.month || '';
+    if(!month){
+      updatePivotPopupSelectAllState();
+      return;
+    }
+    const entry=getPivotFilterState(slot, true);
+    if(input.checked) entry.months.add(month);
+    else{
+      entry.months.delete(month);
+      if(!pivotDateFilterIsActive(entry)) clearPivotFilterState(slot);
+    }
     renderAll();
-  }else{
+    updatePivotFilterButtons();
     updatePivotPopupSelectAllState();
+    return;
   }
+  updatePivotPopupSelectAllState();
 }
 
 function getFilterWrapperByStateKey(stateKey){
@@ -1540,42 +1751,7 @@ function focusFilterControl(wrapper, options={}){
 }
 
 function applyPivotModalSelection(context){
-  if(!context) return false;
-  const slot=context.slot||'';
-  const dimension=context.dimension||null;
-  const stateKey=context.stateKey||'';
-  if(!slot || !dimension || !stateKey) return false;
-  const root=el.dd?.[stateKey];
-  if(!root) return false;
-  const selected=ddGetSelected(root);
-  const existing=getPivotFilterState(slot, dimension, false);
-  const prevRaw=existing ? new Set(existing.raw) : new Set();
-  if(!selected.length){
-    const cleared=clearPivotFilterState(slot);
-    return cleared || prevRaw.size>0;
-  }
-  const entry=getPivotFilterState(slot, dimension, true);
-  if(!entry) return false;
-  entry.raw.clear();
-  if(entry.match) entry.match.clear();
-  selected.forEach(value=>{
-    const keys=pivotMakeValueKeys(value, null, dimension);
-    if(!keys.raw) return;
-    entry.raw.add(keys.raw);
-    if(entry.match) entry.match.add(keys.normalized);
-  });
-  const newRaw=new Set(entry.raw);
-  let changed=newRaw.size!==prevRaw.size;
-  if(!changed){
-    for(const value of newRaw){
-      if(!prevRaw.has(value)){ changed=true; break; }
-    }
-  }
-  if(!entry.raw.size){
-    const cleared=clearPivotFilterState(slot);
-    return cleared || prevRaw.size>0;
-  }
-  return changed;
+  return false;
 }
 
 function showMainFilterForStateKey(stateKey, trigger, options={}){
@@ -1601,30 +1777,14 @@ function handlePivotFilterButton(button){
   const context=getPivotFilterContextFromButton(button);
   if(!context) return;
   state.activePivotModal=null;
-  const stateKey=context?.dimension?.stateKey || '';
-  if(stateKey){
-    const opened=showMainFilterForStateKey(stateKey, button, {fromPivot:true, autoOpenDropdown:false});
-    if(opened){
-      if(context.slot && context.dimension){
-        state.activePivotModal={slot:context.slot, dimension:context.dimension, stateKey};
-      }else{
-        state.activePivotModal=null;
-      }
-      closePivotFilterPopup(false);
-      return;
-    }
-    state.activePivotModal=null;
-  }
-  const {dimension,slot}=context;
-  if(!dimension || !slot) return;
-  const data=context.table?._pivotData;
-  if(!data) return;
+  const slot=context.slot || button.dataset.pivotSlot || '';
+  if(!slot) return;
   const popup=el.pivotPopup?.root;
-  if(popup && !popup.hasAttribute('hidden') && state.activePivotPopup?.slot===slot){
+  if(popup && !popup.hasAttribute('hidden') && state.activePivotPopup?.slot===slot && pivotFilterPopupState.mode==='date'){
     closePivotFilterPopup();
     return;
   }
-  showPivotFilterPopup(context, button);
+  showPivotDatePopup(context, button);
   button.classList.add('is-active');
   setTimeout(()=>button.classList.remove('is-active'),220);
 }
@@ -1914,7 +2074,7 @@ const PIVOT_CONFIG={
   ],
   conversion:[]
 };
-const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:''};
+const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:'', mode:'dimension', dateTab:'months'};
 const DEFAULT_WORKBOOKS=[
   'Product Search Term.xlsx',
   'Products Search Term.xlsx'
@@ -2279,23 +2439,44 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
   if(!table) return;
   const dimension=getPivotDimensionForTable(table);
   if(!dimension) return;
-  const slot=getPivotSlotForTable(table);
-  if(!slot) return;
+  const stateKey=dimension.stateKey;
+  if(!stateKey) return;
+  const root=el.dd?.[stateKey];
+  if(!root) return;
   const keys=pivotMakeValueKeys(rawValue, matchKey, dimension);
   if(!keys.raw) return;
-  const entry=getPivotFilterState(slot, dimension, true);
-  if(!entry) return;
-  const selectedBefore=entry.raw.size;
-  const isSelected=dimension.caseInsensitive ? entry.match.has(keys.normalized) : entry.raw.has(keys.raw);
-  if(selectedBefore===1 && isSelected){
-    clearPivotFilterState(slot);
-  }else{
-    entry.raw.clear();
-    if(entry.match) entry.match.clear();
-    entry.raw.add(keys.raw);
-    if(entry.match) entry.match.add(keys.normalized);
+  const normalizedTarget = dimension.caseInsensitive ? keys.normalized : keys.raw;
+  const checkboxes=Array.from(root.querySelectorAll('.dd-list input[type=checkbox]'));
+  if(!checkboxes.length) return;
+  const normalizeValue=value=> dimension.caseInsensitive ? String(value||'').toLocaleLowerCase() : String(value||'');
+  const currentSelection=ddGetSelected(root).map(normalizeValue);
+  const alreadyOnlySelected=currentSelection.length===1 && currentSelection[0]===normalizedTarget;
+  let matched=false;
+  checkboxes.forEach(cb=>{
+    const value=normalizeValue(cb.value);
+    if(alreadyOnlySelected){
+      cb.checked=false;
+      return;
+    }
+    const isMatch=value===normalizedTarget;
+    if(isMatch) matched=true;
+    cb.checked=isMatch;
+  });
+  if(alreadyOnlySelected){
+    matched=true;
   }
-  renderAll();
+  if(!matched) return;
+  ddUpdateSummary(root);
+  ddSyncSelectAll(root);
+  ddRefreshSearchSelections(root);
+  if(root.classList.contains('dd-search-mode')){
+    ddApplyImmediateFilters(root);
+  }else if(state.hasData){
+    updateAllFilterOptions(null);
+    resetConversionPaging();
+    renderAll();
+    updateResetButtonVisibility();
+  }
 }
 
 function showSkuPopup(trigger, asinLabel, skus, asinValue){
@@ -3569,15 +3750,7 @@ function buildAggSql(context, columnKey, spendInfo, salesInfo, options={}){
   const extraCond={sql:`TRIM(${labelExpr}) <> ''`};
   const extras=[extraCond];
   const pivotFilter=options?.pivotFilter;
-  if(pivotFilter){
-    const valueList=caseInsensitive
-      ? (Array.isArray(pivotFilter?.match)?pivotFilter.match.filter(v=>v!=null && v!==''):[])
-      : (Array.isArray(pivotFilter?.raw)?pivotFilter.raw.filter(v=>v!=null && v!==''):[]);
-    if(valueList.length){
-      const expr=caseInsensitive?`LOWER(${labelExpr})`:labelExpr;
-      extras.push({sql:`${expr} IN (${valueList.map(()=>'?').join(',')})`, params:valueList});
-    }
-  }
+  if(pivotFilter) appendDateFilterExtras(extras, pivotFilter);
   const {sql,params}=combineWhere(context.conditions, extras);
   const query=`SELECT ${groupExpr} AS group_key, ${displayExpr} AS display_label, SUM(COALESCE("${spendInfo.sqlName}",0)) AS total_spend, SUM(COALESCE("${salesInfo.sqlName}",0)) AS total_sales FROM "${table}" ${sql} GROUP BY ${groupExpr} HAVING total_spend <> 0 OR total_sales <> 0`;
   const rows=sqlQueryAll(query, params);
@@ -4079,53 +4252,59 @@ function renderConversionPivots(context, spendInfo, salesInfo){
     return mapped;
   };
 
-  const extra=[
+  const baseExtras=[
     {sql:`TRIM("${termInfo.sqlName}") <> ''`},
     {sql:`TRIM("${typeInfo.sqlName}") <> ''`}
   ];
-  const {sql,params}=combineWhere(context.conditions, extra);
-  const query=`SELECT LOWER(TRIM("${typeInfo.sqlName}")) AS type_key, "${termInfo.sqlName}" AS term_value, SUM(COALESCE("${spendInfo.sqlName}",0)) AS total_spend, SUM(COALESCE("${salesInfo.sqlName}",0)) AS total_sales FROM "${table}" ${sql} GROUP BY type_key, term_value HAVING total_spend <> 0 OR total_sales <> 0`;
-  const rows=sqlQueryAll(query, params);
-  const buckets={st:new Map(), asin:new Map()};
-  rows.forEach(row=>{
-    const mappedType=mapTypeValue(row.type_key);
-    const bucket=mappedType==='st'?buckets.st:mappedType==='asin'?buckets.asin:null;
-    if(!bucket) return;
-    const rawValue=row.term_value;
-    const labelStr=rawValue==null?'':String(rawValue);
-    const trimmed=labelStr.trim();
-    if(!trimmed) return;
-    const spend=Number(row.total_spend)||0;
-    const sales=Number(row.total_sales)||0;
-    if(spend===0 && sales===0) return;
-    const entry=bucket.get(labelStr);
-    if(entry){
-      entry.spend+=spend;
-      entry.sales+=sales;
-    }else{
-      bucket.set(labelStr,{spend,sales,rawValue});
-    }
-  });
+
+  const runConversionQuery=(filter)=>{
+    const extras=baseExtras.map(item=>({...item}));
+    appendDateFilterExtras(extras, filter);
+    const {sql,params}=combineWhere(context.conditions, extras);
+    const query=`SELECT LOWER(TRIM("${typeInfo.sqlName}")) AS type_key, "${termInfo.sqlName}" AS term_value, SUM(COALESCE("${spendInfo.sqlName}",0)) AS total_spend, SUM(COALESCE("${salesInfo.sqlName}",0)) AS total_sales FROM "${table}" ${sql} GROUP BY type_key, term_value HAVING total_spend <> 0 OR total_sales <> 0`;
+    return sqlQueryAll(query, params);
+  };
+
+  const buildBucket=(rows, targetType)=>{
+    const bucket=new Map();
+    (Array.isArray(rows)?rows:[]).forEach(row=>{
+      const mappedType=mapTypeValue(row.type_key);
+      if(mappedType!==targetType) return;
+      const rawValue=row.term_value;
+      const labelStr=rawValue==null?'':String(rawValue);
+      const trimmed=labelStr.trim();
+      if(!trimmed) return;
+      const spend=Number(row.total_spend)||0;
+      const sales=Number(row.total_sales)||0;
+      if(spend===0 && sales===0) return;
+      const existing=bucket.get(labelStr);
+      if(existing){
+        existing.spend+=spend;
+        existing.sales+=sales;
+      }else{
+        bucket.set(labelStr,{spend,sales,rawValue});
+      }
+    });
+    return bucket;
+  };
+
+  const filterSt=getPivotFilterValues('conversionSt');
+  const filterAsin=getPivotFilterValues('conversionAsin');
+  const filterKey=filter=>{
+    if(!filter) return 'null';
+    const months=Array.isArray(filter.months)?filter.months.slice().sort():[];
+    return JSON.stringify([months, filter.start||'', filter.end||'']);
+  };
+
+  const sameFilter=filterKey(filterSt)===filterKey(filterAsin);
+  const rowsSt=runConversionQuery(filterSt);
+  const bucketSt=buildBucket(rowsSt,'st');
+  const bucketAsin=sameFilter ? buildBucket(rowsSt,'asin') : buildBucket(runConversionQuery(filterAsin),'asin');
 
   const renderBucket=(target,map,labelSuffix,key)=>{
     if(!target) return false;
     if(!state.conversionPage) state.conversionPage={st:0,asin:0};
     let workingMap=map;
-    const slotName=target?.table?._pivotSlot || target?.card?.dataset.pivotSlot || (key==='st'?'conversionSt':'conversionAsin');
-    const dimension=target?.dimension || target?.table?._pivotData?.dimension || null;
-    if(map instanceof Map && slotName && dimension){
-      const pivotFilter=getPivotFilterValues(slotName, dimension);
-      if(pivotFilter && ((dimension.caseInsensitive && pivotFilter.match?.length) || (!dimension.caseInsensitive && pivotFilter.raw?.length))){
-        const compareSet=new Set(dimension.caseInsensitive ? pivotFilter.match : pivotFilter.raw);
-        workingMap=new Map();
-        map.forEach((value,label)=>{
-          const source=value?.rawValue ?? label;
-          const keys=pivotMakeValueKeys(source, null, dimension);
-          const compare=dimension.caseInsensitive ? keys.normalized : keys.raw;
-          if(compareSet.has(compare)) workingMap.set(label,value);
-        });
-      }
-    }
     const totalEntries=workingMap instanceof Map ? workingMap.size : 0;
     let pageIndex=state.conversionPage[key]||0;
     if(MAX_CONVERSION_ROWS && totalEntries>0){
@@ -4140,8 +4319,8 @@ function renderConversionPivots(context, spendInfo, salesInfo){
     return renderPivotCard(target, `${baseLabel} (${labelSuffix})`, agg, true);
   };
 
-  result.st = renderBucket(targetSt,buckets.st,'ST','st');
-  result.asin = renderBucket(targetAsin,buckets.asin,'ASIN','asin');
+  result.st = renderBucket(targetSt,bucketSt,'ST','st');
+  result.asin = renderBucket(targetAsin,bucketAsin,'ASIN','asin');
   return result;
 }
 
@@ -4195,7 +4374,7 @@ function renderAll(){
       const opts=options||{};
       target.dimension = columnKey ? {stateKey:column, columnKey, caseInsensitive:!!opts.caseInsensitive} : null;
       const hasMetrics = spendInfo && salesInfo && columnKey;
-      const pivotFilter = target.dimension ? getPivotFilterValues(slot, target.dimension) : null;
+      const pivotFilter = getPivotFilterValues(slot);
       const agg = hasMetrics ? buildAggSql(context, columnKey, spendInfo, salesInfo, {...opts, pivotFilter}) : null;
       const rendered = renderPivotCard(target, columnName, agg, !!columnKey);
       if(rendered) activeSlots.add(slot);
