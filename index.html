@@ -124,23 +124,26 @@ body.has-data #tipPill{display:none !important}
 .month-dd .dd-panel{position:absolute;top:calc(100% + 6px);right:0;z-index:40;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:240px;display:none;max-height:360px;overflow:auto;scrollbar-width:none;-ms-overflow-style:none}
 .month-dd .dd-panel::-webkit-scrollbar{display:none}
 .month-dd.open .dd-panel{display:block}
+.month-tablist{display:flex;align-items:center;gap:6px;padding:6px;border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--panel) 92%, var(--chip))}
+.month-tab-btn{flex:1 1 0;border:0;background:transparent;color:var(--muted);font-weight:700;padding:8px 10px;border-radius:8px;cursor:pointer;transition:color .2s, background .2s, transform .12s}
+.month-tab-btn:hover{color:var(--text);background:color-mix(in srgb,var(--chip) 85%, transparent);transform:translateY(-1px)}
+.month-tab-btn.is-active{color:#fff;background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 82%, #000));box-shadow:0 8px 18px rgba(37,99,235,.22);transform:none}
+.month-tab-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.month-tab-panel[hidden]{display:none}
 .month-row{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:8px 12px}
 .month-row:hover{background:var(--chip)}
 .month-row input{accent-color:var(--accent)}
 .month-name{font-weight:700;color:var(--text)}
-.month-custom{padding:10px;border-top:1px solid var(--border);background:color-mix(in srgb,var(--panel) 90%, var(--chip));display:grid;gap:10px}
-.month-custom-btn{width:100%;border:1px dashed var(--border);background:transparent;color:var(--accent);font-weight:700;border-radius:10px;padding:10px 12px;display:flex;align-items:center;justify-content:center;gap:6px}
-.month-custom-btn:hover{background:color-mix(in srgb,var(--chip) 80%, transparent)}
-.month-range-panel{border:1px solid var(--border);border-radius:12px;padding:10px;background:color-mix(in srgb,var(--panel) 85%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent)}
+.month-range-panel{border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px;background:color-mix(in srgb,var(--panel) 85%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent);display:flex;flex-direction:column;gap:12px}
 .month-range-fields{display:flex;flex-direction:column;gap:12px}
 .month-range-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
 .month-range-fields input{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--panel);color:var(--text);width:100%}
 .month-range-actions{display:flex;gap:8px;margin-top:10px}
-.month-range-apply,.month-range-clear{flex:1;border-radius:9px;font-weight:700;padding:8px 12px}
+.month-range-apply,.month-range-cancel{flex:1;border-radius:9px;font-weight:700;padding:8px 12px}
 .month-range-apply{background:linear-gradient(180deg,var(--accent),color-mix(in srgb,var(--accent) 80%,#000));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(37,99,235,.25)}
 .month-range-apply:hover{box-shadow:0 12px 24px rgba(37,99,235,.3)}
-.month-range-clear{background:transparent;border:1px solid var(--border-strong);color:var(--muted)}
-.month-range-clear:hover{background:color-mix(in srgb,var(--chip) 85%, transparent)}
+.month-range-cancel{background:transparent;border:1px solid var(--border-strong);color:var(--muted)}
+.month-range-cancel:hover{background:color-mix(in srgb,var(--chip) 85%, transparent)}
 
 /* KPIs */
 .kpis{padding:4px clamp(14px,3vw,26px) 8px;display:grid;grid-template-columns:repeat(8,minmax(120px,1fr));gap:10px}
@@ -417,24 +420,25 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
         <div id="monthFilter" class="month-dd">
           <div class="dd-control"><span class="dd-summary">Date Range</span><span class="dd-chev">▾</span></div>
           <div class="dd-panel">
-            <div id="monthList"></div>
-            <div class="month-custom">
-              <button type="button" id="customRangeToggle" class="month-custom-btn">Custom date range…</button>
-              <div id="customRangePanel" class="month-range-panel" hidden>
-                <div class="month-range-fields">
-                  <label>
-                    <span>From</span>
-                    <input type="date" id="customRangeStart" />
-                  </label>
-                  <label>
-                    <span>To</span>
-                    <input type="date" id="customRangeEnd" />
-                  </label>
-                </div>
-                <div class="month-range-actions">
-                  <button type="button" id="customRangeApply" class="month-range-apply">Apply</button>
-                  <button type="button" id="customRangeClear" class="month-range-clear">Clear</button>
-                </div>
+            <div id="monthTabList" class="month-tablist" role="tablist" aria-label="Date filter tabs">
+              <button type="button" class="month-tab-btn is-active" data-tab="months" role="tab" aria-selected="true">Months</button>
+              <button type="button" class="month-tab-btn" data-tab="custom" role="tab" aria-selected="false" tabindex="-1">Custom</button>
+            </div>
+            <div id="monthList" class="month-tab-panel" data-panel="months"></div>
+            <div id="customRangePanel" class="month-range-panel month-tab-panel" data-panel="custom" hidden>
+              <div class="month-range-fields">
+                <label>
+                  <span>From</span>
+                  <input type="date" id="customRangeStart" />
+                </label>
+                <label>
+                  <span>To</span>
+                  <input type="date" id="customRangeEnd" />
+                </label>
+              </div>
+              <div class="month-range-actions">
+                <button type="button" id="customRangeApply" class="month-range-apply">Apply</button>
+                <button type="button" id="customRangeCancel" class="month-range-cancel">Cancel</button>
               </div>
             </div>
           </div>
@@ -1407,6 +1411,7 @@ function handlePivotDateTabClick(event){
   const button=event.target.closest?.('button[data-tab]');
   if(!button) return;
   event.preventDefault();
+  event.stopPropagation();
   const tab=button.dataset.tab==='custom'?'custom':'months';
   if(tab===pivotFilterPopupState.dateTab) return;
   pivotFilterPopupState.dateTab=tab;
@@ -1824,20 +1829,34 @@ const cloneDate=d=> (d instanceof Date) ? new Date(d.getTime()) : null;
 function parseNumber(v){ if(v==null || v==="") return 0; if(typeof v==='number' && isFinite(v)) return v; let s=String(v).trim(); if(/^\(.*\)$/.test(s)) s='-'+s.slice(1,-1); if(/%$/.test(s)){ const num=parseFloat(s.replace(/[%\s,]/g,'')); return isFinite(num)?num/100:0; } s=s.replace(/[$€£₹¥₩]/g,'').replace(/,/g,'').replace(/[^\d.\-]/g,'').trim(); const num=parseFloat(s); return isFinite(num)?num:0; }
 function clampPanelRight(panel){ panel.style.left='0'; panel.style.right='auto'; const rect=panel.getBoundingClientRect(), vw=document.documentElement.clientWidth; if(rect.right>vw-10){ panel.style.left='auto'; panel.style.right='0'; }}
 
-function hideCustomRangePanel(){
-  if(el.monthCustomPanel){
-    el.monthCustomPanel.setAttribute('hidden','');
+function setMonthTab(tab){
+  const next=tab==='custom'?'custom':'months';
+  if(state.monthTab!==next){
+    state.monthTab=next;
   }
-  if(el.monthCustomToggle){
-    el.monthCustomToggle.setAttribute('aria-expanded','false');
-  }
+  updateMonthTabs();
 }
-function showCustomRangePanel(){
-  if(!el.monthCustomPanel) return;
-  syncCustomRangeInputs();
-  el.monthCustomPanel.removeAttribute('hidden');
-  if(el.monthCustomToggle){
-    el.monthCustomToggle.setAttribute('aria-expanded','true');
+function updateMonthTabs(){
+  const active=state.monthTab==='custom'?'custom':'months';
+  const buttons=el.monthTabList ? Array.from(el.monthTabList.querySelectorAll('button[data-tab]')) : [];
+  buttons.forEach(btn=>{
+    const tab=btn.dataset.tab==='custom'?'custom':'months';
+    const isActive=tab===active;
+    btn.classList.toggle('is-active', isActive);
+    btn.setAttribute('aria-selected', isActive?'true':'false');
+    btn.setAttribute('tabindex', isActive?'0':'-1');
+  });
+  if(el.monthList){
+    if(active==='months') el.monthList.removeAttribute('hidden');
+    else el.monthList.setAttribute('hidden','');
+  }
+  if(el.monthCustomPanel){
+    if(active==='custom'){
+      el.monthCustomPanel.removeAttribute('hidden');
+      syncCustomRangeInputs();
+    }else{
+      el.monthCustomPanel.setAttribute('hidden','');
+    }
   }
 }
 function syncCustomRangeInputs(){
@@ -1878,9 +1897,10 @@ function applyCustomRangeFromInputs(){
   state.monthSel.clear();
   state.monthDirty=false;
   el.monthList?.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  state.monthTab='custom';
+  updateMonthTabs();
   if(el.monthDD) el.monthDD.classList.remove('open');
   syncCustomRangeInputs();
-  hideCustomRangePanel();
   updateMonthSummary();
   if(state.hasData){
     updateAllFilterOptions(null);
@@ -1895,7 +1915,9 @@ function clearCustomRange(options={}){
   state.customRange={start:null,end:null,active:false};
   if(el.monthCustomStart) el.monthCustomStart.value='';
   if(el.monthCustomEnd) el.monthCustomEnd.value='';
-  hideCustomRangePanel();
+  state.monthTab='months';
+  updateMonthTabs();
+  syncCustomRangeInputs();
   updateMonthSummary();
   updateResetButtonVisibility();
   if(!hadActive) return;
@@ -1906,8 +1928,29 @@ function clearCustomRange(options={}){
 function deactivateCustomRange(){
   if(!state.customRange.active) return;
   state.customRange.active=false;
+  state.monthTab='months';
+  updateMonthTabs();
+  syncCustomRangeInputs();
   updateMonthSummary();
   updateResetButtonVisibility();
+}
+function handleMonthTabClick(event){
+  const button=event.target.closest?.('button[data-tab]');
+  if(!button) return;
+  event.preventDefault();
+  event.stopPropagation();
+  const tab=button.dataset.tab==='custom'?'custom':'months';
+  setMonthTab(tab);
+  if(tab==='custom'){
+    try{ el.monthCustomStart?.focus({preventScroll:true}); }catch(_){ }
+  }
+}
+function handleCustomRangeCancel(){
+  syncCustomRangeInputs();
+  state.monthTab=state.customRange.active?'custom':'months';
+  updateMonthTabs();
+  if(el.monthDD) el.monthDD.classList.remove('open');
+  applyMonthFilters();
 }
 
 /* ===== elements/state ===== */
@@ -1918,12 +1961,12 @@ const el={
   monthsWrap:document.getElementById('monthsWrap'),
   monthDD:document.getElementById('monthFilter'),
   monthList:document.getElementById('monthList'),
-  monthCustomToggle:document.getElementById('customRangeToggle'),
+  monthTabList:document.getElementById('monthTabList'),
   monthCustomPanel:document.getElementById('customRangePanel'),
   monthCustomStart:document.getElementById('customRangeStart'),
   monthCustomEnd:document.getElementById('customRangeEnd'),
   monthCustomApply:document.getElementById('customRangeApply'),
-  monthCustomClear:document.getElementById('customRangeClear'),
+  monthCustomCancel:document.getElementById('customRangeCancel'),
   tabs:{
     bar:document.getElementById('pivotTabsBar'),
     list:document.getElementById('pivotTabs'),
@@ -2024,6 +2067,7 @@ const state={
   monthSel:new Set(),
   monthOptions:[],
   monthDirty:false,
+  monthTab:'months',
   snapshot:{},
   hasData:false,
   activeTab:'overview',
@@ -2672,35 +2716,27 @@ function boot(){
     el.monthDD.classList.toggle('open');
     if(!wasOpen){
       clampPanelRight(el.monthDD.querySelector('.dd-panel'));
+      state.monthTab = state.customRange.active ? 'custom' : 'months';
+      updateMonthTabs();
     }else{
       applyMonthFilters();
     }
   });
-  if(el.monthCustomToggle){
-    el.monthCustomToggle.setAttribute('aria-expanded','false');
-    el.monthCustomToggle.addEventListener('click', (ev)=>{
-      ev.preventDefault();
-      ev.stopPropagation();
-      if(el.monthDD && !el.monthDD.classList.contains('open')){
-        el.monthDD.classList.add('open');
-      }
-      const hidden=el.monthCustomPanel?.hasAttribute('hidden');
-      if(hidden) showCustomRangePanel(); else hideCustomRangePanel();
-    });
-  }
+  if(el.monthTabList) el.monthTabList.addEventListener('click', handleMonthTabClick);
   if(el.monthCustomPanel){
     el.monthCustomPanel.addEventListener('click', ev=>ev.stopPropagation());
     el.monthCustomPanel.addEventListener('mousedown', ev=>ev.stopPropagation());
   }
   if(el.monthCustomApply) el.monthCustomApply.addEventListener('click', applyCustomRangeFromInputs);
-  if(el.monthCustomClear) el.monthCustomClear.addEventListener('click', ()=>clearCustomRange());
+  if(el.monthCustomCancel) el.monthCustomCancel.addEventListener('click', handleCustomRangeCancel);
 
   document.addEventListener('click', (e)=>{
     const monthRoot=el.monthDD;
     const clickedInsideMonth=monthRoot?.contains?.(e.target);
     if(monthRoot && !clickedInsideMonth && monthRoot.classList.contains('open')){
       monthRoot.classList.remove('open');
-      hideCustomRangePanel();
+      state.monthTab=state.customRange.active?'custom':'months';
+      updateMonthTabs();
       applyMonthFilters();
     }
     const clickedDd=e.target.closest('.dd');
@@ -2781,7 +2817,6 @@ function setHasData(has){
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='inline-flex';
     if(el.dlCsv) el.dlCsv.disabled=false;
     if(el.monthsWrap) el.monthsWrap.hidden = state.monthOptions.length===0;
-    if(el.monthCustomToggle) el.monthCustomToggle.disabled = state.monthOptions.length===0;
     if(el.tabs?.bar) el.tabs.bar.hidden=false;
     if(el.tipPill) el.tipPill.hidden=true;
     if(lastKpiSeries){
@@ -2796,7 +2831,6 @@ function setHasData(has){
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='none';
     if(el.dlCsv) el.dlCsv.disabled=true;
     if(el.monthsWrap) el.monthsWrap.hidden=true;
-    if(el.monthCustomToggle) el.monthCustomToggle.disabled=true;
     if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
     hideSkuPopup();
@@ -2808,6 +2842,9 @@ function setHasData(has){
     state.monthDirty=false;
     state.customRange={start:null,end:null,active:false};
     state.dateBounds={min:null,max:null};
+    state.monthTab='months';
+    updateMonthTabs();
+    syncCustomRangeInputs();
     state.pivotFilters={};
     state.activePivotPopup=null;
     state.activePivotModal=null;
@@ -3037,7 +3074,6 @@ function buildMonths(){
     state.dateBounds={min:null,max:null};
     clearCustomRange({skipRender:true, skipFilters:true});
     el.monthsWrap.hidden=true;
-    if(el.monthCustomToggle) el.monthCustomToggle.disabled=true;
     syncCustomRangeInputs();
     updateMonthSummary();
     return;
@@ -3073,10 +3109,18 @@ function buildMonths(){
       updateResetButtonVisibility();
     });
   });
-  if(el.monthCustomToggle) el.monthCustomToggle.disabled = state.monthOptions.length===0;
+  const customBtn=el.monthTabList?.querySelector('button[data-tab="custom"]');
+  if(customBtn){
+    const disabled=!state.dateBounds.min || !state.dateBounds.max;
+    customBtn.disabled=disabled;
+    if(disabled) customBtn.setAttribute('aria-disabled','true');
+    else customBtn.removeAttribute('aria-disabled');
+  }
   syncCustomRangeInputs();
+  state.monthTab = state.customRange.active ? 'custom' : 'months';
+  updateMonthTabs();
   updateMonthSummary();
-  el.monthsWrap.hidden=state.monthOptions.length===0;
+  el.monthsWrap.hidden=state.monthOptions.length===0 && !state.customRange.active;
 }
 function updateMonthSummary(){
   const sumEl=el.monthDD.querySelector('.dd-summary');
@@ -3096,7 +3140,8 @@ function updateMonthSummary(){
 }
 function applyMonthFilters(force=false){
   if(!state.hasData) return;
-  hideCustomRangePanel();
+  state.monthTab = state.customRange.active ? 'custom' : 'months';
+  updateMonthTabs();
   if(force || state.monthDirty){
     state.monthDirty=false;
     updateAllFilterOptions(null);
