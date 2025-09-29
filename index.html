@@ -1039,7 +1039,10 @@ function findPivotTarget(card){
   for(const value of Object.values(el.pivot||{})){
     if(value?.card===card) return value;
   }
-  return null;
+  const table=card.querySelector?.('.pivot-table')||null;
+  if(!table) return null;
+  const dimension=table._pivotData?.dimension || null;
+  return {card, table, dimension};
 }
 
 function getPivotFilterState(slot, create=false){
@@ -1095,26 +1098,35 @@ function getPivotFilterContextFromButton(button){
 }
 
 function updatePivotFilterButtons(){
-  if(!el.pivot) return;
-  Object.entries(el.pivot).forEach(([slot,target])=>{
-    if(slot==='section') return;
-    const card=target?.card;
+  const section=el.pivot?.section || document.getElementById('pivotSection');
+  if(!section) return;
+  const cards=new Set();
+  Object.entries(el.pivot||{}).forEach(([key,target])=>{
+    if(key==='section') return;
+    if(target?.card) cards.add(target.card);
+  });
+  const sectionCards=section.querySelectorAll?section.querySelectorAll('.pivot-card'):[];
+  sectionCards.forEach(card=>cards.add(card));
+  cards.forEach(card=>{
     if(!card) return;
     enhancePivotTitle(card);
     const context=getPivotFilterContext(card);
     if(!context) return;
-    const {table,label,displayName}=context;
-    const filterState=getPivotFilterState(context.slot || slot, false);
+    const {table,label,displayName,slot}=context;
+    const slotKey=slot||'';
+    if(slotKey && !card.dataset.pivotSlot) card.dataset.pivotSlot=slotKey;
+    const filterState=slotKey?getPivotFilterState(slotKey, false):null;
     const hasActive=pivotDateFilterIsActive(filterState);
     const filterLabel=(displayName || label || 'pivot');
     const allowFilter=(state.monthOptions?.length||0)>0;
     const filterBtn=card.querySelector('.pivot-filter-btn');
     if(filterBtn){
-      const title=allowFilter?`Filter ${filterLabel} by date`:'Date filters unavailable';
-      filterBtn.dataset.pivotSlot=allowFilter?(context.slot || slot || ''):'';
+      const canFilter=allowFilter && !!slotKey;
+      const title=canFilter?`Filter ${filterLabel} by date`:'Date filters unavailable';
+      filterBtn.dataset.pivotSlot=canFilter?slotKey:'';
       filterBtn.title=title;
       filterBtn.setAttribute('aria-label', title);
-      filterBtn.disabled=!allowFilter;
+      filterBtn.disabled=!canFilter;
       filterBtn.classList.toggle('is-active', hasActive);
     }
     const clearBtn=card.querySelector('.pivot-clear-btn');
