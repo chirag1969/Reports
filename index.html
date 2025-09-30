@@ -1081,7 +1081,7 @@ function getPivotFilterContext(card){
   const slot=card.dataset.pivotSlot || table?._pivotSlot || '';
   const stateKey=dimension?.stateKey || '';
   const columnInfo=stateKey ? state.columns?.[stateKey] : null;
-  const label=columnInfo?.name || columnInfo?.header || '';
+  const label=columnInfo?.displayName || columnInfo?.name || columnInfo?.header || '';
   const displayName=table?._pivotData?.displayName || label || 'Pivot';
   return {target, table, dimension, slot, label, displayName, card};
 }
@@ -1819,6 +1819,25 @@ const fmt={
 };
 const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const normalize=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+const VARIANT_DISPLAY_SUFFIX={
+  '2':' (eBay/Walmart)',
+  '3':' (WooCommerce)'
+};
+function computeVariantDisplayName(header, normalizedSet){
+  const raw=String(header??'').trim();
+  if(!raw) return raw;
+  const match=raw.match(/^(.*?)(?:\s*[-_]?)([23])$/);
+  if(!match) return raw;
+  const base=match[1].trim().replace(/[\s\-_]+$/, '');
+  const variant=match[2];
+  const suffix=VARIANT_DISPLAY_SUFFIX[variant];
+  if(!suffix || !base) return raw;
+  if(normalizedSet){
+    const normalizedBase=normalize(base);
+    if(!normalizedBase || !normalizedSet.has(normalizedBase)) return raw;
+  }
+  return `${base}${suffix}`;
+}
 const escapeHtml=s=>String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const debounce=(fn,ms=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
 const toDMY=d=>!(d instanceof Date)?"":`${String(d.getDate()).padStart(2,'0')} ${MONTH_NAMES[d.getMonth()]||''} ${d.getFullYear()}`.trim();
@@ -2944,20 +2963,28 @@ async function parseExcel(buf){
   const SQL = await (sqlReadyPromise || loadSqlLibrary());
   if(!SQL) throw new Error('Unable to initialize SQL engine');
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
-  let best=null,score=-1;
+  let best=null,score=-Infinity;
   for(const name of wb.SheetNames){
     const ws=wb.Sheets[name];
     const text=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
     if(!text || text.length<3) continue;
     const headers=(text[1]||[]).map(x=>String(x||"").trim());
-    const s=['store','sales','spend','clicks','impressions'].map(t=>findIndexByTokens(headers,[t])>-1?1:0).reduce((a,b)=>a+b,0);
-    if(s>score){score=s;best=name;}
+    const baseScore=['store','sales','spend','clicks','impressions']
+      .map(t=>findIndexByTokens(headers,[t])>-1?1:0)
+      .reduce((a,b)=>a+b,0);
+    const normalizedName=String(name||'').trim().toLowerCase();
+    let priority=0;
+    if(/\bmain\b/.test(normalizedName)) priority+=1000;
+    else if(/\bdashboard\b/.test(normalizedName)) priority-=0.5;
+    const sheetScore=baseScore+priority;
+    if(sheetScore>score){score=sheetScore;best=name;}
   }
   if(!best) throw new Error('No usable sheet found');
   const ws=wb.Sheets[best];
   const raw = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
   const txt  = XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
   const headers=(txt[1]||raw[1]||[]).map(h=>String(h||"").trim());
+  const normalizedHeaderSet=new Set(headers.map(h=>normalize(h)));
   const dataR=raw.slice(2); const dataT=txt.slice(2);
 
   const cols={
@@ -2981,7 +3008,14 @@ async function parseExcel(buf){
     adgroup:    findIndexByTokens(headers,['adgroupname','ad group name','adgroup']),
     portfolio:  findIndexByTokens(headers,['portfolioname','portfolio']),
   };
-  const mapCols={}; for(const [k,idx] of Object.entries(cols)){ if(idx>-1) mapCols[k]={name:headers[idx],idx}; }
+  const mapCols={};
+  for(const [k,idx] of Object.entries(cols)){
+    if(idx>-1){
+      const headerName=headers[idx];
+      const displayName=computeVariantDisplayName(headerName, normalizedHeaderSet) || headerName;
+      mapCols[k]={name:headerName, idx, displayName};
+    }
+  }
   if(mapCols.store && !mapCols.lo) mapCols.lo = {...mapCols.store, aliasOf:'store'}; // fallback
   state.columns=mapCols;
   const numericIdx=new Set([mapCols.impressions?.idx,mapCols.clicks?.idx,mapCols.revenue?.idx,mapCols.spend?.idx].filter(idx=>Number.isInteger(idx)));
@@ -3441,7 +3475,8 @@ function syncFilterLabels(){
     const fallback=label.getAttribute('data-default') || label.textContent;
     const col=state.columns[key];
     const isAlias=col && col.aliasOf;
-    label.textContent = col?.name || fallback;
+    const displayName = col?.displayName || col?.name || fallback;
+    label.textContent = displayName;
     const wrapper=label.closest('[data-col-wrapper]');
     if(wrapper){
       wrapper.hidden = !col || isAlias;
@@ -3449,7 +3484,7 @@ function syncFilterLabels(){
       if(searchRoot){
         const input=searchRoot.querySelector('.dd-search');
         if(input){
-          const labelText=label.textContent.trim();
+          const labelText=displayName.trim();
           const dataPlaceholder=searchRoot.getAttribute('data-placeholder') || fallback || '';
           const computedPlaceholder = computeSearchPlaceholder(labelText, dataPlaceholder);
           input.placeholder = computedPlaceholder;
@@ -4278,7 +4313,7 @@ function renderConversionPivots(context, spendInfo, salesInfo){
   const targetAsin=el.pivot?.conversionAsin;
   const termCol=state.columns.term;
   const typeCol=state.columns.customerType;
-  const baseLabel = termCol?.name || 'Customer Search Term';
+  const baseLabel = termCol?.displayName || termCol?.name || 'Customer Search Term';
   const hasBasics = !!(spendInfo && salesInfo && termCol && typeCol);
 
   if(targetSt?.table) targetSt.table._pivotSlot='conversionSt';
@@ -4432,7 +4467,7 @@ function renderAll(){
       if(!target) return false;
       if(target.table) target.table._pivotSlot=slot;
       const columnDef=state.columns[column];
-      const columnName=columnDef?.name || fallback;
+      const columnName=columnDef?.displayName || columnDef?.name || fallback;
       const columnKey=columnDef ? normalize(columnDef.name) : null;
       const opts=options||{};
       target.dimension = columnKey ? {stateKey:column, columnKey, caseInsensitive:!!opts.caseInsensitive} : null;
