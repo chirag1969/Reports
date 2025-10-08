@@ -157,13 +157,7 @@ body.has-data #tipPill{display:none !important}
 .pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--chartsGap);align-items:start;grid-auto-rows:var(--pivot-auto-rows,auto);grid-auto-flow:row dense}
 .pivot[data-mode="overview"] #pivotCustTypeCard,
 .pivot[data-mode="overview"] #pivotPlacementCard{display:none !important}
-.pivot[data-mode="overview"] .pivot-conversion,
-.pivot[data-mode="overall"] .pivot-conversion{display:none !important}
-.pivot[data-mode="conversion"] #pivotStoreCard,
-.pivot[data-mode="conversion"] #pivotLoCard,
-.pivot[data-mode="conversion"] #pivotCustTypeCard,
-.pivot[data-mode="conversion"] #pivotCatCard,
-.pivot[data-mode="conversion"] #pivotPlacementCard{display:none !important}
+.pivot:not([data-mode="targeting"]) .pivot-conversion{display:none !important}
 @media(min-width:960px){
   .pivot[data-mode="overview"]{grid-template-columns:repeat(2,minmax(0,1fr));}
   .pivot[data-mode="overview"] #pivotStoreCard,
@@ -175,7 +169,7 @@ body.has-data #tipPill{display:none !important}
   .pivot[data-mode="overall"] .pivot-overall-left{grid-column:1 / 2;}
   .pivot[data-mode="overall"] .pivot-overall-right{grid-column:2 / 3;}
   .pivot[data-mode="campaignPortfolio"]{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .pivot[data-mode="conversion"]{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .pivot[data-mode="targeting"]{grid-template-columns:repeat(2,minmax(0,1fr));}
 }
 .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:visible}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -413,7 +407,6 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
           <button type="button" class="pivot-tab" data-tab="overall" role="tab" aria-selected="false" tabindex="-1">Overall Pivots</button>
           <button type="button" class="pivot-tab" data-tab="campaignPortfolio" role="tab" aria-selected="false" tabindex="-1">Campaign / Ad Group</button>
           <button type="button" class="pivot-tab" data-tab="targeting" role="tab" aria-selected="false" tabindex="-1">Targeting ASIN / CAT</button>
-          <button type="button" class="pivot-tab" data-tab="conversion" role="tab" aria-selected="false" tabindex="-1">ST / ASIN Conversion</button>
         </div>
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
@@ -824,19 +817,6 @@ const MAX_CONVERSION_ROWS=(()=>{
 })();
 
 function ensureConversionElements(){
-  const tabsList=document.getElementById('pivotTabs');
-  if(tabsList && !tabsList.querySelector('[data-tab="conversion"]')){
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='pivot-tab';
-    btn.dataset.tab='conversion';
-    btn.setAttribute('role','tab');
-    btn.setAttribute('aria-selected','false');
-    btn.setAttribute('tabindex','-1');
-    btn.textContent='ST / ASIN Conversion';
-    tabsList.appendChild(btn);
-  }
-
   const pivotSection=document.getElementById('pivotSection');
   if(!pivotSection) return;
 
@@ -2096,7 +2076,7 @@ const state={
   filtersReturn:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0}
 };
-const TAB_ORDER=['overview','overall','campaignPortfolio','targeting','conversion'];
+const TAB_ORDER=['overview','overall','campaignPortfolio','targeting'];
 const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
 
 const kpiSparkCache=new Map();
@@ -2127,8 +2107,7 @@ const PIVOT_CONFIG={
   targeting:[
     {slot:'targetingAsin', column:'targetingAsin', fallback:'Targeting ASIN'},
     {slot:'targetingCat', column:'targetingCat', fallback:'Targeting CAT'}
-  ],
-  conversion:[]
+  ]
 };
 const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:'', mode:'dimension', dateTab:'months'};
 const DEFAULT_WORKBOOKS=[
@@ -4420,30 +4399,30 @@ function renderAll(){
   const activeSlots=new Set();
   let anyPivot=false;
 
-  if(state.activeTab==='conversion'){
+  const config=getPivotConfig();
+  const visibilities=config.map(({slot,column,fallback,options})=>{
+    const target=el.pivot?.[slot];
+    if(!target) return false;
+    if(target.table) target.table._pivotSlot=slot;
+    const columnDef=state.columns[column];
+    const columnName=columnDef?.name || fallback;
+    const columnKey=columnDef ? normalize(columnDef.name) : null;
+    const opts=options||{};
+    target.dimension = columnKey ? {stateKey:column, columnKey, caseInsensitive:!!opts.caseInsensitive} : null;
+    const hasMetrics = spendInfo && salesInfo && columnKey;
+    const pivotFilter = getPivotFilterValues(slot);
+    const agg = hasMetrics ? buildAggSql(context, columnKey, spendInfo, salesInfo, {...opts, pivotFilter}) : null;
+    const rendered = renderPivotCard(target, columnName, agg, !!columnKey);
+    if(rendered) activeSlots.add(slot);
+    return rendered;
+  });
+  anyPivot = visibilities.some(Boolean);
+
+  if(state.activeTab==='targeting'){
     const result=renderConversionPivots(context, spendInfo, salesInfo);
     if(result.st) activeSlots.add('conversionSt');
     if(result.asin) activeSlots.add('conversionAsin');
-    anyPivot = result.st || result.asin;
-  }else{
-    const config=getPivotConfig();
-    const visibilities=config.map(({slot,column,fallback,options})=>{
-      const target=el.pivot?.[slot];
-      if(!target) return false;
-      if(target.table) target.table._pivotSlot=slot;
-      const columnDef=state.columns[column];
-      const columnName=columnDef?.name || fallback;
-      const columnKey=columnDef ? normalize(columnDef.name) : null;
-      const opts=options||{};
-      target.dimension = columnKey ? {stateKey:column, columnKey, caseInsensitive:!!opts.caseInsensitive} : null;
-      const hasMetrics = spendInfo && salesInfo && columnKey;
-      const pivotFilter = getPivotFilterValues(slot);
-      const agg = hasMetrics ? buildAggSql(context, columnKey, spendInfo, salesInfo, {...opts, pivotFilter}) : null;
-      const rendered = renderPivotCard(target, columnName, agg, !!columnKey);
-      if(rendered) activeSlots.add(slot);
-      return rendered;
-    });
-    anyPivot = visibilities.some(Boolean);
+    if(result.st || result.asin) anyPivot = true;
   }
 
   hideUnusedPivotSlots(activeSlots);
