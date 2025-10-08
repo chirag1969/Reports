@@ -248,6 +248,9 @@ body.has-data #tipPill{display:none !important}
 .pivot-label-btn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .pivot-label-btn:hover,.pivot-label-btn:focus-visible{color:var(--accent)}
 .pivot-label-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.pivot-sku-btn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pivot-sku-btn:hover,.pivot-sku-btn:focus-visible{color:var(--accent)}
+.pivot-sku-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 .pivot-label-text{display:inline-block}
 .pivot-table tbody td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
@@ -661,6 +664,7 @@ body.has-data #tipPill{display:none !important}
       <div class="filter" data-col-wrapper="tsub"><label data-col-label="tsub" data-default="Targeting Sub Type">Targeting Sub Type</label><div id="tsubMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="tsub2"><label data-col-label="tsub2" data-default="Targeting Sub Type2">Targeting Sub Type2</label><div id="tsub2MS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="targetingAsin"><label data-col-label="targetingAsin" data-default="Targeting ASIN">Targeting ASIN</label><div id="targetingAsinMS" class="dd"></div></div>
+      <div class="filter" data-col-wrapper="sku"><label data-col-label="sku" data-default="SKU">SKU</label><div id="skuMS" class="dd dd-search-mode" data-placeholder="Search SKUs"></div></div>
       <div class="filter" data-col-wrapper="targetingCat"><label data-col-label="targetingCat" data-default="Targeting CAT">Targeting CAT</label><div id="targetingCatMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="customerType"><label data-col-label="customerType" data-default="Customer Search Term - TYPE">Customer Search Term - TYPE</label><div id="customerTypeMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="placement"><label data-col-label="placement" data-default="Placement">Placement</label><div id="placementMS" class="dd"></div></div>
@@ -2000,6 +2004,7 @@ const el={
     tsub:document.getElementById('tsubMS'),
     tsub2:document.getElementById('tsub2MS'),
     targetingAsin:document.getElementById('targetingAsinMS'),
+    sku:document.getElementById('skuMS'),
     targetingCat:document.getElementById('targetingCatMS'),
     customerType:document.getElementById('customerTypeMS'),
     placement:document.getElementById('placementMS'),
@@ -2023,6 +2028,7 @@ const state={
   dateBounds:{min:null,max:null},
   asinSkuMap:new Map(),
   asinSkuLoaded:false,
+  asinValueMap:new Map(),
   conversionPage:{st:0,asin:0},
   lastTabIndex:0,
   pivotFilters:{},
@@ -2032,7 +2038,7 @@ const state={
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0}
 };
 const TAB_ORDER=['overview','overall','campaignPortfolio','targeting'];
-const PIVOT_SORT_KEYS=new Set(['label','spend','sales','acos']);
+const PIVOT_SORT_KEYS=new Set(['label','sku','spend','sales','acos']);
 
 const kpiSparkCache=new Map();
 const copyFeedbackTimers=new WeakMap();
@@ -2040,6 +2046,7 @@ const filterHighlightTimers=new WeakMap();
 const PIVOT_LABEL_COLLATOR=new Intl.Collator(undefined,{sensitivity:'base'});
 let lastKpiSeries=null;
 let pivotLayoutFrame=null;
+let skuSyncing=false;
 if(el.tabs?.list){ el.tabs.buttons = Array.from(el.tabs.list.querySelectorAll('[data-tab]')); }
 const PIVOT_CONFIG={
   overview:[
@@ -2084,6 +2091,7 @@ function ensureAsinSkuMap(){
     state.asinSkuLoaded=true;
     if(state.hasData){
       renderAll();
+      updateAllFilterOptions(null);
     }
     return state.asinSkuMap;
   }).catch(()=>{
@@ -2190,6 +2198,10 @@ function normalizeAsinKey(value){
   return value==null ? '' : String(value).trim().toUpperCase();
 }
 
+function normalizeSkuKey(value){
+  return value==null ? '' : String(value).trim().toLowerCase();
+}
+
 function lookupAsinSkus(value){
   const key=normalizeAsinKey(value);
   if(!key) return null;
@@ -2214,6 +2226,26 @@ function formatSkuEntries(entries){
     parts.push(value);
   }
   return parts.join(', ');
+}
+
+function skuEntriesToValues(entries){
+  if(!Array.isArray(entries) || !entries.length) return [];
+  const seen=new Set();
+  const values=[];
+  entries.forEach(entry=>{
+    if(!entry) return;
+    ['sellerSku','plainSku'].forEach(key=>{
+      const raw=entry?.[key];
+      if(raw==null) return;
+      const value=String(raw).trim();
+      if(!value) return;
+      const norm=normalizeSkuKey(value);
+      if(seen.has(norm)) return;
+      seen.add(norm);
+      values.push(value);
+    });
+  });
+  return values;
 }
 
 function resetConversionPaging(){
@@ -2389,6 +2421,13 @@ function handlePivotSectionClick(event){
     handlePivotLabelButton(labelBtn);
     return;
   }
+  const skuBtn=event.target.closest?.('.pivot-sku-btn');
+  if(skuBtn){
+    event.preventDefault();
+    event.stopPropagation();
+    handlePivotSkuButton(skuBtn);
+    return;
+  }
   const header=event.target.closest?.('th[data-sort-key]');
   if(header){
     event.preventDefault();
@@ -2412,6 +2451,32 @@ function handlePivotLabelButton(button){
   const value=button.dataset.pivotValue;
   const matchKey=button.dataset.pivotMatch;
   applyPivotLabelFilter(table, value, matchKey);
+}
+
+function handlePivotSkuButton(button){
+  if(!button) return;
+  const valuesAttr=button.getAttribute('data-pivot-skus')||'';
+  const asinValue=button.getAttribute('data-pivot-asin')||'';
+  let values=[];
+  if(valuesAttr){
+    values=valuesAttr.split(',').map(val=>decodeURIComponent(val)).filter(Boolean);
+  }
+  if(!values.length && asinValue){
+    values=skuEntriesToValues(lookupAsinSkus(asinValue));
+  }
+  let applied=false;
+  if(values.length){
+    applied=applySkuFilterSelection(values, true);
+    if(applied) return;
+  }
+  if(asinValue){
+    const table=button.closest('table.pivot-table');
+    if(!table) return;
+    const row=button.closest('tr');
+    const labelBtn=row?.querySelector('.pivot-label-btn');
+    const matchKey=labelBtn?.dataset.pivotMatch;
+    applyPivotLabelFilter(table, asinValue, matchKey);
+  }
 }
 
 function applyPivotLabelFilter(table, rawValue, matchKey){
@@ -2697,6 +2762,7 @@ function setHasData(has){
     closePivotFilterPopup(false);
     state.columns={};
     state.rows=[];
+    state.asinValueMap=new Map();
     state.monthSel.clear();
     state.monthOptions=[];
     state.monthDirty=false;
@@ -2832,6 +2898,7 @@ async function parseExcel(buf){
   const mapCols={}; for(const [k,idx] of Object.entries(cols)){ if(idx>-1) mapCols[k]={name:headers[idx],idx}; }
   if(mapCols.store && !mapCols.lo) mapCols.lo = {...mapCols.store, aliasOf:'store'}; // fallback
   state.columns=mapCols;
+  if(mapCols.targetingAsin) ensureAsinSkuMap();
   const numericIdx=new Set([mapCols.impressions?.idx,mapCols.clicks?.idx,mapCols.revenue?.idx,mapCols.spend?.idx].filter(idx=>Number.isInteger(idx)));
   const usedNames=new Set();
   const columnInfo=headers.map((header,idx)=>{
@@ -3029,6 +3096,12 @@ function updateResetButtonVisibility(){
 
 
 /* dropdowns */
+function getFilterKey(root){
+  if(!root) return '';
+  const wrapper=root.closest?.('[data-col-wrapper]');
+  return wrapper ? (wrapper.getAttribute('data-col-wrapper') || '') : '';
+}
+
 function ddBuild(root){
   const isSearchMode=root.classList.contains('dd-search-mode');
   if(isSearchMode){
@@ -3137,7 +3210,10 @@ function ddBuild(root){
       ddSyncSelectAll(root);
       if(isSearchMode){
         ddRefreshSearchSelections(root);
-        if(state.hasData){
+        const key=getFilterKey(root);
+        if(key==='sku'){
+          onSkuFilterSelectionChange(true);
+        }else if(state.hasData){
           updateAllFilterOptions(root);
           resetConversionPaging();
           renderAll();
@@ -3155,6 +3231,7 @@ function ddBuild(root){
 function ddSetOptions(root, items, keepSel=true){
   if(!root.querySelector('.dd-panel')) ddBuild(root);
   const list=root.querySelector('.dd-list');
+  const filterKey=getFilterKey(root);
   const prevSel = keepSel ? new Set(ddGetSelected(root)) : new Set();
   list.innerHTML = items.map(({v,count})=>`
     <div class="dd-item" title="${escapeHtml(v)}">
@@ -3173,7 +3250,13 @@ function ddSetOptions(root, items, keepSel=true){
       ddSyncSelectAll(root);
       ddRefreshSearchSelections(root);
       if(root.classList.contains('dd-search-mode')){
-        ddApplyImmediateFilters(root);
+        if(filterKey==='sku'){
+          onSkuFilterSelectionChange(true);
+        }else{
+          ddApplyImmediateFilters(root);
+        }
+      }else if(filterKey==='targetingAsin'){
+        onAsinFilterSelectionChange();
       }
       const panel=root.querySelector('.dd-panel');
       if(panel){
@@ -3188,7 +3271,14 @@ function ddSetOptions(root, items, keepSel=true){
       ddUpdateSummary(root);
       ddSyncSelectAll(root);
       ddRefreshSearchSelections(root);
-      ddApplyImmediateFilters(root);
+      if(filterKey==='sku'){
+        onSkuFilterSelectionChange(true);
+      }else{
+        if(filterKey==='targetingAsin'){
+          onAsinFilterSelectionChange();
+        }
+        ddApplyImmediateFilters(root);
+      }
     });
   });
   ddApplySearchFilter(root);
@@ -3289,10 +3379,14 @@ function syncFilterLabels(){
     const fallback=label.getAttribute('data-default') || label.textContent;
     const col=state.columns[key];
     const isAlias=col && col.aliasOf;
+    const allowMissing=key==='sku';
     label.textContent = col?.name || fallback;
+    if(allowMissing && !col){
+      label.textContent = fallback || 'SKU';
+    }
     const wrapper=label.closest('[data-col-wrapper]');
     if(wrapper){
-      wrapper.hidden = !col || isAlias;
+      wrapper.hidden = (!col || isAlias) && !allowMissing;
       const searchRoot=wrapper.querySelector('.dd-search-mode');
       if(searchRoot){
         const input=searchRoot.querySelector('.dd-search');
@@ -3316,6 +3410,7 @@ function initFilters(){
 }
 function buildOptionsAll(){
   for(const [k,root] of Object.entries(el.dd)){
+    if(k==='sku') continue;
     const col=state.columns[k];
     if(!col || col.aliasOf) continue;
     const values=uniqValues(k).map(v=>({v,count:0}));
@@ -3335,7 +3430,8 @@ function optionsWithCounts(kind, context){
   const info=getSqlInfoForStateKey(kind); if(!info) return [];
   const table=state.sql?.table; if(!table) return [];
   const extraCond={sql:`"${info.sqlName}" IS NOT NULL AND "${info.sqlName}" <> ''`};
-  const {sql,params}=combineWhere(context.conditions, extraCond);
+  const conds=context?.conditions || [];
+  const {sql,params}=combineWhere(conds, extraCond);
   const rows=sqlQueryAll(`SELECT "${info.sqlName}" AS val, COUNT(*) AS cnt FROM "${table}" ${sql} GROUP BY "${info.sqlName}" ORDER BY cnt DESC, val COLLATE NOCASE`, params);
   const map=new Map();
   rows.forEach(row=>{ const value=row.val; if(value==null || value==='') return; map.set(String(value), Number(row.cnt)||0); });
@@ -3343,6 +3439,168 @@ function optionsWithCounts(kind, context){
   selected.forEach(v=>{ if(!map.has(v)) map.set(v,0); });
   return [...map.entries()].sort((a,b)=> b[1]-a[1] || String(a[0]).localeCompare(String(b[0])) ).map(([v,count])=>({v,count}));
 }
+
+function skuOptionsWithCounts(context){
+  ensureAsinSkuMap();
+  const map=state.asinSkuMap;
+  if(!(map instanceof Map) || map.size===0) return [];
+  const asinInfo=getSqlInfoForStateKey('targetingAsin');
+  const table=state.sql?.table;
+  if(!asinInfo || !table) return [];
+  const extraCond={sql:`"${asinInfo.sqlName}" IS NOT NULL AND "${asinInfo.sqlName}" <> ''`};
+  const {sql,params}=combineWhere(context.conditions, extraCond);
+  const rows=sqlQueryAll(`SELECT "${asinInfo.sqlName}" AS asin, COUNT(*) AS cnt FROM "${table}" ${sql} GROUP BY "${asinInfo.sqlName}"`, params);
+  const counts=new Map();
+  const asinValueMap = state.asinValueMap instanceof Map ? state.asinValueMap : (state.asinValueMap=new Map());
+  asinValueMap.clear();
+  rows.forEach(row=>{
+    const asinValue=row.asin==null?'':String(row.asin).trim();
+    if(!asinValue) return;
+    const asinKey=normalizeAsinKey(asinValue);
+    if(asinKey) asinValueMap.set(asinKey, asinValue);
+    const count=Number(row.cnt)||0;
+    const entries=lookupAsinSkus(asinValue);
+    const values=skuEntriesToValues(entries);
+    if(!values.length) return;
+    const seenLocal=new Set();
+    values.forEach(val=>{
+      const norm=normalizeSkuKey(val);
+      if(!norm || seenLocal.has(norm)) return;
+      seenLocal.add(norm);
+      const existing=counts.get(norm);
+      if(existing){
+        existing.count+=count;
+        if(!existing.value) existing.value=val;
+      }else{
+        counts.set(norm,{value:val,count});
+      }
+    });
+  });
+  const root=el.dd?.sku;
+  if(root){
+    ddGetSelected(root).forEach(val=>{
+      const norm=normalizeSkuKey(val);
+      if(!norm) return;
+      if(!counts.has(norm)) counts.set(norm,{value:val,count:0});
+    });
+  }
+  return Array.from(counts.values()).sort((a,b)=> b.count-a.count || a.value.localeCompare(b.value));
+}
+
+function skuValuesToAsins(skuValues){
+  if(!Array.isArray(skuValues) || !skuValues.length) return [];
+  ensureAsinSkuMap();
+  const map=state.asinSkuMap;
+  if(!(map instanceof Map) || map.size===0) return [];
+  const targets=new Set();
+  skuValues.forEach(value=>{
+    const norm=normalizeSkuKey(value);
+    if(norm) targets.add(norm);
+  });
+  if(!targets.size) return [];
+  const asinValueMap = state.asinValueMap instanceof Map ? state.asinValueMap : (state.asinValueMap=new Map());
+  const asinSet=new Set();
+  map.forEach((entries, asinKey)=>{
+    if(!entries || !entries.length) return;
+    const values=skuEntriesToValues(entries);
+    for(const val of values){
+      const norm=normalizeSkuKey(val);
+      if(norm && targets.has(norm)){
+        asinSet.add(asinValueMap.get(asinKey) || asinKey);
+        break;
+      }
+    }
+  });
+  return Array.from(asinSet);
+}
+
+function setFilterSelections(root, values, caseInsensitive=false){
+  if(!root) return false;
+  const checkboxes=Array.from(root.querySelectorAll('.dd-list input[type=checkbox]'));
+  if(!checkboxes.length) return false;
+  const normalize=value=>caseInsensitive?String(value||'').toLocaleLowerCase():String(value||'');
+  const targetSet=new Set((Array.isArray(values)?values:[]).map(normalize));
+  const current=ddGetSelected(root).map(normalize);
+  const currentSet=new Set(current);
+  const changed = current.length!==targetSet.size || [...targetSet].some(val=>!currentSet.has(val));
+  checkboxes.forEach(cb=>{
+    const match=targetSet.has(normalize(cb.value));
+    cb.checked=match;
+  });
+  ddUpdateSummary(root);
+  ddSyncSelectAll(root);
+  ddRefreshSearchSelections(root);
+  return changed;
+}
+
+function applySkuFilterSelection(values, triggerRender=true){
+  const skuRoot=el.dd?.sku;
+  if(!skuRoot) return false;
+  const list=Array.isArray(values)?values.map(v=>String(v).trim()).filter(Boolean):[];
+  const targetSet=new Set(list.map(normalizeSkuKey));
+  const currentSet=new Set(ddGetSelected(skuRoot).map(normalizeSkuKey));
+  const sameSelection = targetSet.size>0 && targetSet.size===currentSet.size && [...targetSet].every(v=>currentSet.has(v));
+  const finalValues = sameSelection ? [] : list;
+  const changed=setFilterSelections(skuRoot, finalValues, false);
+  if(!changed && !sameSelection) return false;
+  onSkuFilterSelectionChange(triggerRender);
+  return true;
+}
+
+function onSkuFilterSelectionChange(triggerRender=true){
+  const skuRoot=el.dd?.sku;
+  if(!skuRoot) return;
+  const selected=ddGetSelected(skuRoot);
+  const asinRoot=el.dd?.targetingAsin;
+  let asinChanged=false;
+  const prevSync=skuSyncing;
+  skuSyncing=true;
+  try{
+    if(asinRoot){
+      const asinValues=skuValuesToAsins(selected);
+      asinChanged=setFilterSelections(asinRoot, asinValues, false);
+    }
+  }finally{
+    skuSyncing=prevSync;
+  }
+  if(!state.hasData) return;
+  if(triggerRender || asinChanged){
+    updateAllFilterOptions(skuRoot);
+    resetConversionPaging();
+    renderAll();
+    updateResetButtonVisibility();
+  }
+}
+
+function onAsinFilterSelectionChange(){
+  if(skuSyncing) return;
+  const asinRoot=el.dd?.targetingAsin;
+  if(!asinRoot) return;
+  const selected=ddGetSelected(asinRoot);
+  syncSkuFilterFromAsins(selected,{silent:true});
+}
+
+function syncSkuFilterFromAsins(asins,{silent=true}={}){
+  const skuRoot=el.dd?.sku;
+  if(!skuRoot) return false;
+  ensureAsinSkuMap();
+  const targetValues=new Set();
+  (Array.isArray(asins)?asins:[]).forEach(asin=>{
+    skuEntriesToValues(lookupAsinSkus(asin)).forEach(val=>{ if(val) targetValues.add(val); });
+  });
+  const prevSync=skuSyncing;
+  skuSyncing=true;
+  const changed=setFilterSelections(skuRoot, Array.from(targetValues), false);
+  skuSyncing=prevSync;
+  if(!silent && changed && state.hasData){
+    updateAllFilterOptions(skuRoot);
+    resetConversionPaging();
+    renderAll();
+    updateResetButtonVisibility();
+  }
+  return changed;
+}
+
 function activeSelections(excludeRoot){
   const keyOf = n => state.columns[n] ? normalize(state.columns[n].name) : null;
   const act={};
@@ -3394,6 +3652,11 @@ function buildFilterContext(excludeRoot){
 function updateAllFilterOptions(excludeRoot){
   const context=buildFilterContext(excludeRoot||null);
   Object.entries(el.dd).forEach(([k,root])=>{
+    if(!root) return;
+    if(k==='sku'){
+      ddSetOptions(root, skuOptionsWithCounts(context), true);
+      return;
+    }
     const col=state.columns[k];
     if(!col || col.aliasOf) return;
     ddSetOptions(root, optionsWithCounts(k, context), true);
@@ -3843,7 +4106,7 @@ function buildPivotHead(columnLabel, activeKey, activeDir, showSkuColumn){
     buildPivotHeadCell('label', columnLabel, '', activeKey, activeDir)
   ];
   if(showSkuColumn){
-    cells.push('<th scope="col" class="pivot-sku">SKU</th>');
+    cells.push(buildPivotHeadCell('sku', 'SKU', 'pivot-sku', activeKey, activeDir));
   }
   cells.push(
     buildPivotHeadCell('spend', 'Spend', '', activeKey, activeDir),
@@ -3899,19 +4162,36 @@ function buildPivotMoneyCell(value){
 
 function buildPivotSkuCell(row){
   let text='';
+  let values=[];
+  let asinRaw=null;
   if(row && typeof row==='object'){
+    asinRaw=Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : row?.label;
     if(Object.prototype.hasOwnProperty.call(row,'skuText')){
       const stored=row.skuText;
       text=stored==null?'':String(stored).trim();
-    }else{
-      const rawValue=Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : row?.label;
-      const entries=lookupAsinSkus(rawValue);
+    }
+    if(Array.isArray(row?.skuList)){
+      values=row.skuList.filter(v=>v!=null && v!=='').map(v=>String(v));
+    }
+    if(!text){
+      const entries=lookupAsinSkus(asinRaw);
       text=formatSkuEntries(entries);
       row.skuText=text;
+      if(!values.length){
+        values=skuEntriesToValues(entries);
+        row.skuList=values.slice();
+      }
     }
   }
+  text=text.trim();
   if(text){
-    return `<td class="pivot-sku">${escapeHtml(text)}</td>`;
+    const encoded=values.length?values.map(v=>encodeURIComponent(v)).join(','):'';
+    const attrs=[];
+    if(encoded) attrs.push(`data-pivot-skus="${escapeHtml(encoded)}"`);
+    const asinValue=asinRaw==null?'':String(asinRaw);
+    if(asinValue) attrs.push(`data-pivot-asin="${escapeHtml(asinValue)}"`);
+    const attrStr=attrs.length?` ${attrs.join(' ')}`:'';
+    return `<td class="pivot-sku"><button type="button" class="pivot-sku-btn"${attrStr}><span class="pivot-label-text">${escapeHtml(text)}</span></button></td>`;
   }
   return '<td class="pivot-sku">—</td>';
 }
@@ -3937,6 +4217,18 @@ function comparePivotRows(a,b,key,dir){
   if(key==='label'){
     const cmp=PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
     return dir==='desc' ? -cmp : cmp;
+  }
+  if(key==='sku'){
+    const aVal=String(a?.skuSortKey ?? a?.skuText ?? '').trim();
+    const bVal=String(b?.skuSortKey ?? b?.skuText ?? '').trim();
+    const aEmpty=!aVal;
+    const bEmpty=!bVal;
+    if(aEmpty!==bEmpty){
+      return aEmpty ? 1 : -1;
+    }
+    const cmp=PIVOT_LABEL_COLLATOR.compare(aVal, bVal);
+    if(cmp!==0) return dir==='desc' ? -cmp : cmp;
+    return PIVOT_LABEL_COLLATOR.compare(String(a.label??''), String(b.label??''));
   }
   const av=pivotSortInfo(a[key]);
   const bv=pivotSortInfo(b[key]);
@@ -4105,11 +4397,25 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     ensureAsinSkuMap();
   }
   if(showSkuColumn){
+    const asinValueMap = state.asinValueMap instanceof Map ? state.asinValueMap : (state.asinValueMap=new Map());
+    asinValueMap.clear();
     const annotateSku=row=>{
       if(!row || typeof row!=='object') return;
       const rawValue=Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : row?.label;
-      const entries=lookupAsinSkus(rawValue);
-      row.skuText=formatSkuEntries(entries);
+      const asinValue=rawValue==null?'':String(rawValue);
+      const asinKey=normalizeAsinKey(asinValue);
+      if(asinKey) asinValueMap.set(asinKey, asinValue);
+      let text=typeof row.skuText==='string'?row.skuText.trim():'';
+      let list=Array.isArray(row.skuList)?row.skuList.filter(v=>v!=null && v!=='').map(v=>String(v)) : [];
+      if(!text || !list.length){
+        const entries=lookupAsinSkus(rawValue);
+        if(!text) text=formatSkuEntries(entries);
+        if(!list.length) list=skuEntriesToValues(entries);
+        row.skuText=text;
+        row.skuList=list.slice();
+      }
+      const sortValue=list.length?list[0]:(text||'');
+      row.skuSortKey=sortValue;
     };
     rowData.forEach(annotateSku);
     if(Array.isArray(allRows)){
@@ -4325,6 +4631,13 @@ function renderAll(){
   updateResetButtonVisibility();
   updatePivotFilterButtons();
   refreshActivePivotPopup();
+  if(!skuSyncing){
+    const skuSelected=el.dd?.sku ? ddGetSelected(el.dd.sku) : [];
+    if(!skuSelected.length){
+      const asinRoot=el.dd?.targetingAsin;
+      if(asinRoot) syncSkuFilterFromAsins(ddGetSelected(asinRoot), {silent:true});
+    }
+  }
   schedulePivotLayout();
 }
 
