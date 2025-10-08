@@ -241,6 +241,7 @@ body.has-data #tipPill{display:none !important}
 .pivot-table thead th:first-child .pivot-sort-label{justify-content:flex-start}
 .pivot-sort-indicator{font-size:10px;opacity:.75}
 .pivot-table thead th:first-child{text-align:left}
+.pivot-table thead th.pivot-sku{text-align:left}
 .pivot-table thead th.pivot-acos{text-align:right}
 .pivot-table thead th.pivot-acos-bar{padding-left:0;text-align:left;width:90px}
 .pivot-table tbody th{padding:8px 12px;border-bottom:1px solid var(--border);text-align:left;font-weight:600;color:var(--text);white-space:normal;word-break:break-word;overflow-wrap:anywhere}
@@ -252,6 +253,7 @@ body.has-data #tipPill{display:none !important}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
 .pivot-table tbody tr:hover{background:var(--chip)}
 .pivot-table td.pivot-num{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.pivot-table td.pivot-sku{text-align:left;white-space:normal;word-break:break-word}
 .pivot-table tfoot th,.pivot-table tfoot td{padding:12px;border:0;font-weight:800;background:var(--panel);position:sticky;bottom:0;z-index:2;border-top:3px double var(--border-strong);box-shadow:none}
 .pivot-table tfoot th{text-align:left}
 .pivot-table tfoot td{text-align:right}
@@ -2197,6 +2199,23 @@ function lookupAsinSkus(value){
   return Array.isArray(list) && list.length ? list : null;
 }
 
+function formatSkuEntries(entries){
+  if(!Array.isArray(entries) || !entries.length) return '';
+  const seen=new Set();
+  const parts=[];
+  for(const entry of entries){
+    const sellerRaw=entry?.sellerSku==null?'':String(entry.sellerSku).trim();
+    const plainRaw=entry?.plainSku==null?'':String(entry.plainSku).trim();
+    const value=sellerRaw||plainRaw;
+    if(!value) continue;
+    const key=value.toLowerCase();
+    if(seen.has(key)) continue;
+    seen.add(key);
+    parts.push(value);
+  }
+  return parts.join(', ');
+}
+
 function resetConversionPaging(){
   state.conversionPage={st:0,asin:0};
 }
@@ -3765,10 +3784,12 @@ function renderPivotTable(table){
     baseRows.sort((a,b)=>comparePivotRows(a,b,sort.key,sort.dir));
   }
 
-  const head=buildPivotHead(safeColumn, sort.key, sort.dir);
+  const showSkuColumn=!!data.showSkuColumn;
+  const head=buildPivotHead(safeColumn, sort.key, sort.dir, showSkuColumn);
 
   if(!baseRows.length){
-    table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
+    const colspan=showSkuColumn?6:5;
+    table.innerHTML = head + `<tbody><tr><td colspan="${colspan}" class="pivot-empty">No ${safeColumn} data for current filters.</td></tr></tbody>`;
     table.classList.remove('has-grand-total');
     updatePivotFootSpace(table);
     schedulePivotLayout();
@@ -3784,7 +3805,8 @@ function renderPivotTable(table){
   const visibleRows=baseRows.slice(pageStart, Math.min(baseRows.length, pageStart+pageCount));
 
   if(!visibleRows.length){
-    table.innerHTML = head + `<tbody><tr><td colspan="5" class="pivot-empty">No ${safeColumn} rows on this page.</td></tr></tbody>`;
+    const colspan=showSkuColumn?6:5;
+    table.innerHTML = head + `<tbody><tr><td colspan="${colspan}" class="pivot-empty">No ${safeColumn} rows on this page.</td></tr></tbody>`;
     table.classList.remove('has-grand-total');
     updatePivotFootSpace(table);
     schedulePivotLayout();
@@ -3797,16 +3819,18 @@ function renderPivotTable(table){
   const barScale=Number.isFinite(data.barScale) && data.barScale>0 ? data.barScale : 100;
   const bodyRows=visibleRows.map(row=>{
     const labelCell=buildPivotLabelCell(row, dimension, data);
+    const skuCell=showSkuColumn?buildPivotSkuCell(row):'';
     const spendCell=buildPivotMoneyCell(row.spend);
     const salesCell=buildPivotMoneyCell(row.sales);
     const acosCells=buildPivotAcosCells(row.acos, barScale, false);
-    return `<tr>${labelCell}${spendCell}${salesCell}${acosCells}</tr>`;
+    return `<tr>${labelCell}${skuCell}${spendCell}${salesCell}${acosCells}</tr>`;
   }).join('');
 
   const totalSpend=Number(data.totals?.spend)||0;
   const totalSales=Number(data.totals?.sales)||0;
   const totalAcos=typeof data.totals?.acos==='number'?data.totals.acos:NaN;
-  const totalRow=`<tr class="pivot-total"><th scope="row">Grand Total</th>${buildPivotMoneyCell(totalSpend)}${buildPivotMoneyCell(totalSales)}${buildPivotAcosCells(totalAcos, barScale, true)}</tr>`;
+  const totalSkuCell=showSkuColumn?'<td class="pivot-sku"></td>':'';
+  const totalRow=`<tr class="pivot-total"><th scope="row">Grand Total</th>${totalSkuCell}${buildPivotMoneyCell(totalSpend)}${buildPivotMoneyCell(totalSales)}${buildPivotAcosCells(totalAcos, barScale, true)}</tr>`;
 
   table.innerHTML = head + `<tbody>${bodyRows}</tbody><tfoot>${totalRow}</tfoot>`;
   table.classList.add('has-grand-total');
@@ -3814,14 +3838,19 @@ function renderPivotTable(table){
   schedulePivotLayout();
 }
 
-function buildPivotHead(columnLabel, activeKey, activeDir){
+function buildPivotHead(columnLabel, activeKey, activeDir, showSkuColumn){
   const cells=[
-    buildPivotHeadCell('label', columnLabel, '', activeKey, activeDir),
+    buildPivotHeadCell('label', columnLabel, '', activeKey, activeDir)
+  ];
+  if(showSkuColumn){
+    cells.push('<th scope="col" class="pivot-sku">SKU</th>');
+  }
+  cells.push(
     buildPivotHeadCell('spend', 'Spend', '', activeKey, activeDir),
     buildPivotHeadCell('sales', 'Sales', '', activeKey, activeDir),
     buildPivotHeadCell('acos', 'ACOS', 'pivot-acos', activeKey, activeDir),
     '<th scope="col" class="pivot-acos-bar" aria-hidden="true"></th>'
-  ];
+  );
   return `<thead><tr>${cells.join('')}</tr></thead>`;
 }
 
@@ -3866,6 +3895,25 @@ function buildPivotHeadCell(key, title, extraClass, activeKey, activeDir){
 
 function buildPivotMoneyCell(value){
   return `<td class="pivot-num">${escapeHtml(fmt.money0(value))}</td>`;
+}
+
+function buildPivotSkuCell(row){
+  let text='';
+  if(row && typeof row==='object'){
+    if(Object.prototype.hasOwnProperty.call(row,'skuText')){
+      const stored=row.skuText;
+      text=stored==null?'':String(stored).trim();
+    }else{
+      const rawValue=Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : row?.label;
+      const entries=lookupAsinSkus(rawValue);
+      text=formatSkuEntries(entries);
+      row.skuText=text;
+    }
+  }
+  if(text){
+    return `<td class="pivot-sku">${escapeHtml(text)}</td>`;
+  }
+  return '<td class="pivot-sku">—</td>';
 }
 
 function buildPivotAcosCells(value, barScale, isTotal){
@@ -4052,6 +4100,22 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     : rowData.map(r=>({...r}));
 
   const slot=target.table?._pivotSlot || target.card?.dataset.pivotSlot || '';
+  const showSkuColumn=slot==='targetingAsin';
+  if(showSkuColumn && !state.asinSkuLoaded){
+    ensureAsinSkuMap();
+  }
+  if(showSkuColumn){
+    const annotateSku=row=>{
+      if(!row || typeof row!=='object') return;
+      const rawValue=Object.prototype.hasOwnProperty.call(row,'rawValue') ? row.rawValue : row?.label;
+      const entries=lookupAsinSkus(rawValue);
+      row.skuText=formatSkuEntries(entries);
+    };
+    rowData.forEach(annotateSku);
+    if(Array.isArray(allRows)){
+      allRows.forEach(annotateSku);
+    }
+  }
   if(slot) prunePivotFilter(slot, target.dimension, allRows);
 
   const pageMeta = agg?.page
@@ -4069,7 +4133,8 @@ function renderPivotCard(target, columnLabel, agg, hasColumn){
     slot: target.table ? (target.table._pivotSlot || null) : null,
     page:pageMeta,
     limit,
-    totalCount
+    totalCount,
+    showSkuColumn
   };
 
   if(!target.table._pivotSort){
