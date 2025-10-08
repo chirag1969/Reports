@@ -248,14 +248,6 @@ body.has-data #tipPill{display:none !important}
 .pivot-label-btn:hover,.pivot-label-btn:focus-visible{color:var(--accent)}
 .pivot-label-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 .pivot-label-text{display:inline-block}
-.pivot-label-wrap{display:flex;align-items:center;gap:8px}
-.pivot-label-wrap .pivot-label-btn{flex:1;min-width:0}
-.pivot-label-wrap .pivot-label-text{display:block;flex:1;min-width:0}
-.pivot-info-btn{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--border-strong);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:13px;font-weight:700;line-height:1;cursor:pointer;opacity:0;transform:translateX(6px);transition:opacity .18s ease,transform .18s ease,color .2s ease,background .2s ease,border-color .2s ease}
-.pivot-info-btn span{line-height:1;font-size:13px}
-.pivot-info-btn:hover,.pivot-info-btn:focus-visible{color:var(--accent);background:color-mix(in srgb,var(--panel) 55%, var(--chip));border-color:color-mix(in srgb,var(--accent) 65%, var(--border))}
-.pivot-info-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.pivot-label-wrap:hover .pivot-info-btn,.pivot-label-wrap:focus-within .pivot-info-btn,.pivot-table tbody tr:hover .pivot-info-btn{opacity:1;transform:translateX(0)}
 .pivot-table tbody td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
 .pivot-table tbody tr:hover{background:var(--chip)}
@@ -276,26 +268,6 @@ body.has-data #tipPill{display:none !important}
 .pivot-table tr.pivot-total th,.pivot-table tr.pivot-total td{font-weight:800}
 .pivot-empty{text-align:center;padding:24px 12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
 
-.sku-popup{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(15,18,22,.75);backdrop-filter:blur(6px)}
-body.light .sku-popup{background:rgba(15,23,42,.35)}
-.sku-popup[hidden]{display:none !important}
-.sku-popup-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);width:clamp(280px,90vw,420px);max-height:min(70vh,520px);display:flex;flex-direction:column;overflow:hidden}
-.sku-popup-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border)}
-.sku-popup-title{margin:0;font-size:16px;font-weight:800;color:var(--text)}
-.sku-popup-body{padding:16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
-.sku-popup-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.sku-popup-list li{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:color-mix(in srgb,var(--chip) 70%, var(--panel));font-weight:600;color:var(--text)}
-.sku-popup-table{width:100%;border-collapse:collapse;border-spacing:0;font-weight:600;color:var(--text);box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent)}
-.sku-popup-table caption{caption-side:top;text-align:left;font-weight:700;margin-bottom:8px;color:var(--muted)}
-.sku-popup-table thead th{padding:10px 12px;text-transform:uppercase;font-size:12px;letter-spacing:.35px;color:var(--muted);text-align:left;border-bottom:1px solid var(--border-strong)}
-.sku-popup-table tbody td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
-.sku-popup-table tbody tr:last-child td{border-bottom:0}
-.sku-popup-table tbody tr:nth-child(even){background:color-mix(in srgb,var(--chip) 82%, var(--panel))}
-.sku-popup-table tbody td span{display:inline-block;min-width:0;max-width:100%;overflow-wrap:anywhere}
-.sku-popup-empty{padding:10px 0;color:var(--muted);font-weight:600}
-.sku-popup-close{border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 75%, var(--chip));color:var(--muted);border-radius:50%;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;font-size:18px;line-height:1;cursor:pointer;transition:background .2s ease,color .2s ease,transform .15s ease,border-color .2s ease}
-.sku-popup-close:hover{color:var(--text);background:color-mix(in srgb,var(--panel) 55%, var(--chip));transform:scale(1.05)}
-.sku-popup-close:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
 .pivot-metric{display:flex;flex-direction:column;gap:6px}
 .pivot-amount{font-weight:600;font-size:13.5px}
@@ -653,17 +625,6 @@ body.light .sku-popup{background:rgba(15,23,42,.35)}
 </section>
 
 </main>
-
-<!-- ASIN SKU Popup -->
-<div id="skuPopup" class="sku-popup" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="skuPopupTitle" tabindex="-1">
-  <div class="sku-popup-card" id="skuPopupCard">
-    <div class="sku-popup-head">
-      <h3 class="sku-popup-title" id="skuPopupTitle">Advertised SKUs</h3>
-      <button type="button" class="sku-popup-close" id="skuPopupClose" aria-label="Close advertised SKU popup">✕</button>
-    </div>
-    <div class="sku-popup-body" id="skuPopupBody" role="document"></div>
-  </div>
-</div>
 
 <!-- Pivot filter popup -->
 <div id="pivotFilterPopup" class="pivot-filter-popup" hidden aria-hidden="true" role="dialog" aria-label="Pivot filter" tabindex="-1">
@@ -1995,13 +1956,6 @@ const el={
       navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')
     }
   },
-  skuPopup:{
-    root:document.getElementById('skuPopup'),
-    card:document.getElementById('skuPopupCard'),
-    title:document.getElementById('skuPopupTitle'),
-    body:document.getElementById('skuPopupBody'),
-    close:document.getElementById('skuPopupClose')
-  },
   pivotPopup:{
     root:document.getElementById('pivotFilterPopup'),
     title:document.getElementById('pivotFilterPopupTitle'),
@@ -2065,7 +2019,6 @@ const state={
   activeTab:'overview',
   customRange:{start:null,end:null,active:false},
   dateBounds:{min:null,max:null},
-  skuPopupReturn:null,
   asinSkuMap:new Map(),
   asinSkuLoaded:false,
   conversionPage:{st:0,asin:0},
@@ -2410,13 +2363,6 @@ function handlePivotSectionClick(event){
     handlePivotFilterButton(filterBtn);
     return;
   }
-  const infoBtn=event.target.closest?.('.pivot-info-btn');
-  if(infoBtn){
-    event.preventDefault();
-    event.stopPropagation();
-    handlePivotInfoButton(infoBtn);
-    return;
-  }
   const labelBtn=event.target.closest?.('.pivot-label-btn');
   if(labelBtn){
     event.preventDefault();
@@ -2447,27 +2393,6 @@ function handlePivotLabelButton(button){
   const value=button.dataset.pivotValue;
   const matchKey=button.dataset.pivotMatch;
   applyPivotLabelFilter(table, value, matchKey);
-}
-
-async function handlePivotInfoButton(button){
-  if(!button) return;
-  const asinAttr=button.dataset.asin || '';
-  const asin=asinAttr.trim();
-  if(!asin) return;
-  const labelAttr=button.dataset.asinLabel || asin;
-  try{
-    await ensureAsinSkuMap();
-  }catch(_){
-    /* ignore */
-  }
-  const skus=lookupAsinSkus(asinAttr) || lookupAsinSkus(asin) || [];
-  const list=Array.isArray(skus)
-    ? skus.map(item=>({
-        sellerSku:String(item?.sellerSku??'').trim(),
-        plainSku:String(item?.plainSku??'').trim()
-      }))
-    : [];
-  showSkuPopup(button, labelAttr, list, asin);
 }
 
 function applyPivotLabelFilter(table, rawValue, matchKey){
@@ -2512,68 +2437,6 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
     renderAll();
     updateResetButtonVisibility();
   }
-}
-
-function showSkuPopup(trigger, asinLabel, skus, asinValue){
-  const popup=el.skuPopup;
-  if(!popup?.root) return;
-  const labelText=String(asinLabel??'').trim();
-  const asinText=String(asinValue??'').trim();
-  const heading=labelText || asinText;
-  const titleText=heading ? `Advertised SKUs for ${heading}` : 'Advertised SKUs';
-  if(popup.title) popup.title.textContent=titleText;
-  if(popup.body){
-    const rows=Array.isArray(skus)?skus.filter(item=>{
-      const seller=String(item?.sellerSku??'').trim();
-      const plain=String(item?.plainSku??'').trim();
-      return seller || plain;
-    }):[];
-    if(rows.length){
-      const bodyRows=rows.map(item=>{
-        const sellerVal=String(item?.sellerSku??'').trim();
-        const plainVal=String(item?.plainSku??'').trim();
-        const seller=sellerVal?escapeHtml(sellerVal):'';
-        const plain=plainVal?escapeHtml(plainVal):'';
-        const sellerCell=seller?`<span>${seller}</span>`:'<span>—</span>';
-        const plainCell=plain?`<span>${plain}</span>`:'<span>—</span>';
-        return `<tr><td>${sellerCell}</td><td>${plainCell}</td></tr>`;
-      }).join('');
-      const caption = asinText ? `<caption>ASIN: ${escapeHtml(asinText)}</caption>` : '';
-      popup.body.innerHTML=`<table class="sku-popup-table">${caption}<thead><tr><th scope="col">Seller SKU</th><th scope="col">Plain SKU</th></tr></thead><tbody>${bodyRows}</tbody></table>`;
-    }else{
-      const emptyLabel=heading ? `No advertised SKUs found for ${escapeHtml(heading)}.` : 'No advertised SKUs found.';
-      popup.body.innerHTML=`<div class="sku-popup-empty">${emptyLabel}</div>`;
-    }
-  }
-  state.skuPopupReturn=trigger||null;
-  popup.root.removeAttribute('hidden');
-  popup.root.setAttribute('aria-hidden','false');
-  popup.root.classList.add('is-open');
-  requestAnimationFrame(()=>{
-    try{
-      popup.root.focus({preventScroll:true});
-    }catch(_){ }
-    if(popup.close){
-      try{ popup.close.focus({preventScroll:true}); }catch(_){ }
-    }
-  });
-}
-
-function hideSkuPopup(){
-  const popup=el.skuPopup;
-  if(!popup?.root || popup.root.hasAttribute('hidden')) return false;
-  popup.root.setAttribute('hidden','');
-  popup.root.setAttribute('aria-hidden','true');
-  popup.root.classList.remove('is-open');
-  if(popup.body) popup.body.innerHTML='';
-  const focusTarget=state.skuPopupReturn;
-  state.skuPopupReturn=null;
-  if(focusTarget && typeof focusTarget.focus==='function'){
-    requestAnimationFrame(()=>{
-      try{ focusTarget.focus({preventScroll:true}); }catch(_){ }
-    });
-  }
-  return true;
 }
 
 function togglePivotSort(header){
@@ -2753,13 +2616,6 @@ function boot(){
 
   setupPivotInteractions();
 
-  ensureAsinSkuMap();
-  if(el.skuPopup?.close) el.skuPopup.close.addEventListener('click', hideSkuPopup);
-  if(el.skuPopup?.root){
-    el.skuPopup.root.addEventListener('click', ev=>{
-      if(ev.target===el.skuPopup.root) hideSkuPopup();
-    });
-  }
   if(el.pivotPopup?.close) el.pivotPopup.close.addEventListener('click', ()=>closePivotFilterPopup());
   if(el.pivotPopup?.clear) el.pivotPopup.clear.addEventListener('click', ()=>{
     const slot=pivotFilterPopupState.slot;
@@ -2775,11 +2631,6 @@ function boot(){
   document.addEventListener('keydown', (ev)=>{
     if(ev.key==='Escape' || ev.key==='Esc'){
       if(closePivotFilterPopup(false)){
-        ev.stopPropagation();
-        ev.preventDefault();
-        return;
-      }
-      if(hideSkuPopup()){
         ev.stopPropagation();
         ev.preventDefault();
       }
@@ -2824,7 +2675,6 @@ function setHasData(has){
     if(el.monthsWrap) el.monthsWrap.hidden=true;
     if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
-    hideSkuPopup();
     closePivotFilterPopup(false);
     state.columns={};
     state.rows=[];
@@ -3984,36 +3834,15 @@ function buildPivotLabelCell(row, dimension, meta){
   const rawString = rawValue==null ? '' : String(rawValue);
   const trimmedRaw = rawString.trim();
   const isFilterable = hasDimension && (dimension.stateKey==='term' ? trimmedRaw.length>0 : !(rawValue==null || rawString===''));
-  const asinCandidate = trimmedRaw || label;
-  const infoButton = buildPivotInfoButton(meta?.slot, asinCandidate, label);
-
-  const wrapIfNeeded=(content)=>{
-    if(!infoButton) return `<th scope="row">${content}</th>`;
-    return `<th scope="row"><span class="pivot-label-wrap">${content}${infoButton}</span></th>`;
-  };
-
   if(!isFilterable){
     const content=`<span class="pivot-label-text">${safeLabel}</span>`;
-    return wrapIfNeeded(content);
+    return `<th scope="row">${content}</th>`;
   }
 
   const valueAttr=escapeHtml(rawString);
   const matchAttr = matchKey ? ` data-pivot-match="${escapeHtml(String(matchKey))}"` : '';
   const button=`<button type="button" class="pivot-label-btn" data-pivot-value="${valueAttr}"${matchAttr}><span class="pivot-label-text">${safeLabel}</span></button>`;
-  return wrapIfNeeded(button);
-}
-
-function buildPivotInfoButton(slot, asinValue, displayLabel){
-  if(slot!=='targetingAsin') return '';
-  const rawAsin=asinValue==null?'' : String(asinValue).trim();
-  const normalized=normalizeAsinKey(rawAsin || displayLabel);
-  if(!normalized) return '';
-  const labelForUi=String((displayLabel&&String(displayLabel).trim()) || rawAsin || normalized);
-  const safeAsin=escapeHtml(rawAsin || normalized);
-  const safeLabel=escapeHtml(labelForUi);
-  const titleText=`View advertised SKUs for ${labelForUi}`;
-  const safeTitle=escapeHtml(titleText);
-  return `<button type="button" class="pivot-info-btn" data-asin="${safeAsin}" data-asin-label="${safeLabel}" title="${safeTitle}" aria-label="${safeTitle}" aria-haspopup="dialog"><span aria-hidden="true">i</span></button>`;
+  return `<th scope="row">${button}</th>`;
 }
 
 function buildPivotHeadCell(key, title, extraClass, activeKey, activeDir){
