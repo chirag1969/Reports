@@ -2112,6 +2112,9 @@ const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
 const ADVERTISED_PRODUCTS_WORKBOOK='Products Advertised Product.xlsx';
 let asinSkuPromise=null;
 let advertisedProductsPromise=null;
+let defaultWorkbookPromise=null;
+let defaultWorkbookTimer=null;
+let loadingDepth=0;
 
 function ensureAsinSkuMap(){
   if(state.asinSkuLoaded){
@@ -2818,21 +2821,50 @@ function boot(){
     }
   });
 
-  showLoading(false);
+  showLoading(false,{force:true});
   el.tipPill.hidden=true;
   el.monthsWrap.hidden=true;
+
+  if(defaultWorkbookTimer){
+    clearTimeout(defaultWorkbookTimer);
+  }
+  defaultWorkbookTimer=setTimeout(()=>{
+    defaultWorkbookTimer=null;
+    if(!state.hasData) ensureDefaultWorkbook();
+  },1500);
+
   attemptPreprocessedData()
     .catch(err=>console.warn('Preprocessed data attempt failed:', err))
-    .finally(()=>{ if(!state.hasData) attemptDefaultWorkbook(); });
+    .finally(()=>{
+      if(defaultWorkbookTimer){
+        clearTimeout(defaultWorkbookTimer);
+        defaultWorkbookTimer=null;
+      }
+      if(!state.hasData) ensureDefaultWorkbook();
+    });
 }
-function showLoading(on){ el.status.classList.toggle('show', !!on); el.status.style.display=on?'':'none'; }
+function showLoading(on, options={}){
+  const force=!!options.force;
+  if(on){
+    loadingDepth=Math.max(loadingDepth+1,1);
+  }else if(force){
+    loadingDepth=0;
+  }else if(loadingDepth>0){
+    loadingDepth-=1;
+  }
+  const active=loadingDepth>0;
+  if(el.status){
+    el.status.classList.toggle('show', active);
+    el.status.style.display=active?'':'none';
+  }
+}
 
 function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.textContent='—'; }); lastKpiSeries=null; updateKpiSparks(null); }
 
 function setHasData(has){
   state.hasData=!!has;
   if(has){
-    showLoading(false);
+    showLoading(false,{force:true});
   }
   document.body.classList.toggle('has-data', !!has);
   if(has){
@@ -2993,6 +3025,18 @@ async function attemptDefaultWorkbook(){
   }finally{
     showLoading(false);
   }
+}
+
+function ensureDefaultWorkbook(){
+  if(defaultWorkbookPromise){
+    return defaultWorkbookPromise;
+  }
+  if(defaultWorkbookTimer){
+    clearTimeout(defaultWorkbookTimer);
+    defaultWorkbookTimer=null;
+  }
+  defaultWorkbookPromise=attemptDefaultWorkbook().finally(()=>{ defaultWorkbookPromise=null; });
+  return defaultWorkbookPromise;
 }
 async function parseExcel(buf){
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
@@ -4777,6 +4821,96 @@ function filterAdvertisedProductRows(rows, campaignValues, adgroupValues){
   return result;
 }
 
+function collectAdvertisedProductsFromSql(){
+  const table=state.sql?.table;
+  const asinInfo=getSqlInfoForStateKey('targetingAsin');
+  if(!table || !asinInfo) return [];
+  const context=buildFilterContext(null);
+  const {sql,params}=combineWhere(context.conditions, {sql:`TRIM("${asinInfo.sqlName}") <> ''`});
+  const skuInfo=getSqlInfoForStateKey('sku');
+  const parts=[`TRIM("${asinInfo.sqlName}") AS asin`];
+  if(skuInfo) parts.push(`TRIM("${skuInfo.sqlName}") AS sku`);
+  const rows=sqlQueryAll(`SELECT DISTINCT ${parts.join(', ')} FROM "${table}" ${sql}`, params);
+  return rows.map(row=>{
+    const asin=String(row.asin||'').trim();
+    if(!asin) return null;
+    const sku=skuInfo?String(row.sku||'').trim():'';
+    return {asin, sku};
+  }).filter(Boolean);
+}
+
+function findAsinsBySku(value){
+  const norm=normalizeSkuKey(value);
+  if(!norm) return [];
+  const map=state.asinSkuMap;
+  if(!(map instanceof Map) || !map.size) return [];
+  const results=[];
+  map.forEach((entries, asinKey)=>{
+    if(!Array.isArray(entries) || !entries.length) return;
+    const match=entries.some(entry=>{
+      return [entry?.sellerSku, entry?.plainSku].some(val=>normalizeSkuKey(val)===norm);
+    });
+    if(match){
+      const asinValue=(state.asinValueMap instanceof Map && state.asinValueMap.get(asinKey)) || asinKey;
+      if(!results.includes(asinValue)) results.push(asinValue);
+    }
+  });
+  return results;
+}
+
+function mergeAdvertisedProductSources(sqlRows, workbookRows){
+  const dedupe=new Map();
+  const addEntry=(sku, asin)=>{
+    const skuSafe=sku==null?'':String(sku).trim();
+    const asinSafe=asin==null?'':String(asin).trim();
+    if(!skuSafe && !asinSafe) return;
+    const key=`${normalizeSkuKey(skuSafe)}||${normalizeAsinKey(asinSafe)}`;
+    if(dedupe.has(key)){
+      const existing=dedupe.get(key);
+      if(!existing.sku && skuSafe) existing.sku=skuSafe;
+      if(!existing.asin && asinSafe) existing.asin=asinSafe;
+      return;
+    }
+    dedupe.set(key,{sku:skuSafe, asin:asinSafe});
+  };
+  sqlRows.forEach(row=>{
+    if(!row) return;
+    const asin=row.asin;
+    if(!asin) return;
+    const linked=lookupAsinSkus(asin);
+    const values=skuEntriesToValues(linked);
+    if(values.length){
+      values.forEach(sku=>addEntry(sku, asin));
+    }else{
+      addEntry(row.sku, asin);
+    }
+  });
+  workbookRows.forEach(row=>{
+    if(!row) return;
+    addEntry(row.sku, row.asin);
+  });
+  dedupe.forEach(entry=>{
+    if(!entry.sku && entry.asin){
+      const linked=lookupAsinSkus(entry.asin);
+      const values=skuEntriesToValues(linked);
+      if(values.length) entry.sku=values[0];
+    }
+    if(!entry.asin && entry.sku){
+      const candidates=findAsinsBySku(entry.sku);
+      if(candidates.length) entry.asin=candidates[0];
+    }
+    entry.sku=entry.sku||'';
+    entry.asin=entry.asin||'';
+  });
+  const result=Array.from(dedupe.values()).filter(item=>item.sku || item.asin);
+  result.sort((a,b)=>{
+    const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
+    if(skuDiff!==0) return skuDiff;
+    return PIVOT_LABEL_COLLATOR.compare(a.asin||'', b.asin||'');
+  });
+  return result;
+}
+
 function setAdvertisedProductsView(status, rows){
   const view=el.advertisedProducts;
   if(!view) return;
@@ -4842,10 +4976,15 @@ function updateAdvertisedProductsDisplay(){
   }
   view.card.hidden=false;
   setAdvertisedProductsView('loading');
-  ensureAdvertisedProductsData().then(rows=>{
+  const workbookPromise=ensureAdvertisedProductsData().catch(()=>[]);
+  const asinPromise=ensureAsinSkuMap().catch(()=>new Map());
+  Promise.all([workbookPromise, asinPromise]).then(([rows])=>{
     if(state.advertisedProducts?.renderToken!==token) return;
     const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues);
-    if(filtered.length){
+    const combined=mergeAdvertisedProductSources(collectAdvertisedProductsFromSql(), filtered);
+    if(combined.length){
+      setAdvertisedProductsView('rows', combined);
+    }else if(filtered.length){
       setAdvertisedProductsView('rows', filtered);
     }else{
       setAdvertisedProductsView('empty');
