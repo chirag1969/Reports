@@ -2957,18 +2957,39 @@ async function parseExcel(buf){
   let best=null,score=-1;
   for(const name of wb.SheetNames){
     const ws=wb.Sheets[name];
-    const text=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
-    if(!text || text.length<3) continue;
-    const headers=(text[1]||[]).map(x=>String(x||"").trim());
-    const s=['store','sales','spend','clicks','impressions'].map(t=>findIndexByTokens(headers,[t])>-1?1:0).reduce((a,b)=>a+b,0);
+    if(!ws) continue;
+    const ref=ws['!ref'];
+    if(!ref) continue;
+    const range=XLSX.utils.decode_range(ref);
+    const sampleRange={
+      s:{r:range.s.r,c:range.s.c},
+      e:{r:Math.min(range.s.r+2, range.e.r), c:range.e.c}
+    };
+    const sample=XLSX.utils.sheet_to_json(ws,{
+      header:1,
+      raw:true,
+      defval:null,
+      dense:true,
+      range:sampleRange
+    });
+    if(!sample || sample.length<3) continue;
+    const headers=(sample[1]||[]).map(value=>String(value??'').trim());
+    const s=['store','sales','spend','clicks','impressions']
+      .map(t=>findIndexByTokens(headers,[t])>-1?1:0)
+      .reduce((a,b)=>a+b,0);
     if(s>score){score=s;best=name;}
   }
   if(!best) throw new Error('No usable sheet found');
   const ws=wb.Sheets[best];
-  const raw = XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
-  const txt  = XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:""});
-  const headers=(txt[1]||raw[1]||[]).map(h=>String(h||"").trim());
-  const dataR=raw.slice(2); const dataT=txt.slice(2);
+  const sheetData=XLSX.utils.sheet_to_json(ws,{
+    header:1,
+    raw:true,
+    defval:null,
+    dense:true
+  });
+  if(!sheetData || sheetData.length<3) throw new Error('No usable sheet found');
+  const headers=(sheetData[1]||[]).map(h=>String(h??'').trim());
+  const dataRowsRaw=sheetData.slice(2);
 
   const cols={
     date:       findIndexByTokens(headers,['date','day','reportingdate']),
@@ -3009,30 +3030,30 @@ async function parseExcel(buf){
   columnInfo.forEach(info=>{ const key=info.normalized||''; if(!columnMap.has(key)) columnMap.set(key,info); });
 
   const dataRows=[];
-  for(let r=0;r<dataR.length;r++){
-    const rr=dataR[r]||[], tt=dataT[r]||[];
+  for(let r=0;r<dataRowsRaw.length;r++){
+    const rowRaw=Array.isArray(dataRowsRaw[r])?dataRowsRaw[r]:[];
     const rowValues=new Array(columnInfo.length);
     let hasValue=false;
     for(let i=0;i<columnInfo.length;i++){
       const info=columnInfo[i];
-      let v=tt[i];
+      const rawValue=rowRaw[i];
+      let v=rawValue;
       if(info.isDate){
         let dateVal=null;
-        if(typeof rr[i]==='number'){ const d=XLSX.SSF.parse_date_code(rr[i]); dateVal=(d&&d.y)?new Date(d.y,d.m-1,d.d):null; }
-        else if(v){ const d=new Date(v); dateVal=isNaN(+d)?null:d; }
-        if(dateVal instanceof Date){ v=toInputDate(dateVal); }
-        else if(typeof v==='string' && v){
-          const parsed=parseInputDate(v) || (isNaN(+new Date(v))?null:new Date(v));
-          v=parsed instanceof Date?toInputDate(parsed):null;
-        }else{
-          v=null;
+        if(rawValue instanceof Date){
+          dateVal=rawValue;
+        }else if(typeof rawValue==='number'){
+          const parsed=XLSX.SSF.parse_date_code(rawValue);
+          dateVal=(parsed&&parsed.y)?new Date(parsed.y,parsed.m-1,parsed.d):null;
+        }else if(typeof rawValue==='string' && rawValue){
+          const parsed=parseInputDate(rawValue) || (isNaN(+new Date(rawValue))?null:new Date(rawValue));
+          dateVal=parsed instanceof Date?parsed:null;
         }
+        v=dateVal instanceof Date?toInputDate(dateVal):null;
       }else if(numericIdx.has(i)){
-        v=parseNumber(v);
-      }
-      if(!info.isDate && !numericIdx.has(i)){
-        if(v==null) v='';
-        else v=String(v);
+        v=parseNumber(rawValue);
+      }else{
+        v=rawValue==null?'':String(rawValue).trim();
       }
       if(info.isDate && !v) v=null;
       rowValues[i]=v;
