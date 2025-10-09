@@ -248,9 +248,6 @@ body.has-data #tipPill{display:none !important}
 .pivot-label-btn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .pivot-label-btn:hover,.pivot-label-btn:focus-visible{color:var(--accent)}
 .pivot-label-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-.pivot-sku-btn{display:inline-flex;align-items:center;gap:6px;width:100%;padding:0;margin:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.pivot-sku-btn:hover,.pivot-sku-btn:focus-visible{color:var(--accent)}
-.pivot-sku-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 .pivot-label-text{display:inline-block}
 .pivot-table tbody td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
 .pivot-table.has-grand-total tbody tr:last-child th,.pivot-table.has-grand-total tbody tr:last-child td{border-bottom:0}
@@ -664,7 +661,6 @@ body.has-data #tipPill{display:none !important}
       <div class="filter" data-col-wrapper="tsub"><label data-col-label="tsub" data-default="Targeting Sub Type">Targeting Sub Type</label><div id="tsubMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="tsub2"><label data-col-label="tsub2" data-default="Targeting Sub Type2">Targeting Sub Type2</label><div id="tsub2MS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="targetingAsin"><label data-col-label="targetingAsin" data-default="Targeting ASIN">Targeting ASIN</label><div id="targetingAsinMS" class="dd"></div></div>
-      <div class="filter" data-col-wrapper="sku"><label data-col-label="sku" data-default="SKU">SKU</label><div id="skuMS" class="dd dd-search-mode" data-placeholder="Search SKUs"></div></div>
       <div class="filter" data-col-wrapper="targetingCat"><label data-col-label="targetingCat" data-default="Targeting CAT">Targeting CAT</label><div id="targetingCatMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="customerType"><label data-col-label="customerType" data-default="Customer Search Term - TYPE">Customer Search Term - TYPE</label><div id="customerTypeMS" class="dd"></div></div>
       <div class="filter" data-col-wrapper="placement"><label data-col-label="placement" data-default="Placement">Placement</label><div id="placementMS" class="dd"></div></div>
@@ -2421,13 +2417,6 @@ function handlePivotSectionClick(event){
     handlePivotLabelButton(labelBtn);
     return;
   }
-  const skuBtn=event.target.closest?.('.pivot-sku-btn');
-  if(skuBtn){
-    event.preventDefault();
-    event.stopPropagation();
-    handlePivotSkuButton(skuBtn);
-    return;
-  }
   const header=event.target.closest?.('th[data-sort-key]');
   if(header){
     event.preventDefault();
@@ -2451,32 +2440,6 @@ function handlePivotLabelButton(button){
   const value=button.dataset.pivotValue;
   const matchKey=button.dataset.pivotMatch;
   applyPivotLabelFilter(table, value, matchKey);
-}
-
-function handlePivotSkuButton(button){
-  if(!button) return;
-  const valuesAttr=button.getAttribute('data-pivot-skus')||'';
-  const asinValue=button.getAttribute('data-pivot-asin')||'';
-  let values=[];
-  if(valuesAttr){
-    values=valuesAttr.split(',').map(val=>decodeURIComponent(val)).filter(Boolean);
-  }
-  if(!values.length && asinValue){
-    values=skuEntriesToValues(lookupAsinSkus(asinValue));
-  }
-  let applied=false;
-  if(values.length){
-    applied=applySkuFilterSelection(values, true);
-    if(applied) return;
-  }
-  if(asinValue){
-    const table=button.closest('table.pivot-table');
-    if(!table) return;
-    const row=button.closest('tr');
-    const labelBtn=row?.querySelector('.pivot-label-btn');
-    const matchKey=labelBtn?.dataset.pivotMatch;
-    applyPivotLabelFilter(table, asinValue, matchKey);
-  }
 }
 
 function applyPivotLabelFilter(table, rawValue, matchKey){
@@ -4185,13 +4148,7 @@ function buildPivotSkuCell(row){
   }
   text=text.trim();
   if(text){
-    const encoded=values.length?values.map(v=>encodeURIComponent(v)).join(','):'';
-    const attrs=[];
-    if(encoded) attrs.push(`data-pivot-skus="${escapeHtml(encoded)}"`);
-    const asinValue=asinRaw==null?'':String(asinRaw);
-    if(asinValue) attrs.push(`data-pivot-asin="${escapeHtml(asinValue)}"`);
-    const attrStr=attrs.length?` ${attrs.join(' ')}`:'';
-    return `<td class="pivot-sku"><button type="button" class="pivot-sku-btn"${attrStr}><span class="pivot-label-text">${escapeHtml(text)}</span></button></td>`;
+    return `<td class="pivot-sku"><span class="pivot-label-text">${escapeHtml(text)}</span></td>`;
   }
   return '<td class="pivot-sku">—</td>';
 }
