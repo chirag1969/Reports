@@ -2100,6 +2100,15 @@ const PIVOT_CONFIG={
     {slot:'targetingCat', column:'targetingCat', fallback:'Targeting CAT'}
   ]
 };
+const INITIAL_FILTER_KEYS=(()=>{
+  const keys=new Set(['term']);
+  (PIVOT_CONFIG.overview||[]).forEach(cfg=>{
+    if(cfg?.column) keys.add(cfg.column);
+  });
+  return Array.from(keys);
+})();
+const FILTER_BACKFILL_CHUNK_SIZE=3;
+let filterBackfillToken=0;
 const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:'', mode:'dimension', dateTab:'months'};
 const DEFAULT_PREPROCESSED_DATA=[
   'preprocessed/search_terms.json'
@@ -2882,6 +2891,7 @@ function setHasData(has){
       else redraw();
     }
   }else{
+    filterBackfillToken+=1;
     if(el.topLine) el.topLine.style.display='none';
     if(el.kpis) el.kpis.hidden=true;
     if(el.pivot?.section) el.pivot.section.hidden=true;
@@ -3188,8 +3198,11 @@ async function buildStateFromSheetData(sheetData, options={}){
   resetConversionPaging();
   buildSqlIndexes();
   buildMonths();
-  initFilters();
+  const {token:filterToken, remainingKeys}=initFilters({initialKeys:INITIAL_FILTER_KEYS});
   renderAll();
+  if(Array.isArray(remainingKeys) && remainingKeys.length){
+    scheduleDeferredFilterBuild(remainingKeys, filterToken);
+  }
 }
 
 function buildSqlIndexes(){
@@ -3620,21 +3633,62 @@ function syncFilterLabels(){
   });
 }
 
-function initFilters(){
+function initFilters(options={}){
+  const token=++filterBackfillToken;
   syncFilterLabels();
   Object.values(el.dd).forEach(root=>root && ddBuild(root));
-  buildOptionsAll();
+  const requestedKeys=Array.isArray(options.initialKeys)?options.initialKeys.filter(key=>key && el.dd?.[key]):[];
+  const initialKeys=requestedKeys.length?Array.from(new Set(requestedKeys)):[];
+  if(initialKeys.length){
+    buildOptionsAll({keys:initialKeys, keepExisting:false});
+  }else{
+    buildOptionsAll();
+  }
   el.filters.hidden=false;
+  const initialSet=new Set(initialKeys);
+  const remainingKeys=Object.keys(el.dd||{}).filter(key=>key && !initialSet.has(key));
+  return {token, remainingKeys};
 }
-function buildOptionsAll(){
-  for(const [k,root] of Object.entries(el.dd)){
+function buildOptionsAll(options={}){
+  const keysOption=Array.isArray(options.keys)?options.keys.filter(Boolean):null;
+  const targetKeys=keysOption && keysOption.length ? Array.from(new Set(keysOption)) : Object.keys(el.dd||{});
+  if(!targetKeys.length) return;
+  buildOptionsForKeys(targetKeys, {keepExisting:options.keepExisting===true});
+  updateAllFilterOptions(null,{keys:targetKeys});
+}
+function buildOptionsForKeys(keys, options={}){
+  const keepSelections=options.keepExisting===true;
+  const keySet=new Set(keys);
+  for(const [k,root] of Object.entries(el.dd||{})){
+    if(!root) continue;
+    if(!keySet.has(k)) continue;
     if(k==='sku') continue;
     const col=state.columns[k];
     if(!col || col.aliasOf) continue;
     const values=uniqValues(k).map(v=>({v,count:0}));
-    ddSetOptions(root, values, false);
+    ddSetOptions(root, values, keepSelections);
   }
-  updateAllFilterOptions(null);
+}
+function scheduleDeferredFilterBuild(keys, token){
+  const queue=Array.isArray(keys)?Array.from(new Set(keys.filter(key=>key && el.dd?.[key]))):[];
+  if(!queue.length) return;
+  const runChunk=()=>{
+    if(token!==filterBackfillToken) return;
+    const chunk=queue.splice(0, FILTER_BACKFILL_CHUNK_SIZE);
+    if(!chunk.length) return;
+    buildOptionsAll({keys:chunk, keepExisting:true});
+    if(queue.length){
+      scheduleLowPriorityTask(runChunk);
+    }
+  };
+  scheduleLowPriorityTask(runChunk);
+}
+function scheduleLowPriorityTask(task){
+  if(typeof requestIdleCallback==='function'){
+    requestIdleCallback(()=>task());
+  }else{
+    setTimeout(task,60);
+  }
 }
 function uniqValues(kind){
   const col=state.columns[kind]; if(!col || col.aliasOf) return [];
@@ -3867,10 +3921,13 @@ function buildFilterContext(excludeRoot){
   });
   return {conditions, meta:{dateInfo, from, to, monthSet}};
 }
-function updateAllFilterOptions(excludeRoot){
+function updateAllFilterOptions(excludeRoot, options={}){
   const context=buildFilterContext(excludeRoot||null);
+  const keysOption=Array.isArray(options.keys)?options.keys.filter(Boolean):null;
+  const targetKeys=keysOption && keysOption.length ? new Set(keysOption) : null;
   Object.entries(el.dd).forEach(([k,root])=>{
     if(!root) return;
+    if(targetKeys && !targetKeys.has(k)) return;
     if(k==='sku'){
       ddSetOptions(root, skuOptionsWithCounts(context), true);
       return;
