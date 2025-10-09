@@ -2101,6 +2101,9 @@ const PIVOT_CONFIG={
   ]
 };
 const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:'', mode:'dimension', dateTab:'months'};
+const DEFAULT_PREPROCESSED_DATA=[
+  'preprocessed/search_terms.json'
+];
 const DEFAULT_WORKBOOKS=[
   'Product Search Term.xlsx',
   'Products Search Term.xlsx'
@@ -2818,7 +2821,9 @@ function boot(){
   showLoading(false);
   el.tipPill.hidden=true;
   el.monthsWrap.hidden=true;
-  attemptDefaultWorkbook();
+  attemptPreprocessedData()
+    .catch(err=>console.warn('Preprocessed data attempt failed:', err))
+    .finally(()=>{ if(!state.hasData) attemptDefaultWorkbook(); });
 }
 function showLoading(on){ el.status.classList.toggle('show', !!on); el.status.style.display=on?'':'none'; }
 
@@ -2915,6 +2920,45 @@ async function loadWorkbookBuffer(buf){
   await parseExcel(buf);
   setHasData(true);
 }
+async function attemptPreprocessedData(){
+  const list=Array.isArray(DEFAULT_PREPROCESSED_DATA)?DEFAULT_PREPROCESSED_DATA:[DEFAULT_PREPROCESSED_DATA];
+  const files=list.map(file=>typeof file==='string'?file.trim():'').filter(Boolean);
+  if(!files.length || state.hasData) return;
+  showLoading(true);
+  try{
+    for(const file of files){
+      if(state.hasData) return;
+      let targetUrl;
+      try{
+        targetUrl=new URL(file, document.baseURI).href;
+      }catch(_){
+        targetUrl=encodeURI(file);
+      }
+      try{
+        const response=await fetch(targetUrl,{cache:'no-store'});
+        if(!response.ok && response.status!==0){
+          console.warn(`Preprocessed data not available: ${file}`);
+          continue;
+        }
+        const payload=await response.json();
+        const sheetData=Array.isArray(payload?.sheet_data)?payload.sheet_data:null;
+        if(!sheetData || !sheetData.length){
+          console.warn(`Preprocessed data missing sheet_data in ${file}`);
+          continue;
+        }
+        const headerRowIndex=Number.isInteger(payload?.header_row_index)?payload.header_row_index:1;
+        await buildStateFromSheetData(sheetData,{headerRowIndex});
+        setHasData(true);
+        return;
+      }catch(err){
+        console.warn(`Failed to load preprocessed data from ${file}:`, err);
+      }
+    }
+  }finally{
+    showLoading(false);
+  }
+}
+
 async function attemptDefaultWorkbook(){
   const list=Array.isArray(DEFAULT_WORKBOOKS)?DEFAULT_WORKBOOKS:[DEFAULT_WORKBOOKS];
   const files=list.map(file=>typeof file==='string'?file.trim():'').filter(Boolean);
@@ -2951,8 +2995,6 @@ async function attemptDefaultWorkbook(){
   }
 }
 async function parseExcel(buf){
-  const SQL = await (sqlReadyPromise || loadSqlLibrary());
-  if(!SQL) throw new Error('Unable to initialize SQL engine');
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
   let best=null,score=-1;
   for(const name of wb.SheetNames){
@@ -2987,9 +3029,17 @@ async function parseExcel(buf){
     defval:null,
     dense:true
   });
-  if(!sheetData || sheetData.length<3) throw new Error('No usable sheet found');
-  const headers=(sheetData[1]||[]).map(h=>String(h??'').trim());
-  const dataRowsRaw=sheetData.slice(2);
+  await buildStateFromSheetData(sheetData,{headerRowIndex:1});
+}
+
+async function buildStateFromSheetData(sheetData, options={}){
+  const SQL = await (sqlReadyPromise || loadSqlLibrary());
+  if(!SQL) throw new Error('Unable to initialize SQL engine');
+  if(!Array.isArray(sheetData) || sheetData.length<3) throw new Error('No usable sheet found');
+  const headerRowIndex=Number.isInteger(options?.headerRowIndex)?options.headerRowIndex:1;
+  const headerRow=Array.isArray(sheetData[headerRowIndex])?sheetData[headerRowIndex]:[];
+  const headers=headerRow.map(h=>String(h??'').trim());
+  const dataRowsRaw=sheetData.slice(headerRowIndex+1);
 
   const cols={
     date:       findIndexByTokens(headers,['date','day','reportingdate']),
@@ -3043,7 +3093,7 @@ async function parseExcel(buf){
         if(rawValue instanceof Date){
           dateVal=rawValue;
         }else if(typeof rawValue==='number'){
-          const parsed=XLSX.SSF.parse_date_code(rawValue);
+          const parsed=XLSX?.SSF?.parse_date_code ? XLSX.SSF.parse_date_code(rawValue) : null;
           dateVal=(parsed&&parsed.y)?new Date(parsed.y,parsed.m-1,parsed.d):null;
         }else if(typeof rawValue==='string' && rawValue){
           const parsed=parseInputDate(rawValue) || (isNaN(+new Date(rawValue))?null:new Date(rawValue));
