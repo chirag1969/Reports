@@ -2303,16 +2303,38 @@ async function loadAdvertisedProductsWorkbook(){
   const ws=wb.Sheets[wb.SheetNames[0]];
   if(!ws) return [];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
-  if(!rows || rows.length<3) return [];
-  const headers=(rows[1]||[]).map(v=>String(v||'').trim());
-  const idxCampaign=findIndexByTokens(headers,['campaignname','campaign']);
-  const idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
-  const idxSku=findIndexByTokens(headers,['advertisedsku','sku']);
-  const idxAsin=findIndexByTokens(headers,['advertisedasin','asin']);
+  if(!rows || rows.length<2) return [];
+  const sanitizeRow=row=>(row||[]).map(v=>String(v??'').trim());
+  let headerIndex=rows.length>1?1:0;
+  let headers=sanitizeRow(rows[headerIndex]);
+  let idxCampaign=findIndexByTokens(headers,['campaignname','campaign']);
+  let idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
+  let idxSku=findIndexByTokens(headers,['advertisedsku','sku']);
+  let idxAsin=findIndexByTokens(headers,['advertisedasin','asin']);
+  if((idxCampaign<0 && idxAdGroup<0) || (idxSku<0 && idxAsin<0)){
+    for(let i=0;i<Math.min(rows.length,6);i++){
+      const candidate=sanitizeRow(rows[i]);
+      const campaignCandidate=findIndexByTokens(candidate,['campaignname','campaign']);
+      const adGroupCandidate=findIndexByTokens(candidate,['adgroupname','ad group name','adgroup']);
+      const skuCandidate=findIndexByTokens(candidate,['advertisedsku','sku']);
+      const asinCandidate=findIndexByTokens(candidate,['advertisedasin','asin']);
+      const hasNames=(campaignCandidate>-1 || adGroupCandidate>-1);
+      const hasProducts=(skuCandidate>-1 || asinCandidate>-1);
+      if(hasNames && hasProducts){
+        headerIndex=i;
+        headers=candidate;
+        idxCampaign=campaignCandidate;
+        idxAdGroup=adGroupCandidate;
+        idxSku=skuCandidate;
+        idxAsin=asinCandidate;
+        break;
+      }
+    }
+  }
   if(idxCampaign<0 && idxAdGroup<0) return [];
   if(idxSku<0 && idxAsin<0) return [];
   const data=[];
-  for(let i=2;i<rows.length;i++){
+  for(let i=headerIndex+1;i<rows.length;i++){
     const row=Array.isArray(rows[i])?rows[i]:[];
     const campaign=idxCampaign>-1?String(row[idxCampaign]??'').trim():'';
     const adGroup=idxAdGroup>-1?String(row[idxAdGroup]??'').trim():'';
