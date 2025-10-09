@@ -190,6 +190,7 @@ body.has-data #tipPill{display:none !important}
 .pivot-clear-btn:hover{color:#fff;background:linear-gradient(180deg,var(--danger),color-mix(in srgb,var(--danger) 82%, #000));border-color:transparent;box-shadow:0 10px 22px rgba(220,38,38,.25)}
 .pivot-card{margin:0;width:100%}
 .pivot-card+.pivot-card{margin-top:0}
+.pivot-extra-card{grid-column:1 / -1}
 .pivot-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
 .pivot-card-head .chart-title{margin-bottom:0}
 .pivot-filter-popup{position:fixed;z-index:130;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:12px;min-width:240px;max-width:320px;max-height:420px;overflow:hidden}
@@ -214,6 +215,14 @@ body.has-data #tipPill{display:none !important}
 .pivot-filter-footer{display:flex;justify-content:flex-end}
 .pivot-filter-clear{border:1px solid var(--border-strong);background:transparent;color:var(--muted);border-radius:9px;font-weight:700;padding:8px 12px;cursor:pointer;transition:background .15s ease,color .15s ease}
 .pivot-filter-clear:hover{background:color-mix(in srgb,var(--chip) 85%, transparent);color:var(--text)}
+.advertised-table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.5}
+.advertised-table thead th{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;letter-spacing:.4px;text-transform:uppercase;font-weight:700}
+.advertised-table tbody td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600;vertical-align:top}
+.advertised-table tbody tr:hover{background:color-mix(in srgb,var(--chip) 85%, transparent)}
+.advertised-table tbody tr:last-child td{border-bottom:0}
+.advertised-table.is-loading tbody td{color:var(--muted);font-style:italic}
+.advertised-empty{padding:10px 12px;color:var(--muted);font-weight:600}
+.advertised-placeholder{color:var(--muted);font-weight:500}
 .pivot-date-tabs{display:flex;align-items:center;gap:6px;padding:4px;border-radius:10px;border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 80%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 4%, transparent)}
 .pivot-date-tab{flex:1 1 0;border:0;background:transparent;color:var(--muted);font-weight:700;padding:8px 12px;border-radius:8px;cursor:pointer;transition:color .2s ease, background .2s ease, transform .12s ease}
 .pivot-date-tab:hover{color:var(--text);background:color-mix(in srgb,var(--chip) 85%, transparent);transform:translateY(-1px)}
@@ -558,6 +567,23 @@ body.has-data #tipPill{display:none !important}
     </div>
     <div class="pivot-body">
       <table id="pivotTableAdGroup" class="pivot-table"></table>
+    </div>
+  </div>
+  <div class="chart-card pivot-card pivot-extra-card" id="advertisedProductsCard" hidden>
+    <div class="chart-title">
+      <span class="chart-title-text">Advertised Products</span>
+    </div>
+    <div class="pivot-body">
+      <div id="advertisedProductsEmpty" class="advertised-empty" hidden>No advertised products for the selected filters.</div>
+      <table id="advertisedProductsTable" class="advertised-table" hidden>
+        <thead>
+          <tr>
+            <th scope="col">Advertised SKU</th>
+            <th scope="col">Advertised ASIN</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
   <div class="chart-card pivot-card" id="pivotTargetingAsinCard">
@@ -1958,6 +1984,12 @@ const el={
       navLabel:document.querySelector('#pivotConversionAsinCard .pivot-nav-label')
     }
   },
+  advertisedProducts:{
+    card:document.getElementById('advertisedProductsCard'),
+    table:document.getElementById('advertisedProductsTable'),
+    body:document.querySelector('#advertisedProductsTable tbody'),
+    empty:document.getElementById('advertisedProductsEmpty')
+  },
   pivotPopup:{
     root:document.getElementById('pivotFilterPopup'),
     title:document.getElementById('pivotFilterPopupTitle'),
@@ -2025,6 +2057,7 @@ const state={
   asinSkuMap:new Map(),
   asinSkuLoaded:false,
   asinValueMap:new Map(),
+  advertisedProducts:{rows:[],loaded:false,renderToken:0},
   conversionPage:{st:0,asin:0},
   lastTabIndex:0,
   pivotFilters:{},
@@ -2073,7 +2106,9 @@ const DEFAULT_WORKBOOKS=[
   'Products Search Term.xlsx'
 ];
 const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
+const ADVERTISED_PRODUCTS_WORKBOOK='Products Advertised Product.xlsx';
 let asinSkuPromise=null;
+let advertisedProductsPromise=null;
 
 function ensureAsinSkuMap(){
   if(state.asinSkuLoaded){
@@ -2222,6 +2257,79 @@ function formatSkuEntries(entries){
     parts.push(value);
   }
   return parts.join(', ');
+}
+
+function ensureAdvertisedProductsData(){
+  const entry=state.advertisedProducts;
+  if(entry?.loaded){
+    return Promise.resolve(Array.isArray(entry.rows)?entry.rows:[]);
+  }
+  if(advertisedProductsPromise){
+    return advertisedProductsPromise;
+  }
+  advertisedProductsPromise=loadAdvertisedProductsWorkbook().then(rows=>{
+    if(entry){
+      entry.rows=Array.isArray(rows)?rows:[];
+      entry.loaded=true;
+    }
+    return entry?.rows||[];
+  }).catch(err=>{
+    console.warn('Advertised products workbook load failed:', err);
+    if(entry){
+      entry.rows=[];
+      entry.loaded=false;
+    }
+    throw err;
+  }).finally(()=>{
+    advertisedProductsPromise=null;
+  });
+  return advertisedProductsPromise;
+}
+
+async function loadAdvertisedProductsWorkbook(){
+  const file=ADVERTISED_PRODUCTS_WORKBOOK && ADVERTISED_PRODUCTS_WORKBOOK.trim();
+  if(!file) return [];
+  let targetUrl;
+  try{
+    targetUrl=new URL(file, document.baseURI).href;
+  }catch(_){
+    targetUrl=encodeURI(file);
+  }
+  const response=await fetch(targetUrl,{cache:'no-store'});
+  if(!response.ok && response.status!==0) throw new Error('Advertised product workbook not found');
+  const buf=await response.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array',cellDates:false,cellNF:false,cellText:false});
+  if(!wb.SheetNames || !wb.SheetNames.length) return [];
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  if(!ws) return [];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+  if(!rows || rows.length<3) return [];
+  const headers=(rows[1]||[]).map(v=>String(v||'').trim());
+  const idxCampaign=findIndexByTokens(headers,['campaignname','campaign']);
+  const idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
+  const idxSku=findIndexByTokens(headers,['advertisedsku','sku']);
+  const idxAsin=findIndexByTokens(headers,['advertisedasin','asin']);
+  if(idxCampaign<0 && idxAdGroup<0) return [];
+  if(idxSku<0 && idxAsin<0) return [];
+  const data=[];
+  for(let i=2;i<rows.length;i++){
+    const row=Array.isArray(rows[i])?rows[i]:[];
+    const campaign=idxCampaign>-1?String(row[idxCampaign]??'').trim():'';
+    const adGroup=idxAdGroup>-1?String(row[idxAdGroup]??'').trim():'';
+    const sku=idxSku>-1?String(row[idxSku]??'').trim():'';
+    const asin=idxAsin>-1?String(row[idxAsin]??'').trim():'';
+    if(!campaign && !adGroup) continue;
+    if(!sku && !asin) continue;
+    data.push({
+      campaign,
+      adGroup,
+      sku,
+      asin,
+      campaignKey:normalize(campaign),
+      adGroupKey:normalize(adGroup)
+    });
+  }
+  return data;
 }
 
 function skuEntriesToValues(entries){
@@ -2662,6 +2770,7 @@ function boot(){
   });
 
   setupPivotInteractions();
+  ensureAdvertisedProductsData().catch(()=>{});
 
   if(el.pivotPopup?.close) el.pivotPopup.close.addEventListener('click', ()=>closePivotFilterPopup());
   if(el.pivotPopup?.clear) el.pivotPopup.clear.addEventListener('click', ()=>{
@@ -2722,6 +2831,8 @@ function setHasData(has){
     if(el.monthsWrap) el.monthsWrap.hidden=true;
     if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
+    if(el.advertisedProducts?.card) el.advertisedProducts.card.hidden=true;
+    if(state.advertisedProducts) state.advertisedProducts.renderToken=0;
     closePivotFilterPopup(false);
     state.columns={};
     state.rows=[];
@@ -4543,6 +4654,115 @@ function hideUnusedPivotSlots(activeSlots){
   });
 }
 
+function filterAdvertisedProductRows(rows, campaignValues, adgroupValues){
+  if(!Array.isArray(rows) || !rows.length) return [];
+  const campaignList=Array.isArray(campaignValues)?campaignValues:[];
+  const adgroupList=Array.isArray(adgroupValues)?adgroupValues:[];
+  const applyCampaign=campaignList.length>0;
+  const applyAdGroup=adgroupList.length>0;
+  const campaignSet=applyCampaign?new Set(campaignList.map(value=>normalize(value))):null;
+  const adGroupSet=applyAdGroup?new Set(adgroupList.map(value=>normalize(value))):null;
+  const dedupe=new Map();
+  rows.forEach(row=>{
+    if(!row) return;
+    if(applyCampaign && !campaignSet.has(row.campaignKey)) return;
+    if(applyAdGroup && !adGroupSet.has(row.adGroupKey)) return;
+    const sku=String(row.sku||'').trim();
+    const asin=String(row.asin||'').trim();
+    if(!sku && !asin) return;
+    const key=`${sku}||${asin}`;
+    if(!dedupe.has(key)){
+      dedupe.set(key,{sku,asin});
+    }
+  });
+  const result=Array.from(dedupe.values());
+  result.sort((a,b)=>{
+    const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
+    if(skuDiff!==0) return skuDiff;
+    return PIVOT_LABEL_COLLATOR.compare(a.asin||'', b.asin||'');
+  });
+  return result;
+}
+
+function setAdvertisedProductsView(status, rows){
+  const view=el.advertisedProducts;
+  if(!view) return;
+  const {table, body, empty}=view;
+  if(table){
+    table.classList.toggle('is-loading', status==='loading');
+  }
+  if(status==='loading'){
+    if(body) body.innerHTML='<tr class="advertised-loading"><td colspan="2">Loading…</td></tr>';
+    if(table) table.hidden=false;
+    if(empty) empty.hidden=true;
+  }else if(status==='error'){
+    if(body) body.innerHTML='';
+    if(table) table.hidden=true;
+    if(empty){
+      empty.textContent='Unable to load advertised products.';
+      empty.hidden=false;
+    }
+  }else if(status==='empty'){
+    if(body) body.innerHTML='';
+    if(table) table.hidden=true;
+    if(empty){
+      empty.textContent='No advertised products for the selected filters.';
+      empty.hidden=false;
+    }
+  }else if(status==='rows'){
+    if(body){
+      const placeholder='<span class="advertised-placeholder">—</span>';
+      body.innerHTML=rows.map(row=>{
+        const sku=row?.sku?escapeHtml(row.sku):placeholder;
+        const asin=row?.asin?escapeHtml(row.asin):placeholder;
+        return `<tr><td>${sku}</td><td>${asin}</td></tr>`;
+      }).join('');
+    }
+    if(table) table.hidden=false;
+    if(empty) empty.hidden=true;
+  }
+  if(typeof schedulePivotLayout==='function'){
+    schedulePivotLayout();
+  }
+}
+
+function updateAdvertisedProductsDisplay(){
+  const view=el.advertisedProducts;
+  if(!view || !view.card) return;
+  const tracker=state.advertisedProducts;
+  if(tracker){
+    tracker.renderToken=(tracker.renderToken||0)+1;
+  }
+  const token=tracker?.renderToken||0;
+  if(!state.hasData || state.activeTab!=='campaignPortfolio'){
+    view.card.hidden=true;
+    return;
+  }
+  const campaignRoot=el.dd?.campaign;
+  const adgroupRoot=el.dd?.adgroup;
+  const campaignValues=campaignRoot?ddGetSelected(campaignRoot):[];
+  const adgroupValues=adgroupRoot?ddGetSelected(adgroupRoot):[];
+  const hasSelection=(campaignValues.length>0 || adgroupValues.length>0);
+  if(!hasSelection){
+    view.card.hidden=true;
+    return;
+  }
+  view.card.hidden=false;
+  setAdvertisedProductsView('loading');
+  ensureAdvertisedProductsData().then(rows=>{
+    if(state.advertisedProducts?.renderToken!==token) return;
+    const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues);
+    if(filtered.length){
+      setAdvertisedProductsView('rows', filtered);
+    }else{
+      setAdvertisedProductsView('empty');
+    }
+  }).catch(()=>{
+    if(state.advertisedProducts?.renderToken!==token) return;
+    setAdvertisedProductsView('error');
+  });
+}
+
 /* ===== render & CSV ===== */
 function renderAll(){
   const context=buildFilterContext(null);
@@ -4595,6 +4815,7 @@ function renderAll(){
       if(asinRoot) syncSkuFilterFromAsins(ddGetSelected(asinRoot), {silent:true});
     }
   }
+  updateAdvertisedProductsDisplay();
   schedulePivotLayout();
 }
 
