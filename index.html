@@ -3123,7 +3123,17 @@ async function buildStateFromSheetData(sheetData, options={}){
   const columnMap=new Map();
   columnInfo.forEach(info=>{ const key=info.normalized||''; if(!columnMap.has(key)) columnMap.set(key,info); });
 
-  const dataRows=[];
+  if(state.sql?.db){
+    try{ state.sql.db.close(); }catch(_){ }
+  }
+  const db=new SQL.Database();
+  const tableName='search_terms';
+  const columnDefs=columnInfo.map(info=>`"${info.sqlName}" ${info.type}`);
+  db.exec(`CREATE TABLE "${tableName}" (${columnDefs.join(',')});`);
+  const placeholders=columnInfo.map(()=>'?').join(',');
+  let stmt=null;
+  let transactionStarted=false;
+  let rowCount=0;
   for(let r=0;r<dataRowsRaw.length;r++){
     const rowRaw=Array.isArray(dataRowsRaw[r])?dataRowsRaw[r]:[];
     const rowValues=new Array(columnInfo.length);
@@ -3153,29 +3163,26 @@ async function buildStateFromSheetData(sheetData, options={}){
       rowValues[i]=v;
       if(v!=='' && v!=null) hasValue=true;
     }
-    if(hasValue) dataRows.push(rowValues);
-  }
-
-  if(state.sql?.db){
-    try{ state.sql.db.close(); }catch(_){ }
-  }
-  const db=new SQL.Database();
-  const tableName='search_terms';
-  const columnDefs=columnInfo.map(info=>`"${info.sqlName}" ${info.type}`);
-  db.exec(`CREATE TABLE "${tableName}" (${columnDefs.join(',')});`);
-  if(dataRows.length){
-    const placeholders=columnInfo.map(()=>'?').join(',');
-    const stmt=db.prepare(`INSERT INTO "${tableName}" VALUES (${placeholders})`);
-    db.exec('BEGIN TRANSACTION;');
-    for(const rowValues of dataRows){
-      const prepared=rowValues.map(value=>value===undefined?null:value);
-      stmt.run(prepared);
+    if(!hasValue) continue;
+    if(!stmt){
+      stmt=db.prepare(`INSERT INTO "${tableName}" VALUES (${placeholders})`);
     }
+    if(!transactionStarted){
+      db.exec('BEGIN TRANSACTION;');
+      transactionStarted=true;
+    }
+    const prepared=rowValues.map(value=>value===undefined?null:value);
+    stmt.run(prepared);
+    rowCount+=1;
+  }
+  if(stmt){
     stmt.free();
+  }
+  if(transactionStarted){
     db.exec('COMMIT;');
   }
 
-  state.sql={db, table:tableName, columns:columnInfo, columnMap, rowCount:dataRows.length};
+  state.sql={db, table:tableName, columns:columnInfo, columnMap, rowCount};
   state.rows=[];
   state.monthSel.clear();
   resetConversionPaging();
