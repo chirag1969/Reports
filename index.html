@@ -4868,24 +4868,39 @@ function filterAdvertisedProductRows(rows, campaignValues, adgroupValues){
   if(!Array.isArray(rows) || !rows.length) return [];
   const campaignList=Array.isArray(campaignValues)?campaignValues:[];
   const adgroupList=Array.isArray(adgroupValues)?adgroupValues:[];
-  const applyCampaign=campaignList.length>0;
-  const applyAdGroup=adgroupList.length>0;
-  const campaignSet=applyCampaign?new Set(campaignList.map(value=>normalizeAdvertisedKey(value))):null;
-  const adGroupSet=applyAdGroup?new Set(adgroupList.map(value=>normalizeAdvertisedKey(value))):null;
-  const dedupe=new Map();
-  rows.forEach(row=>{
-    if(!row) return;
-    if(applyCampaign && !campaignSet.has(row.campaignKey)) return;
-    if(applyAdGroup && !adGroupSet.has(row.adGroupKey)) return;
-    const sku=String(row.sku||'').trim();
-    const asin=String(row.asin||'').trim();
-    if(!sku && !asin) return;
-    const key=`${sku}||${asin}`;
-    if(!dedupe.has(key)){
-      dedupe.set(key,{sku,asin});
+  const campaignSet=campaignList.length?new Set(campaignList.map(value=>normalizeAdvertisedKey(value))):null;
+  const adGroupSet=adgroupList.length?new Set(adgroupList.map(value=>normalizeAdvertisedKey(value))):null;
+  const attemptFilter=(useCampaign, useAdGroup)=>{
+    const dedupe=new Map();
+    rows.forEach(row=>{
+      if(!row) return;
+      if(useCampaign && campaignSet && !campaignSet.has(row.campaignKey)) return;
+      if(useAdGroup && adGroupSet && !adGroupSet.has(row.adGroupKey)) return;
+      const sku=String(row.sku||'').trim();
+      const asin=String(row.asin||'').trim();
+      if(!sku && !asin) return;
+      const key=`${normalizeSkuKey(sku)}||${normalizeAsinKey(asin)}`;
+      if(!dedupe.has(key)){
+        dedupe.set(key,{sku,asin});
+      }
+    });
+    return Array.from(dedupe.values());
+  };
+  let result=[];
+  if(adGroupSet && campaignSet){
+    result=attemptFilter(true,true);
+    if(!result.length){
+      result=attemptFilter(false,true);
     }
-  });
-  const result=Array.from(dedupe.values());
+    if(!result.length){
+      result=attemptFilter(true,false);
+    }
+  }else if(adGroupSet){
+    result=attemptFilter(false,true);
+  }else if(campaignSet){
+    result=attemptFilter(true,false);
+  }
+  if(!result.length) return [];
   result.sort((a,b)=>{
     const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
     if(skuDiff!==0) return skuDiff;
