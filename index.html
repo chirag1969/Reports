@@ -5045,11 +5045,16 @@ function updateAdvertisedProductsDisplay(){
   Promise.all([workbookPromise, asinPromise]).then(([rows])=>{
     if(state.advertisedProducts?.renderToken!==token) return;
     const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues);
+    if(filtered.length){
+      const workbookOnly=mergeAdvertisedProductSources([], filtered);
+      if(workbookOnly.length){
+        setAdvertisedProductsView('rows', workbookOnly);
+        return;
+      }
+    }
     const combined=mergeAdvertisedProductSources(collectAdvertisedProductsFromSql(), filtered);
     if(combined.length){
       setAdvertisedProductsView('rows', combined);
-    }else if(filtered.length){
-      setAdvertisedProductsView('rows', filtered);
     }else{
       setAdvertisedProductsView('empty');
     }
