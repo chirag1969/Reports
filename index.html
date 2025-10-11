@@ -1788,6 +1788,15 @@ const fmt={
 };
 const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
 const normalize=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+function normalizeAdvertisedKey(value){
+  if(value==null) return '';
+  let str=String(value).toLowerCase();
+  str=str.trim();
+  str=str.replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g,'-');
+  str=str.replace(/\s+/g,' ');
+  str=str.replace(/\s*-\s*/g,'-');
+  return str.trim();
+}
 const escapeHtml=s=>String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const debounce=(fn,ms=150)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
 const toDMY=d=>!(d instanceof Date)?"":`${String(d.getDate()).padStart(2,'0')} ${MONTH_NAMES[d.getMonth()]||''} ${d.getFullYear()}`.trim();
@@ -2362,8 +2371,8 @@ async function loadAdvertisedProductsWorkbook(){
       adGroup,
       sku,
       asin,
-      campaignKey:normalize(campaign),
-      adGroupKey:normalize(adGroup)
+      campaignKey:normalizeAdvertisedKey(campaign),
+      adGroupKey:normalizeAdvertisedKey(adGroup)
     });
   }
   return data;
@@ -4861,8 +4870,8 @@ function filterAdvertisedProductRows(rows, campaignValues, adgroupValues){
   const adgroupList=Array.isArray(adgroupValues)?adgroupValues:[];
   const applyCampaign=campaignList.length>0;
   const applyAdGroup=adgroupList.length>0;
-  const campaignSet=applyCampaign?new Set(campaignList.map(value=>normalize(value))):null;
-  const adGroupSet=applyAdGroup?new Set(adgroupList.map(value=>normalize(value))):null;
+  const campaignSet=applyCampaign?new Set(campaignList.map(value=>normalizeAdvertisedKey(value))):null;
+  const adGroupSet=applyAdGroup?new Set(adgroupList.map(value=>normalizeAdvertisedKey(value))):null;
   const dedupe=new Map();
   rows.forEach(row=>{
     if(!row) return;
