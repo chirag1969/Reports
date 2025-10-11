@@ -294,6 +294,7 @@ body.has-data #tipPill{display:none !important}
 #statusArea.show{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;background:radial-gradient(900px 400px at 20% -10%, color-mix(in srgb, #ffffff 4%, var(--bg)) 0%, var(--bg) 45%)}
 .loader{display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px dashed var(--border);border-radius:14px;background:var(--chip);box-shadow:var(--shadow)}
 .spinner{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.25);border-top-color:var(--accent);animation:spin .9s linear infinite}
+.status-progress{margin-top:4px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.25px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Modal (filters) */
@@ -424,7 +425,13 @@ body.has-data #tipPill{display:none !important}
   </div>
 
   <section class="status" id="statusArea" aria-live="polite">
-    <div class="loader"><div class="spinner"></div><div><strong>Processing data</strong></div></div>
+    <div class="loader">
+      <div class="spinner"></div>
+      <div>
+        <strong>Processing data</strong>
+        <div id="statusProgress" class="status-progress" aria-live="polite"></div>
+      </div>
+    </div>
   </section>
 
   <!-- KPIs -->
@@ -709,6 +716,56 @@ body.has-data #tipPill{display:none !important}
 
 let sqlLibPromise=null;
 let sqlReadyPromise=null;
+const LOADING_PROGRESS_MAX_UPDATES=60;
+
+function computeProgressStep(total){
+  const count=Number.isFinite(total)?Math.max(0,total):0;
+  if(!count) return 0;
+  return Math.max(200, Math.ceil(count/LOADING_PROGRESS_MAX_UPDATES));
+}
+
+function updateLoadingProgress(processed,total){
+  const node=(typeof el!=='undefined' && el?.statusProgress) || null;
+  if(!node) return;
+  const done=Number.isFinite(processed)?Math.max(0,Math.floor(processed)):0;
+  const count=Number.isFinite(total)?Math.max(0,Math.floor(total)):0;
+  if(!done && !count){
+    node.textContent='';
+    return;
+  }
+  if(count){
+    if(!done){
+      node.textContent=`Preparing ${count.toLocaleString()} rows…`;
+      return;
+    }
+    const clamped=Math.min(done,count);
+    const percent=count?Math.min(100,Math.round((clamped/count)*100)):0;
+    const suffix=percent?` (${percent.toLocaleString()}%)`:'';
+    node.textContent=`Processed ${clamped.toLocaleString()} of ${count.toLocaleString()} rows${suffix}…`;
+  }else{
+    node.textContent=`Processed ${done.toLocaleString()} rows…`;
+  }
+}
+
+async function yieldForHeavyWork(){
+  if(typeof scheduler!=='undefined' && typeof scheduler.yield==='function'){
+    try{
+      await scheduler.yield();
+      return;
+    }catch(_){
+      /* ignore */
+    }
+  }
+  await new Promise(resolve=>{
+    if(typeof requestIdleCallback==='function'){
+      requestIdleCallback(()=>resolve(),{timeout:48});
+    }else if(typeof requestAnimationFrame==='function'){
+      requestAnimationFrame(()=>resolve());
+    }else{
+      setTimeout(resolve,0);
+    }
+  });
+}
 function loadSqlLibrary(){
   if(!sqlLibPromise){
     const ensureInit=()=>{
@@ -1989,6 +2046,7 @@ const el={
     buttons:[]
   },
   status:document.getElementById('statusArea'),
+  statusProgress:document.getElementById('statusProgress'),
   kpis:document.getElementById('kpiSection'),
   pivot:{
     section:document.getElementById('pivotSection'),
@@ -2913,6 +2971,7 @@ function showLoading(on, options={}){
     el.status.classList.toggle('show', active);
     el.status.style.display=active?'':'none';
   }
+  if(!active) updateLoadingProgress();
 }
 
 function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.textContent='—'; }); lastKpiSeries=null; updateKpiSparks(null); }
@@ -3144,6 +3203,10 @@ async function buildStateFromSheetData(sheetData, options={}){
   const headerRow=Array.isArray(sheetData[headerRowIndex])?sheetData[headerRowIndex]:[];
   const headers=headerRow.map(h=>String(h??'').trim());
   const dataRowsRaw=sheetData.slice(headerRowIndex+1);
+  const totalRows=dataRowsRaw.length;
+  const progressStep=computeProgressStep(totalRows);
+  let processedRows=0;
+  if(progressStep) updateLoadingProgress(0,totalRows);
 
   const cols={
     date:       findIndexByTokens(headers,['date','day','reportingdate']),
@@ -3195,6 +3258,7 @@ async function buildStateFromSheetData(sheetData, options={}){
   let transactionStarted=false;
   let rowCount=0;
   for(let r=0;r<dataRowsRaw.length;r++){
+    processedRows+=1;
     const rowRaw=Array.isArray(dataRowsRaw[r])?dataRowsRaw[r]:[];
     const rowValues=new Array(columnInfo.length);
     let hasValue=false;
@@ -3234,6 +3298,14 @@ async function buildStateFromSheetData(sheetData, options={}){
     const prepared=rowValues.map(value=>value===undefined?null:value);
     stmt.run(prepared);
     rowCount+=1;
+    if(progressStep && (processedRows%progressStep===0 || processedRows===totalRows)){
+      updateLoadingProgress(processedRows,totalRows);
+      await yieldForHeavyWork();
+    }
+  }
+  if(progressStep){
+    updateLoadingProgress(totalRows,totalRows);
+    await yieldForHeavyWork();
   }
   if(stmt){
     stmt.free();
