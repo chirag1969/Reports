@@ -2355,7 +2355,8 @@ async function loadAdvertisedProductsWorkbook(){
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
   if(!rows || rows.length<2) return [];
   const sanitizeRow=row=>(row||[]).map(v=>String(v??'').trim());
-  let headerIndex=rows.length>1?1:0;
+  const preferredHeaderIndex=rows.length>1?1:0;
+  let headerIndex=preferredHeaderIndex;
   let headers=sanitizeRow(rows[headerIndex]);
   let idxCampaign=findIndexByTokens(headers,['campaignname','campaign']);
   let idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
@@ -2379,6 +2380,14 @@ async function loadAdvertisedProductsWorkbook(){
         idxAsin=asinCandidate;
         break;
       }
+    }
+    if((idxCampaign<0 && idxAdGroup<0) || (idxSku<0 && idxAsin<0)){
+      headerIndex=preferredHeaderIndex;
+      headers=sanitizeRow(rows[headerIndex]);
+      idxCampaign=findIndexByTokens(headers,['campaignname','campaign']);
+      idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
+      idxSku=findIndexByTokens(headers,['advertisedsku','sku']);
+      idxAsin=findIndexByTokens(headers,['advertisedasin','asin']);
     }
   }
   if(idxCampaign<0 && idxAdGroup<0) return [];
@@ -4928,46 +4937,6 @@ function filterAdvertisedProductRows(rows, campaignValues, adgroupValues, mode){
   });
   return result;
 }
-function buildAdvertisedProductsFromSql(campaignValues, adgroupValues){
-  const table=state.sql?.table;
-  const columns=state.sql?.columns;
-  if(!table || !Array.isArray(columns) || !columns.length) return [];
-  const skuInfo=findSqlInfoByTokens(['advertisedsku','advertised_sku','sku']);
-  const asinInfo=findSqlInfoByTokens(['advertisedasin','advertised_asin','asin']);
-  if(!skuInfo && !asinInfo) return [];
-  const campaignInfo=getSqlInfoForStateKey('campaign');
-  const adGroupInfo=getSqlInfoForStateKey('adgroup');
-  const conditions=[];
-  const campaignCond=buildSqlInCondition(campaignInfo, campaignValues);
-  if(campaignCond) conditions.push(campaignCond);
-  const adGroupCond=buildSqlInCondition(adGroupInfo, adgroupValues);
-  if(adGroupCond) conditions.push(adGroupCond);
-  if(!conditions.length) return [];
-  const {sql,params}=combineWhere(conditions);
-  const skuExpr=skuInfo?`TRIM(COALESCE("${skuInfo.sqlName}",''))`:`''`;
-  const asinExpr=asinInfo?`TRIM(COALESCE("${asinInfo.sqlName}",''))`:`''`;
-  const query=`SELECT ${skuExpr} AS sku_value, ${asinExpr} AS asin_value FROM "${table}" ${sql} GROUP BY sku_value, asin_value HAVING sku_value <> '' OR asin_value <> ''`;
-  const rows=sqlQueryAll(query, params);
-  if(!Array.isArray(rows) || !rows.length) return [];
-  const dedupe=new Map();
-  rows.forEach(row=>{
-    if(!row) return;
-    const sku=String(row.sku_value??'').trim();
-    const asin=String(row.asin_value??'').trim();
-    if(!sku && !asin) return;
-    const key=`${normalizeSkuKey(sku)}||${normalizeAsinKey(asin)}`;
-    if(!dedupe.has(key)) dedupe.set(key,{sku,asin});
-  });
-  const result=Array.from(dedupe.values());
-  if(!result.length) return [];
-  result.sort((a,b)=>{
-    const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
-    if(skuDiff!==0) return skuDiff;
-    return PIVOT_LABEL_COLLATOR.compare(a.asin||'', b.asin||'');
-  });
-  return result;
-}
-
 function setAdvertisedProductsView(status, rows){
   const view=el.advertisedProducts;
   if(!view) return;
@@ -5054,10 +5023,7 @@ function updateAdvertisedProductsDisplay(){
   setAdvertisedProductsView('loading');
   ensureAdvertisedProductsData().then(rows=>{
     if(state.advertisedProducts?.renderToken!==token) return;
-    let filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues, filterMode);
-    if(!filtered.length){
-      filtered=buildAdvertisedProductsFromSql(campaignValues, adgroupValues);
-    }
+    const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues, filterMode);
     if(filtered.length){
       setAdvertisedProductsView('rows', filtered);
     }else{
