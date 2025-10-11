@@ -775,6 +775,32 @@ function combineWhere(conditions, extra){
   filtered.forEach(cond=>{ if(Array.isArray(cond.params)) params.push(...cond.params); });
   return {sql,params};
 }
+function sanitizeHeaderKey(value){
+  return String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+}
+function findSqlInfoByTokens(tokens){
+  const cols=state.sql?.columns || [];
+  if(!cols.length) return null;
+  const searchTokens=(Array.isArray(tokens)?tokens:[]).map(sanitizeHeaderKey).filter(Boolean);
+  if(!searchTokens.length) return null;
+  for(const info of cols){
+    const key=sanitizeHeaderKey(info.normalized || info.header || info.sqlName);
+    if(searchTokens.includes(key)) return info;
+  }
+  for(const info of cols){
+    const key=sanitizeHeaderKey(info.normalized || info.header || info.sqlName);
+    if(searchTokens.some(token=>key.includes(token))) return info;
+  }
+  return null;
+}
+function buildSqlInCondition(info, values){
+  if(!info || !info.sqlName) return null;
+  const cleaned=Array.isArray(values)?values.map(v=>String(v??'').trim()).filter(Boolean):[];
+  if(!cleaned.length) return null;
+  const placeholders=cleaned.map(()=>'?').join(', ');
+  if(!placeholders) return null;
+  return {sql:`"${info.sqlName}" COLLATE NOCASE IN (${placeholders})`, params:cleaned};
+}
 function makeSqlColumnName(base,fallback,used){
   let name=String(base||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+/, '');
   if(!name) name=fallback;
@@ -4902,6 +4928,45 @@ function filterAdvertisedProductRows(rows, campaignValues, adgroupValues, mode){
   });
   return result;
 }
+function buildAdvertisedProductsFromSql(campaignValues, adgroupValues){
+  const table=state.sql?.table;
+  const columns=state.sql?.columns;
+  if(!table || !Array.isArray(columns) || !columns.length) return [];
+  const skuInfo=findSqlInfoByTokens(['advertisedsku','advertised_sku','sku']);
+  const asinInfo=findSqlInfoByTokens(['advertisedasin','advertised_asin','asin']);
+  if(!skuInfo && !asinInfo) return [];
+  const campaignInfo=getSqlInfoForStateKey('campaign');
+  const adGroupInfo=getSqlInfoForStateKey('adgroup');
+  const conditions=[];
+  const campaignCond=buildSqlInCondition(campaignInfo, campaignValues);
+  if(campaignCond) conditions.push(campaignCond);
+  const adGroupCond=buildSqlInCondition(adGroupInfo, adgroupValues);
+  if(adGroupCond) conditions.push(adGroupCond);
+  if(!conditions.length) return [];
+  const {sql,params}=combineWhere(conditions);
+  const skuExpr=skuInfo?`TRIM(COALESCE("${skuInfo.sqlName}",''))`:`''`;
+  const asinExpr=asinInfo?`TRIM(COALESCE("${asinInfo.sqlName}",''))`:`''`;
+  const query=`SELECT ${skuExpr} AS sku_value, ${asinExpr} AS asin_value FROM "${table}" ${sql} GROUP BY sku_value, asin_value HAVING sku_value <> '' OR asin_value <> ''`;
+  const rows=sqlQueryAll(query, params);
+  if(!Array.isArray(rows) || !rows.length) return [];
+  const dedupe=new Map();
+  rows.forEach(row=>{
+    if(!row) return;
+    const sku=String(row.sku_value??'').trim();
+    const asin=String(row.asin_value??'').trim();
+    if(!sku && !asin) return;
+    const key=`${normalizeSkuKey(sku)}||${normalizeAsinKey(asin)}`;
+    if(!dedupe.has(key)) dedupe.set(key,{sku,asin});
+  });
+  const result=Array.from(dedupe.values());
+  if(!result.length) return [];
+  result.sort((a,b)=>{
+    const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
+    if(skuDiff!==0) return skuDiff;
+    return PIVOT_LABEL_COLLATOR.compare(a.asin||'', b.asin||'');
+  });
+  return result;
+}
 
 function setAdvertisedProductsView(status, rows){
   const view=el.advertisedProducts;
@@ -4989,7 +5054,10 @@ function updateAdvertisedProductsDisplay(){
   setAdvertisedProductsView('loading');
   ensureAdvertisedProductsData().then(rows=>{
     if(state.advertisedProducts?.renderToken!==token) return;
-    const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues, filterMode);
+    let filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues, filterMode);
+    if(!filtered.length){
+      filtered=buildAdvertisedProductsFromSql(campaignValues, adgroupValues);
+    }
     if(filtered.length){
       setAdvertisedProductsView('rows', filtered);
     }else{
