@@ -2066,7 +2066,7 @@ const state={
   asinSkuMap:new Map(),
   asinSkuLoaded:false,
   asinValueMap:new Map(),
-  advertisedProducts:{rows:[],loaded:false,renderToken:0},
+  advertisedProducts:{rows:[],loaded:false,renderToken:0,lastSlot:null},
   conversionPage:{st:0,asin:0},
   lastTabIndex:0,
   pivotFilters:{},
@@ -2602,6 +2602,9 @@ function applyPivotLabelFilter(table, rawValue, matchKey){
   if(!dimension) return;
   const stateKey=dimension.stateKey;
   if(!stateKey) return;
+  if(state.advertisedProducts && (stateKey==='campaign' || stateKey==='adgroup')){
+    state.advertisedProducts.lastSlot=stateKey;
+  }
   const root=el.dd?.[stateKey];
   if(!root) return;
   const keys=pivotMakeValueKeys(rawValue, matchKey, dimension);
@@ -2910,7 +2913,10 @@ function setHasData(has){
     if(el.tabs?.bar) el.tabs.bar.hidden=true;
     if(el.tipPill) el.tipPill.hidden=false;
     if(el.advertisedProducts?.card) el.advertisedProducts.card.hidden=true;
-    if(state.advertisedProducts) state.advertisedProducts.renderToken=0;
+    if(state.advertisedProducts){
+      state.advertisedProducts.renderToken=0;
+      state.advertisedProducts.lastSlot=null;
+    }
     closePivotFilterPopup(false);
     state.columns={};
     state.rows=[];
@@ -4864,133 +4870,31 @@ function hideUnusedPivotSlots(activeSlots){
   });
 }
 
-function filterAdvertisedProductRows(rows, campaignValues, adgroupValues){
+function filterAdvertisedProductRows(rows, campaignValues, adgroupValues, mode){
   if(!Array.isArray(rows) || !rows.length) return [];
+  const useCampaign=mode==='campaign';
+  const useAdGroup=mode==='adgroup';
   const campaignList=Array.isArray(campaignValues)?campaignValues:[];
   const adgroupList=Array.isArray(adgroupValues)?adgroupValues:[];
-  const campaignSet=campaignList.length?new Set(campaignList.map(value=>normalizeAdvertisedKey(value))):null;
-  const adGroupSet=adgroupList.length?new Set(adgroupList.map(value=>normalizeAdvertisedKey(value))):null;
-  const attemptFilter=(useCampaign, useAdGroup)=>{
-    const dedupe=new Map();
-    rows.forEach(row=>{
-      if(!row) return;
-      if(useCampaign && campaignSet && !campaignSet.has(row.campaignKey)) return;
-      if(useAdGroup && adGroupSet && !adGroupSet.has(row.adGroupKey)) return;
-      const sku=String(row.sku||'').trim();
-      const asin=String(row.asin||'').trim();
-      if(!sku && !asin) return;
-      const key=`${normalizeSkuKey(sku)}||${normalizeAsinKey(asin)}`;
-      if(!dedupe.has(key)){
-        dedupe.set(key,{sku,asin});
-      }
-    });
-    return Array.from(dedupe.values());
-  };
-  let result=[];
-  if(adGroupSet && campaignSet){
-    result=attemptFilter(true,true);
-    if(!result.length){
-      result=attemptFilter(false,true);
-    }
-    if(!result.length){
-      result=attemptFilter(true,false);
-    }
-  }else if(adGroupSet){
-    result=attemptFilter(false,true);
-  }else if(campaignSet){
-    result=attemptFilter(true,false);
-  }
-  if(!result.length) return [];
-  result.sort((a,b)=>{
-    const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
-    if(skuDiff!==0) return skuDiff;
-    return PIVOT_LABEL_COLLATOR.compare(a.asin||'', b.asin||'');
-  });
-  return result;
-}
-
-function collectAdvertisedProductsFromSql(){
-  const table=state.sql?.table;
-  const asinInfo=getSqlInfoForStateKey('targetingAsin');
-  if(!table || !asinInfo) return [];
-  const context=buildFilterContext(null);
-  const {sql,params}=combineWhere(context.conditions, {sql:`TRIM("${asinInfo.sqlName}") <> ''`});
-  const skuInfo=getSqlInfoForStateKey('sku');
-  const parts=[`TRIM("${asinInfo.sqlName}") AS asin`];
-  if(skuInfo) parts.push(`TRIM("${skuInfo.sqlName}") AS sku`);
-  const rows=sqlQueryAll(`SELECT DISTINCT ${parts.join(', ')} FROM "${table}" ${sql}`, params);
-  return rows.map(row=>{
-    const asin=String(row.asin||'').trim();
-    if(!asin) return null;
-    const sku=skuInfo?String(row.sku||'').trim():'';
-    return {asin, sku};
-  }).filter(Boolean);
-}
-
-function findAsinsBySku(value){
-  const norm=normalizeSkuKey(value);
-  if(!norm) return [];
-  const map=state.asinSkuMap;
-  if(!(map instanceof Map) || !map.size) return [];
-  const results=[];
-  map.forEach((entries, asinKey)=>{
-    if(!Array.isArray(entries) || !entries.length) return;
-    const match=entries.some(entry=>{
-      return [entry?.sellerSku, entry?.plainSku].some(val=>normalizeSkuKey(val)===norm);
-    });
-    if(match){
-      const asinValue=(state.asinValueMap instanceof Map && state.asinValueMap.get(asinKey)) || asinKey;
-      if(!results.includes(asinValue)) results.push(asinValue);
-    }
-  });
-  return results;
-}
-
-function mergeAdvertisedProductSources(sqlRows, workbookRows){
+  const campaignSet=useCampaign && campaignList.length?new Set(campaignList.map(value=>normalizeAdvertisedKey(value))):null;
+  const adGroupSet=useAdGroup && adgroupList.length?new Set(adgroupList.map(value=>normalizeAdvertisedKey(value))):null;
+  if(useCampaign && (!campaignSet || !campaignSet.size)) return [];
+  if(useAdGroup && (!adGroupSet || !adGroupSet.size)) return [];
   const dedupe=new Map();
-  const addEntry=(sku, asin)=>{
-    const skuSafe=sku==null?'':String(sku).trim();
-    const asinSafe=asin==null?'':String(asin).trim();
-    if(!skuSafe && !asinSafe) return;
-    const key=`${normalizeSkuKey(skuSafe)}||${normalizeAsinKey(asinSafe)}`;
-    if(dedupe.has(key)){
-      const existing=dedupe.get(key);
-      if(!existing.sku && skuSafe) existing.sku=skuSafe;
-      if(!existing.asin && asinSafe) existing.asin=asinSafe;
-      return;
-    }
-    dedupe.set(key,{sku:skuSafe, asin:asinSafe});
-  };
-  sqlRows.forEach(row=>{
+  rows.forEach(row=>{
     if(!row) return;
-    const asin=row.asin;
-    if(!asin) return;
-    const linked=lookupAsinSkus(asin);
-    const values=skuEntriesToValues(linked);
-    if(values.length){
-      values.forEach(sku=>addEntry(sku, asin));
-    }else{
-      addEntry(row.sku, asin);
+    if(useCampaign && campaignSet && !campaignSet.has(row.campaignKey)) return;
+    if(useAdGroup && adGroupSet && !adGroupSet.has(row.adGroupKey)) return;
+    const sku=String(row.sku||'').trim();
+    const asin=String(row.asin||'').trim();
+    if(!sku && !asin) return;
+    const key=`${normalizeSkuKey(sku)}||${normalizeAsinKey(asin)}`;
+    if(!dedupe.has(key)){
+      dedupe.set(key,{sku,asin});
     }
   });
-  workbookRows.forEach(row=>{
-    if(!row) return;
-    addEntry(row.sku, row.asin);
-  });
-  dedupe.forEach(entry=>{
-    if(!entry.sku && entry.asin){
-      const linked=lookupAsinSkus(entry.asin);
-      const values=skuEntriesToValues(linked);
-      if(values.length) entry.sku=values[0];
-    }
-    if(!entry.asin && entry.sku){
-      const candidates=findAsinsBySku(entry.sku);
-      if(candidates.length) entry.asin=candidates[0];
-    }
-    entry.sku=entry.sku||'';
-    entry.asin=entry.asin||'';
-  });
-  const result=Array.from(dedupe.values()).filter(item=>item.sku || item.asin);
+  const result=Array.from(dedupe.values());
+  if(!result.length) return [];
   result.sort((a,b)=>{
     const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
     if(skuDiff!==0) return skuDiff;
@@ -5057,28 +4961,37 @@ function updateAdvertisedProductsDisplay(){
   const adgroupRoot=el.dd?.adgroup;
   const campaignValues=campaignRoot?ddGetSelected(campaignRoot):[];
   const adgroupValues=adgroupRoot?ddGetSelected(adgroupRoot):[];
-  const hasSelection=(campaignValues.length>0 || adgroupValues.length>0);
-  if(!hasSelection){
+  const hasCampaign=campaignValues.length>0;
+  const hasAdGroup=adgroupValues.length>0;
+  let filterMode=null;
+  const lastSlot=tracker?.lastSlot;
+  if(lastSlot==='adgroup' && hasAdGroup){
+    filterMode='adgroup';
+  }else if(lastSlot==='campaign' && hasCampaign){
+    filterMode='campaign';
+  }
+  if(!filterMode){
+    if(hasAdGroup && !hasCampaign){
+      filterMode='adgroup';
+    }else if(hasCampaign && !hasAdGroup){
+      filterMode='campaign';
+    }else if(hasCampaign && hasAdGroup){
+      filterMode='adgroup';
+    }
+  }
+  if(!filterMode){
+    if(tracker) tracker.lastSlot=null;
     view.card.hidden=true;
     return;
   }
+  if(tracker) tracker.lastSlot=filterMode;
   view.card.hidden=false;
   setAdvertisedProductsView('loading');
-  const workbookPromise=ensureAdvertisedProductsData().catch(()=>[]);
-  const asinPromise=ensureAsinSkuMap().catch(()=>new Map());
-  Promise.all([workbookPromise, asinPromise]).then(([rows])=>{
+  ensureAdvertisedProductsData().then(rows=>{
     if(state.advertisedProducts?.renderToken!==token) return;
-    const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues);
+    const filtered=filterAdvertisedProductRows(rows, campaignValues, adgroupValues, filterMode);
     if(filtered.length){
-      const workbookOnly=mergeAdvertisedProductSources([], filtered);
-      if(workbookOnly.length){
-        setAdvertisedProductsView('rows', workbookOnly);
-        return;
-      }
-    }
-    const combined=mergeAdvertisedProductSources(collectAdvertisedProductsFromSql(), filtered);
-    if(combined.length){
-      setAdvertisedProductsView('rows', combined);
+      setAdvertisedProductsView('rows', filtered);
     }else{
       setAdvertisedProductsView('empty');
     }
