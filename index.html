@@ -2637,6 +2637,8 @@ const DEFAULT_WORKBOOKS=[
   'Products Search Term.xlsx',
   'Products Campaign.xlsx'
 ];
+const LARGE_SHEET_ROW_THRESHOLD=100000;
+const LARGE_SHEET_CHUNK_SIZE=5000;
 const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
 const ADVERTISED_PRODUCTS_WORKBOOK=ASIN_SKU_WORKBOOK;
 let asinSkuPromise=null;
@@ -3843,9 +3845,169 @@ async function loadPreprocessedDatasetFromUrl(file,label){
   return state.dataset;
 }
 
+async function buildStateFromWorksheet(ws, options={}){
+  const SQL = await (sqlReadyPromise || loadSqlLibrary());
+  if(!SQL) throw new Error('Unable to initialize SQL engine');
+  if(!ws || !ws['!ref']) throw new Error('No usable sheet found');
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  const totalRows=range.e.r - range.s.r + 1;
+  if(totalRows < 3) throw new Error('No usable sheet found');
+  const headerRowIndex=Number.isInteger(options?.headerRowIndex)?options.headerRowIndex:1;
+  if(headerRowIndex >= totalRows) throw new Error('No usable sheet found');
+  const headerRows=XLSX.utils.sheet_to_json(ws,{
+    header:1,
+    raw:true,
+    defval:null,
+    dense:true,
+    range:{s:{r:headerRowIndex, c:range.s.c}, e:{r:headerRowIndex, c:range.e.c}}
+  });
+  const headerRow=Array.isArray(headerRows?.[0])?headerRows[0]:[];
+  const headers=headerRow.map(h=>String(h??'').trim());
+  const dataRowTotal=Math.max(range.e.r - headerRowIndex, 0);
+  if(dataRowTotal < 1) throw new Error('No usable sheet found');
+  const progressStep=computeProgressStep(dataRowTotal);
+  let processedRows=0;
+  if(progressStep) updateLoadingProgress(0,dataRowTotal);
+
+  const cols={
+    date:       findIndexByTokens(headers,['date','day','reportingdate']),
+    store:      findIndexByTokens(headers,['store','lo','market','site','locale','country','account']),
+    lo:         findIndexByTokens(headers,['lo','lineofbusiness','lob','store','market']),
+    impressions:findIndexByTokens(headers,['impressions','impr']),
+    clicks:     findIndexByTokens(headers,['clicks']),
+    revenue:    findIndexByTokens(headers,['sales','revenue','totalsales','orderedrevenue','attributedsales']),
+    spend:      findIndexByTokens(headers,['spend','adspend','cost','advertisingcost']),
+    category:   findIndexByTokens(headers,['category','producttype','cat']),
+    ttype:      findIndexByTokens(headers,['targetingtype','adtype','type']),
+    tsub:       findIndexByTokens(headers,['targetingsubtype','matchtype','subtype']),
+    tsub2:      findIndexByTokens(headers,['subtype2','matchtype2']),
+    targeting:  findIndexByTokens(headers,['targeting']),
+    term:       findIndexByTokens(headers,['customersearchterm','searchterm','term']),
+    customerType:findIndexByTokens(headers,['customersearchtermtype','searchtermtype']),
+    targetingAsin:findIndexByTokens(headers,['targetingasin','targetasin','advertisedasin','asin']),
+    targetingCat: findIndexByTokens(headers,['targetingcat','targetcat']),
+    placement:  findIndexByTokens(headers,['placement','placements']),
+    campaign:   findIndexByTokens(headers,['campaignname','campaign']),
+    adgroup:    findIndexByTokens(headers,['adgroupname','ad group name','adgroup']),
+    portfolio:  findIndexByTokens(headers,['portfolioname','portfolio']),
+  };
+  const mapCols={}; for(const [k,idx] of Object.entries(cols)){ if(idx>-1) mapCols[k]={name:headers[idx],idx}; }
+  if(mapCols.store && !mapCols.lo) mapCols.lo = {...mapCols.store, aliasOf:'store'};
+  state.columns=mapCols;
+  if(mapCols.targetingAsin) ensureAsinSkuMap();
+  const numericIdx=new Set([mapCols.impressions?.idx,mapCols.clicks?.idx,mapCols.revenue?.idx,mapCols.spend?.idx].filter(idx=>Number.isInteger(idx)));
+  const usedNames=new Set();
+  const columnInfo=headers.map((header,idx)=>{
+    const normalized=normalize(header);
+    const fallback=`column_${idx+1}`;
+    const sqlName=makeSqlColumnName(normalized,fallback,usedNames);
+    const isDate=mapCols.date && idx===mapCols.date.idx;
+    const type=isDate?'TEXT':(numericIdx.has(idx)?'REAL':'TEXT');
+    return {index:idx, header, normalized, sqlName, type, isDate};
+  });
+  const columnMap=new Map();
+  columnInfo.forEach(info=>{ const key=info.normalized||''; if(!columnMap.has(key)) columnMap.set(key,info); });
+
+  if(state.sql?.db){
+    try{ state.sql.db.close(); }catch(_){ }
+  }
+  const db=new SQL.Database();
+  const tableName='search_terms';
+  const columnDefs=columnInfo.map(info=>`"${info.sqlName}" ${info.type}`);
+  db.exec(`CREATE TABLE "${tableName}" (${columnDefs.join(',')});`);
+  const placeholders=columnInfo.map(()=>'?').join(',');
+  const stmt=db.prepare(`INSERT INTO "${tableName}" VALUES (${placeholders})`);
+  db.exec('BEGIN TRANSACTION;');
+  let rowCount=0;
+  const chunkSize=Number.isInteger(options?.chunkSize)?options.chunkSize:LARGE_SHEET_CHUNK_SIZE;
+  for(let start=headerRowIndex+1; start<=range.e.r; start+=chunkSize){
+    const end=Math.min(start+chunkSize-1, range.e.r);
+    const chunk=XLSX.utils.sheet_to_json(ws,{
+      header:1,
+      raw:true,
+      defval:null,
+      dense:true,
+      range:{s:{r:start, c:range.s.c}, e:{r:end, c:range.e.c}}
+    });
+    if(Array.isArray(chunk)){
+      for(let r=0; r<chunk.length; r++){
+        const rowRaw=Array.isArray(chunk[r])?chunk[r]:[];
+        const rowValues=new Array(columnInfo.length);
+        let hasValue=false;
+        for(let i=0;i<columnInfo.length;i++){
+          const info=columnInfo[i];
+          const rawValue=rowRaw[i];
+          let v=rawValue;
+          if(info.isDate){
+            let dateVal=null;
+            if(rawValue instanceof Date){
+              dateVal=rawValue;
+            }else if(typeof rawValue==='number'){
+              const parsed=XLSX?.SSF?.parse_date_code ? XLSX.SSF.parse_date_code(rawValue) : null;
+              dateVal=(parsed&&parsed.y)?new Date(parsed.y,parsed.m-1,parsed.d):null;
+            }else if(typeof rawValue==='string' && rawValue){
+              const trimmed=rawValue.trim();
+              if(trimmed){
+                const numericText=trimmed.replace(/,/g,'');
+                if(/^[-+]?\\d+(?:\\.\\d+)?$/.test(numericText)){
+                  const asNumber=Number(numericText);
+                  if(Number.isFinite(asNumber)){
+                    const parsed=XLSX?.SSF?.parse_date_code ? XLSX.SSF.parse_date_code(asNumber) : null;
+                    if(parsed && parsed.y){
+                      dateVal=new Date(parsed.y,parsed.m-1,parsed.d);
+                    }
+                  }
+                }
+              }
+              if(!dateVal){
+                const parsed=parseInputDate(trimmed) || (isNaN(+new Date(trimmed))?null:new Date(trimmed));
+                dateVal=parsed instanceof Date?parsed:null;
+              }
+            }
+            v=dateVal instanceof Date?toInputDate(dateVal):null;
+          }else if(numericIdx.has(i)){
+            v=parseNumber(rawValue);
+          }else{
+            v=rawValue==null?'':String(rawValue).trim();
+          }
+          if(info.isDate && !v) v=null;
+          rowValues[i]=v;
+          if(v!=='' && v!=null) hasValue=true;
+        }
+        if(!hasValue) continue;
+        const prepared=rowValues.map(value=>value===undefined?null:value);
+        stmt.run(prepared);
+        rowCount+=1;
+      }
+    }
+    processedRows+=end-start+1;
+    if(progressStep && (processedRows%progressStep===0 || processedRows>=dataRowTotal)){
+      updateLoadingProgress(Math.min(processedRows,dataRowTotal),dataRowTotal);
+      await yieldForHeavyWork();
+    }
+  }
+  updateLoadingProgress(dataRowTotal,dataRowTotal);
+  await yieldForHeavyWork();
+  stmt.free();
+  db.exec('COMMIT;');
+
+  state.sql={db, table:tableName, columns:columnInfo, columnMap, rowCount};
+  state.rows=[];
+  state.monthSel.clear();
+  resetConversionPaging();
+  buildSqlIndexes();
+  buildMonths();
+  const {token:filterToken, remainingKeys}=initFilters({initialKeys:INITIAL_FILTER_KEYS});
+  renderAll();
+  if(Array.isArray(remainingKeys) && remainingKeys.length){
+    scheduleDeferredFilterBuild(remainingKeys, filterToken);
+  }
+}
+
 async function parseExcel(buf){
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
   let best=null,score=-1,bestTextCount=-1;
+  const headerRowCandidates=new Map();
   for(const name of wb.SheetNames){
     const ws=wb.Sheets[name];
     if(!ws) continue;
@@ -3865,6 +4027,8 @@ async function parseExcel(buf){
     });
     if(!sample || !sample.length) continue;
     const headerRowIndex=detectHeaderRowIndex(sample);
+    const absoluteHeaderRowIndex=headerRowIndex + (sampleRange.s.r || 0);
+    headerRowCandidates.set(name, absoluteHeaderRowIndex);
     const headers=Array.isArray(sample[headerRowIndex])?sample[headerRowIndex]:[];
     const normalizedHeaders=headers.map(value=>String(value??'').trim());
     const textCount=normalizedHeaders.filter(Boolean).length;
@@ -3899,7 +4063,26 @@ async function parseExcel(buf){
   }
   if(!sheetName) throw new Error('No usable sheet found');
   let ws=wb.Sheets[sheetName];
+  const sheetRange=ws?.['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : null;
+  const sheetRowCount=sheetRange ? (sheetRange.e.r - sheetRange.s.r + 1) : 0;
   if(!sheetData){
+    if(sheetRowCount > LARGE_SHEET_ROW_THRESHOLD){
+      const fallbackSampleRange={
+        s:{r:sheetRange?.s.r ?? 0,c:sheetRange?.s.c ?? 0},
+        e:{r:Math.min((sheetRange?.s.r ?? 0)+24, sheetRange?.e.r ?? 24), c:sheetRange?.e.c ?? 0}
+      };
+      const headerRowIndex=Number.isInteger(headerRowCandidates.get(sheetName))
+        ? headerRowCandidates.get(sheetName)
+        : detectHeaderRowIndex(XLSX.utils.sheet_to_json(ws,{
+          header:1,
+          raw:true,
+          defval:null,
+          dense:true,
+          range:fallbackSampleRange
+        })) + (fallbackSampleRange.s.r || 0);
+      await buildStateFromWorksheet(ws,{headerRowIndex});
+      return;
+    }
     sheetData=XLSX.utils.sheet_to_json(ws,{
       header:1,
       raw:true,
