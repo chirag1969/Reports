@@ -3863,7 +3863,7 @@ async function parseExcel(buf){
       dense:true,
       range:sampleRange
     });
-    if(!sample || sample.length<3) continue;
+    if(!sample || !sample.length) continue;
     const headerRowIndex=detectHeaderRowIndex(sample);
     const headers=Array.isArray(sample[headerRowIndex])?sample[headerRowIndex]:[];
     const normalizedHeaders=headers.map(value=>String(value??'').trim());
@@ -3878,14 +3878,57 @@ async function parseExcel(buf){
       bestTextCount=textCount;
     }
   }
-  if(!best) throw new Error('No usable sheet found');
-  const ws=wb.Sheets[best];
-  const sheetData=XLSX.utils.sheet_to_json(ws,{
-    header:1,
-    raw:true,
-    defval:null,
-    dense:true
-  });
+  let sheetName=best;
+  let sheetData=null;
+  if(!sheetName){
+    for(const name of wb.SheetNames){
+      const ws=wb.Sheets[name];
+      if(!ws) continue;
+      const data=XLSX.utils.sheet_to_json(ws,{
+        header:1,
+        raw:true,
+        defval:null,
+        dense:true
+      });
+      if(Array.isArray(data) && data.length){
+        sheetName=name;
+        sheetData=data;
+        break;
+      }
+    }
+  }
+  if(!sheetName) throw new Error('No usable sheet found');
+  let ws=wb.Sheets[sheetName];
+  if(!sheetData){
+    sheetData=XLSX.utils.sheet_to_json(ws,{
+      header:1,
+      raw:true,
+      defval:null,
+      dense:true
+    });
+  }
+  if(!Array.isArray(sheetData) || sheetData.length<3){
+    for(const name of wb.SheetNames){
+      if(name===sheetName) continue;
+      const alt=wb.Sheets[name];
+      if(!alt) continue;
+      const data=XLSX.utils.sheet_to_json(alt,{
+        header:1,
+        raw:true,
+        defval:null,
+        dense:true
+      });
+      if(Array.isArray(data) && data.length>=3){
+        sheetName=name;
+        ws=alt;
+        sheetData=data;
+        break;
+      }
+    }
+  }
+  if(!Array.isArray(sheetData) || sheetData.length<3){
+    throw new Error('No usable sheet found');
+  }
   const headerRowIndex=detectHeaderRowIndex(sheetData);
   await buildStateFromSheetData(sheetData,{headerRowIndex});
 }
