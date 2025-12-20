@@ -1986,7 +1986,7 @@ const fmt={
   num0:n=>isFinite(n)?new Intl.NumberFormat(undefined,{maximumFractionDigits:0,minimumFractionDigits:0}).format(n):"—"
 };
 const MONTH_NAMES=["January","February","March","April","May","June","July","August","September","October","November","December"];
-const LAST_PUSH_DATE="2025-11-28 17:08:56 +0530";
+const LAST_PUSH_DATE="2025-12-20 08:56:17 +0000";
 const normalize=s=>String(s||"").trim().toLowerCase().replace(/\s+/g," ");
 function normalizeAdvertisedKey(value){
   if(value==null) return '';
@@ -3845,7 +3845,7 @@ async function loadPreprocessedDatasetFromUrl(file,label){
 
 async function parseExcel(buf){
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
-  let best=null,score=-1;
+  let best=null,score=-1,bestTextCount=-1;
   for(const name of wb.SheetNames){
     const ws=wb.Sheets[name];
     if(!ws) continue;
@@ -3854,7 +3854,7 @@ async function parseExcel(buf){
     const range=XLSX.utils.decode_range(ref);
     const sampleRange={
       s:{r:range.s.r,c:range.s.c},
-      e:{r:Math.min(range.s.r+2, range.e.r), c:range.e.c}
+      e:{r:Math.min(range.s.r+24, range.e.r), c:range.e.c}
     };
     const sample=XLSX.utils.sheet_to_json(ws,{
       header:1,
@@ -3864,11 +3864,19 @@ async function parseExcel(buf){
       range:sampleRange
     });
     if(!sample || sample.length<3) continue;
-    const headers=(sample[1]||[]).map(value=>String(value??'').trim());
-    const s=['store','sales','spend','clicks','impressions']
-      .map(t=>findIndexByTokens(headers,[t])>-1?1:0)
-      .reduce((a,b)=>a+b,0);
-    if(s>score){score=s;best=name;}
+    const headerRowIndex=detectHeaderRowIndex(sample);
+    const headers=Array.isArray(sample[headerRowIndex])?sample[headerRowIndex]:[];
+    const normalizedHeaders=headers.map(value=>String(value??'').trim());
+    const textCount=normalizedHeaders.filter(Boolean).length;
+    const s=scoreHeaderRow(normalizedHeaders);
+    if(
+      s>score ||
+      (s===score && textCount>bestTextCount)
+    ){
+      score=s;
+      best=name;
+      bestTextCount=textCount;
+    }
   }
   if(!best) throw new Error('No usable sheet found');
   const ws=wb.Sheets[best];
