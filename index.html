@@ -3845,25 +3845,29 @@ async function loadPreprocessedDatasetFromUrl(file,label){
 
 async function parseExcel(buf){
   const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
+  const readSheetData=(ws, range)=>XLSX.utils.sheet_to_json(ws,{
+    header:1,
+    raw:true,
+    defval:null,
+    dense:true,
+    blankrows:true,
+    ...(range?{range}:null)
+  });
   let best=null,score=-1,bestTextCount=-1;
   for(const name of wb.SheetNames){
     const ws=wb.Sheets[name];
     if(!ws) continue;
     const ref=ws['!ref'];
-    if(!ref) continue;
-    const range=XLSX.utils.decode_range(ref);
-    const sampleRange={
-      s:{r:range.s.r,c:range.s.c},
-      e:{r:Math.min(range.s.r+24, range.e.r), c:range.e.c}
-    };
-    const sample=XLSX.utils.sheet_to_json(ws,{
-      header:1,
-      raw:true,
-      defval:null,
-      dense:true,
-      range:sampleRange
-    });
-    if(!sample || sample.length<3) continue;
+    let sampleRange=null;
+    if(ref){
+      const range=XLSX.utils.decode_range(ref);
+      sampleRange={
+        s:{r:range.s.r,c:range.s.c},
+        e:{r:Math.min(range.s.r+199, range.e.r), c:range.e.c}
+      };
+    }
+    const sample=readSheetData(ws, sampleRange);
+    if(!sample || !sample.length) continue;
     const headerRowIndex=detectHeaderRowIndex(sample);
     const headers=Array.isArray(sample[headerRowIndex])?sample[headerRowIndex]:[];
     const normalizedHeaders=headers.map(value=>String(value??'').trim());
@@ -3878,14 +3882,29 @@ async function parseExcel(buf){
       bestTextCount=textCount;
     }
   }
-  if(!best) throw new Error('No usable sheet found');
-  const ws=wb.Sheets[best];
-  const sheetData=XLSX.utils.sheet_to_json(ws,{
-    header:1,
-    raw:true,
-    defval:null,
-    dense:true
-  });
+  let sheetName=best || wb.SheetNames[0];
+  if(!sheetName) throw new Error('No usable sheet found');
+  let ws=wb.Sheets[sheetName];
+  let sheetData=ws ? readSheetData(ws) : null;
+  let maxRows=Array.isArray(sheetData)?sheetData.length:0;
+  if(!Array.isArray(sheetData) || sheetData.length<2){
+    for(const name of wb.SheetNames){
+      if(name===sheetName) continue;
+      const alt=wb.Sheets[name];
+      if(!alt) continue;
+      const data=readSheetData(alt);
+      const rows=Array.isArray(data)?data.length:0;
+      if(rows>maxRows){
+        sheetName=name;
+        ws=alt;
+        sheetData=data;
+        maxRows=rows;
+      }
+    }
+  }
+  if(!Array.isArray(sheetData) || sheetData.length<2){
+    throw new Error('No usable sheet found');
+  }
   const headerRowIndex=detectHeaderRowIndex(sheetData);
   await buildStateFromSheetData(sheetData,{headerRowIndex});
 }
@@ -3893,7 +3912,7 @@ async function parseExcel(buf){
 async function buildStateFromSheetData(sheetData, options={}){
   const SQL = await (sqlReadyPromise || loadSqlLibrary());
   if(!SQL) throw new Error('Unable to initialize SQL engine');
-  if(!Array.isArray(sheetData) || sheetData.length<3) throw new Error('No usable sheet found');
+  if(!Array.isArray(sheetData) || sheetData.length<2) throw new Error('No usable sheet found');
   const headerRowIndex=Number.isInteger(options?.headerRowIndex)?options.headerRowIndex:1;
   const headerRow=Array.isArray(sheetData[headerRowIndex])?sheetData[headerRowIndex]:[];
   const headers=headerRow.map(h=>String(h??'').trim());
