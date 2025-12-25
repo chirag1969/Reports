@@ -4080,8 +4080,16 @@ async function parseExcel(buf){
           dense:true,
           range:fallbackSampleRange
         })) + (fallbackSampleRange.s.r || 0);
-      await buildStateFromWorksheet(ws,{headerRowIndex});
-      return;
+      try{
+        await buildStateFromWorksheet(ws,{headerRowIndex});
+        return;
+      }catch(err){
+        const message=String(err?.message||err);
+        if(!message.includes('No usable sheet found')){
+          throw err;
+        }
+        console.warn('Large sheet parse failed; falling back to full sheet parse.', err);
+      }
     }
     sheetData=XLSX.utils.sheet_to_json(ws,{
       header:1,
