@@ -2634,11 +2634,13 @@ let filterBackfillToken=0;
 const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:'', mode:'dimension', dateTab:'months'};
 const DEFAULT_PREPROCESSED_DATA=[];
 const DEFAULT_WORKBOOKS=[
-  'Products Search Term.xlsx'
+  'Products Search Term.xlsx',
+  'Products Campaign.xlsx'
 ];
 const API_BASE_URL=(typeof window!=='undefined' && window.PRODUCTS_SEARCH_TERM_API_BASE)
   ? String(window.PRODUCTS_SEARCH_TERM_API_BASE).replace(/\/+$/,'')
   : 'http://localhost:8000';
+const HAS_EXPLICIT_API_BASE=typeof window!=='undefined' && !!window.PRODUCTS_SEARCH_TERM_API_BASE;
 const WORKBOOK_API_ENDPOINT=`${API_BASE_URL}/api/workbook`;
 const LARGE_SHEET_ROW_THRESHOLD=100000;
 const LARGE_SHEET_CHUNK_SIZE=100000;
@@ -3789,21 +3791,44 @@ async function loadWorkbookBuffer(buf, options={}){
 }
 
 async function fetchArrayBufferFromUrl(file){
-  const targetUrl=(()=>{ try{
+  const apiUrl=(()=>{ try{
     const url=new URL(WORKBOOK_API_ENDPOINT);
     if(file) url.searchParams.set('name', file);
     return url.toString();
   }catch(_){
     return WORKBOOK_API_ENDPOINT;
   }})();
-  const response=await fetch(targetUrl,{cache:'no-store'});
-  if(!response.ok && response.status!==0){
-    const status=response.status||'';
-    const statusText=response.statusText||'';
-    const detail=[status?`HTTP ${status}`:'',statusText].filter(Boolean).join(' ').trim();
-    throw new Error(detail||'Unable to fetch dataset');
+  let apiError=null;
+  if(apiUrl){
+    try{
+      const response=await fetch(apiUrl,{cache:'no-store'});
+      if(response.ok || response.status===0) return response.arrayBuffer();
+      const status=response.status||'';
+      const statusText=response.statusText||'';
+      const detail=[status?`HTTP ${status}`:'',statusText].filter(Boolean).join(' ').trim();
+      apiError=new Error(detail||'Unable to fetch dataset');
+    }catch(err){
+      apiError=err;
+    }
   }
-  return response.arrayBuffer();
+  if(!file){
+    throw apiError || new Error('Unable to fetch dataset');
+  }
+  if(HAS_EXPLICIT_API_BASE){
+    throw apiError || new Error('Unable to fetch dataset');
+  }
+  let directUrl;
+  try{
+    directUrl=new URL(file, document.baseURI).href;
+  }catch(_){
+    directUrl=encodeURI(file);
+  }
+  const response=await fetch(directUrl,{cache:'no-store'});
+  if(response.ok || response.status===0) return response.arrayBuffer();
+  const status=response.status||'';
+  const statusText=response.statusText||'';
+  const detail=[status?`HTTP ${status}`:'',statusText].filter(Boolean).join(' ').trim();
+  throw new Error(detail||'Unable to fetch dataset');
 }
 
 async function fetchJsonFromUrl(file){
