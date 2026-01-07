@@ -8,6 +8,7 @@ preprocessed/ folder, and commits + pushes the changes to this repository.
 from __future__ import annotations
 
 import argparse
+import csv
 import datetime as dt
 import json
 import subprocess
@@ -109,6 +110,14 @@ def write_json_rows(
         fp.write("\n  ]\n}\n")
 
 
+def write_csv_rows(output_path: Path, rows: Iterable[List[object]]) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8", newline="") as fp:
+        writer = csv.writer(fp)
+        for row in rows:
+            writer.writerow(["" if value is None else value for value in row])
+
+
 def iter_sheet_rows(
     excel_path: Path,
     sheet_name: str,
@@ -174,6 +183,7 @@ def process_workbooks(config: dict, only_names: List[str]) -> List[Path]:
         excel_path_raw = str(entry.get("excel_path", "")).strip()
         sheet_name = str(entry.get("sheet_name", "")).strip()
         output_path_raw = str(entry.get("output_path", "")).strip()
+        csv_output_path_raw = str(entry.get("csv_output_path", "")).strip()
         header_row_index = int(entry.get("header_row_index", 1))
         if not excel_path_raw:
             raise ValueError(f"Workbook entry '{name or output_path_raw}' is missing excel_path")
@@ -190,16 +200,26 @@ def process_workbooks(config: dict, only_names: List[str]) -> List[Path]:
         if not output_path.is_absolute():
             output_path = repo_root / output_path
 
-        rows = iter_sheet_rows(excel_path, sheet_name, header_row_index)
         write_json_rows(
             output_path=output_path,
-            rows=rows,
+            rows=iter_sheet_rows(excel_path, sheet_name, header_row_index),
             source=excel_path.name,
             sheet_name=sheet_name,
             header_row_index=header_row_index,
         )
         print(f"Wrote {output_path}")
         outputs.append(output_path)
+
+        if csv_output_path_raw:
+            csv_output_path = Path(csv_output_path_raw)
+            if not csv_output_path.is_absolute():
+                csv_output_path = repo_root / csv_output_path
+            write_csv_rows(
+                output_path=csv_output_path,
+                rows=iter_sheet_rows(excel_path, sheet_name, header_row_index),
+            )
+            print(f"Wrote {csv_output_path}")
+            outputs.append(csv_output_path)
 
     if only_names and not outputs:
         raise ValueError(f"No matching datasets found for --only {only_names}")

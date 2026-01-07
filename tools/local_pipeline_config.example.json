@@ -6,6 +6,7 @@
       "excel_path": "C:/path/to/Products Search Term.xlsx",
       "sheet_name": "Products Search Term",
       "output_path": "preprocessed/Products Search Term.json",
+      "csv_output_path": "preprocessed/Products Search Term.csv",
       "header_row_index": 1
     },
     {
@@ -13,6 +14,7 @@
       "excel_path": "C:/path/to/Products Campaign.xlsx",
       "sheet_name": "Products Campaign",
       "output_path": "preprocessed/Products Campaign.json",
+      "csv_output_path": "preprocessed/Products Campaign.csv",
       "header_row_index": 1
     }
   ]

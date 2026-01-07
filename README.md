@@ -50,6 +50,8 @@ GitHub. The dashboard will continue to read the same files at the same paths
 The script streams large Excel files safely with `openpyxl` (read-only mode),
 writes the preprocessed JSON into `preprocessed/`, then runs `git add`,
 `git commit`, and `git push` so GitHub Pages can pick up the updated data.
+If you also set `csv_output_path` for a workbook entry, the pipeline writes a
+CSV alongside the JSON and includes it in the git commit.
 
 Optional flags:
 - `--only products-search-term` (process just one dataset)
