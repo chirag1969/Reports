@@ -1,0 +1,19 @@
+{
+  "commit_message": "Update preprocessed dashboard data",
+  "workbooks": [
+    {
+      "name": "products-search-term",
+      "excel_path": "C:/path/to/Products Search Term.xlsx",
+      "sheet_name": "Products Search Term",
+      "output_path": "preprocessed/Products Search Term.json",
+      "header_row_index": 1
+    },
+    {
+      "name": "products-campaign",
+      "excel_path": "C:/path/to/Products Campaign.xlsx",
+      "sheet_name": "Products Campaign",
+      "output_path": "preprocessed/Products Campaign.json",
+      "header_row_index": 1
+    }
+  ]
+}

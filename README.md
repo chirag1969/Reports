@@ -24,6 +24,39 @@ You can pass a custom output path or select a specific sheet using the
 `--output` and `--sheet` options respectively. Run the script with
 `--help` to see all available flags.
 
+## Local pipeline for GitHub Pages (recommended)
+
+Use `tools/local_pipeline.py` to read the Excel files from your PC, export the
+exact JSON files used by the dashboard, and automatically commit + push them to
+GitHub. The dashboard will continue to read the same files at the same paths
+(`preprocessed/Products Search Term.json` and
+`preprocessed/Products Campaign.json`).
+
+1. Install dependencies:
+   ```bash
+   pip install openpyxl
+   ```
+2. Copy the example config and update the Excel paths + sheet names:
+   ```bash
+   cp tools/local_pipeline_config.example.json tools/local_pipeline_config.json
+   ```
+3. Edit `tools/local_pipeline_config.json` so each workbook entry points to the
+   correct Excel path on your PC and the exact worksheet name.
+4. Run the pipeline:
+   ```bash
+   python tools/local_pipeline.py
+   ```
+
+The script streams large Excel files safely with `openpyxl` (read-only mode),
+writes the preprocessed JSON into `preprocessed/`, then runs `git add`,
+`git commit`, and `git push` so GitHub Pages can pick up the updated data.
+
+Optional flags:
+- `--only products-search-term` (process just one dataset)
+- `--skip-push` (commit without pushing)
+- `--skip-git` (generate files without git commands)
+- `--commit-message "Update data"` (override the commit message)
+
 ## Partitioned export for GitHub Pages
 
 When the workbook contains tens of thousands of rows you can generate
