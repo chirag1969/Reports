@@ -2644,6 +2644,9 @@ const HAS_EXPLICIT_API_BASE=typeof window!=='undefined' && !!window.PRODUCTS_SEA
 const WORKBOOK_API_ENDPOINT=`${API_BASE_URL}/api/workbook`;
 const LARGE_SHEET_ROW_THRESHOLD=100000;
 const LARGE_SHEET_CHUNK_SIZE=100000;
+const WORKBOOK_SHEET_PREFERENCES={
+  'products search term.xlsx':['Sheet1','Products Search Term','Search Term']
+};
 const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
 const ADVERTISED_PRODUCTS_WORKBOOK=ASIN_SKU_WORKBOOK;
 let asinSkuPromise=null;
@@ -3773,7 +3776,7 @@ async function handleLocalFile(e){
   }
 }
 async function loadWorkbookBuffer(buf, options={}){
-  await parseExcel(buf);
+  await parseExcel(buf,{dataset:options?.dataset||null});
   if(options?.dataset){
     setActiveDataset(options.dataset);
   }else if(options){
@@ -4033,11 +4036,34 @@ async function buildStateFromWorksheet(ws, options={}){
   }
 }
 
-async function parseExcel(buf){
-  const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:true, cellText:false });
+function resolvePreferredSheetName(wb, dataset){
+  if(!wb || !Array.isArray(wb.SheetNames) || !wb.SheetNames.length) return null;
+  const sheetNames=wb.SheetNames;
+  const fileRaw=dataset?.file?String(dataset.file):'';
+  const labelRaw=dataset?.label?String(dataset.label):'';
+  const fileName=(fileRaw.split(/[\\/]/).pop()||'').toLowerCase();
+  const baseName=fileName.replace(/\.[^.]+$/,'');
+  const candidates=[];
+  const preferredList=WORKBOOK_SHEET_PREFERENCES[fileName];
+  if(Array.isArray(preferredList)) candidates.push(...preferredList);
+  if(baseName) candidates.push(baseName);
+  if(labelRaw) candidates.push(labelRaw);
+  const normalizedCandidates=candidates.map(c=>String(c).trim().toLowerCase()).filter(Boolean);
+  if(!normalizedCandidates.length) return null;
+  for(const name of sheetNames){
+    const normalizedName=String(name).trim().toLowerCase();
+    if(normalizedCandidates.includes(normalizedName)) return name;
+  }
+  return null;
+}
+
+async function parseExcel(buf, options={}){
+  const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:false, cellText:false, dense:true });
+  const preferredSheet=resolvePreferredSheetName(wb, options?.dataset||null);
   let best=null,score=-1,bestTextCount=-1;
   const headerRowCandidates=new Map();
-  for(const name of wb.SheetNames){
+  const sheetNamesToScan=preferredSheet?[preferredSheet]:wb.SheetNames;
+  for(const name of sheetNamesToScan){
     const ws=wb.Sheets[name];
     if(!ws) continue;
     const ref=ws['!ref'];
@@ -4071,7 +4097,7 @@ async function parseExcel(buf){
       bestTextCount=textCount;
     }
   }
-  let sheetName=best;
+  let sheetName=preferredSheet || best;
   let sheetData=null;
   if(!sheetName){
     for(const name of wb.SheetNames){
