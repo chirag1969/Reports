@@ -3863,8 +3863,12 @@ async function loadWorkbookDatasetFromUrl(file,label){
       file,
       label:label || formatDatasetLabelFromFile(file)
     };
-    await loadPreprocessedDatasetFromUrl(preprocessedFile,dataset.label,{dataset});
-    return dataset;
+    try{
+      await loadPreprocessedDatasetFromUrl(preprocessedFile,dataset.label,{dataset});
+      return dataset;
+    }catch(err){
+      console.warn(`Preprocessed dataset load failed (${preprocessedFile}); falling back to workbook.`, err);
+    }
   }
   const dataset={
     type:'workbook',
