@@ -2637,6 +2637,10 @@ const DEFAULT_WORKBOOKS=[
   'Products Search Term.xlsx',
   'Products Campaign.xlsx'
 ];
+const PREPROCESSED_WORKBOOK_MAP={
+  'products search term.xlsx':'preprocessed/Products Search Term.json',
+  'products campaign.xlsx':'preprocessed/Products Campaign.json'
+};
 const API_BASE_URL=(typeof window!=='undefined' && window.PRODUCTS_SEARCH_TERM_API_BASE)
   ? String(window.PRODUCTS_SEARCH_TERM_API_BASE).replace(/\/+$/,'')
   : 'http://localhost:8000';
@@ -3852,6 +3856,16 @@ async function fetchJsonFromUrl(file){
 }
 
 async function loadWorkbookDatasetFromUrl(file,label){
+  const preprocessedFile=getPreprocessedFileForWorkbook(file);
+  if(preprocessedFile){
+    const dataset={
+      type:'workbook',
+      file,
+      label:label || formatDatasetLabelFromFile(file)
+    };
+    await loadPreprocessedDatasetFromUrl(preprocessedFile,dataset.label,{dataset});
+    return dataset;
+  }
   const dataset={
     type:'workbook',
     file,
@@ -3862,13 +3876,19 @@ async function loadWorkbookDatasetFromUrl(file,label){
   return dataset;
 }
 
-async function loadPreprocessedDatasetFromUrl(file,label){
+function getPreprocessedFileForWorkbook(file){
+  const key=String(file||'').trim().toLowerCase();
+  return PREPROCESSED_WORKBOOK_MAP[key] || '';
+}
+
+async function loadPreprocessedDatasetFromUrl(file,label,options={}){
   const payload=await fetchJsonFromUrl(file);
   const sheetData=Array.isArray(payload?.sheet_data)?payload.sheet_data:null;
   if(!sheetData || !sheetData.length) throw new Error('Dataset is missing sheet data');
   const headerRowIndex=Number.isInteger(payload?.header_row_index)?payload.header_row_index:1;
   await buildStateFromSheetData(sheetData,{headerRowIndex});
-  setActiveDataset({
+  const datasetOverride=options?.dataset;
+  setActiveDataset(datasetOverride || {
     type:'preprocessed',
     file,
     label:label || formatDatasetLabelFromFile(file)

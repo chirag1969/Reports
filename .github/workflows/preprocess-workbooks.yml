@@ -1,0 +1,41 @@
+name: Preprocess Excel workbooks
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "Products Search Term.xlsx"
+      - "Products Campaign.xlsx"
+      - "tools/preprocess_workbook.py"
+
+permissions:
+  contents: write
+
+jobs:
+  preprocess:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pandas numpy openpyxl
+      - name: Generate preprocessed datasets
+        run: |
+          python tools/preprocess_workbook.py "Products Search Term.xlsx" --sheet "Sheet1"
+          python tools/preprocess_workbook.py "Products Campaign.xlsx" --sheet "Sheet1"
+      - name: Commit preprocessed JSON
+        run: |
+          if git status --porcelain | grep -q "preprocessed/"; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add preprocessed/*.json
+            git commit -m "chore: preprocess Excel workbooks"
+            git push
+          else
+            echo "No preprocessed changes to commit."
+          fi
