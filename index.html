@@ -3809,7 +3809,13 @@ async function fetchArrayBufferFromUrl(file){
   if(apiUrl){
     try{
       const response=await fetch(apiUrl,{cache:'no-store'});
-      if(response.ok || response.status===0) return response.arrayBuffer();
+      if(response.ok || response.status===0){
+        const contentType=response.headers.get('content-type')||'';
+        if(contentType.includes('text/html')){
+          throw new Error('Received HTML instead of an Excel file. Verify the Excel file path and API URL.');
+        }
+        return response.arrayBuffer();
+      }
       const status=response.status||'';
       const statusText=response.statusText||'';
       const detail=[status?`HTTP ${status}`:'',statusText].filter(Boolean).join(' ').trim();
@@ -3831,7 +3837,13 @@ async function fetchArrayBufferFromUrl(file){
     directUrl=encodeURI(file);
   }
   const response=await fetch(directUrl,{cache:'no-store'});
-  if(response.ok || response.status===0) return response.arrayBuffer();
+  if(response.ok || response.status===0){
+    const contentType=response.headers.get('content-type')||'';
+    if(contentType.includes('text/html')){
+      throw new Error('Received HTML instead of an Excel file. Verify the Excel file path.');
+    }
+    return response.arrayBuffer();
+  }
   const status=response.status||'';
   const statusText=response.statusText||'';
   const detail=[status?`HTTP ${status}`:'',statusText].filter(Boolean).join(' ').trim();
@@ -4081,13 +4093,67 @@ function resolvePreferredSheetName(wb, dataset){
   return null;
 }
 
+function getWorksheetRowCount(ws){
+  if(!ws || !ws['!ref']) return 0;
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  return Math.max(range.e.r - range.s.r + 1, 0);
+}
+
+function getWorkbookSheetDiagnostics(wb){
+  return (wb?.SheetNames||[]).map(name=>({
+    name,
+    rowCount:getWorksheetRowCount(wb?.Sheets?.[name])
+  }));
+}
+
+async function tryParseWorksheet(wb, sheetName, options){
+  const ws=wb?.Sheets?.[sheetName];
+  if(!ws || !ws['!ref']) return {sheetName, error:'empty'};
+  const parseOptions=options.parseOptions;
+  const parseFallbackOptions=options.parseFallbackOptions;
+  const headerRowCandidates=options.headerRowCandidates;
+  const sheetRange=XLSX.utils.decode_range(ws['!ref']);
+  const sheetRowCount=getWorksheetRowCount(ws);
+  let sheetData=null;
+  if(sheetRowCount > LARGE_SHEET_ROW_THRESHOLD){
+    const fallbackSampleRange={
+      s:{r:sheetRange.s.r ?? 0,c:sheetRange.s.c ?? 0},
+      e:{r:Math.min((sheetRange.s.r ?? 0)+24, sheetRange.e.r ?? 24), c:sheetRange.e.c ?? 0}
+    };
+    const headerRowIndex=Number.isInteger(headerRowCandidates.get(sheetName))
+      ? headerRowCandidates.get(sheetName)
+      : detectHeaderRowIndex(XLSX.utils.sheet_to_json(ws,{
+        ...parseOptions,
+        range:fallbackSampleRange
+      })) + (fallbackSampleRange.s.r || 0);
+    try{
+      await buildStateFromWorksheet(ws,{headerRowIndex});
+      return {sheetName, ws};
+    }catch(err){
+      const message=String(err?.message||err);
+      if(!message.includes('No usable sheet found')) throw err;
+      console.warn(`Large sheet parse failed for "${sheetName}"; falling back to full parse.`, err);
+    }
+  }
+  sheetData=XLSX.utils.sheet_to_json(ws, parseOptions);
+  if(!Array.isArray(sheetData) || sheetData.length<3){
+    sheetData=XLSX.utils.sheet_to_json(ws, parseFallbackOptions);
+  }
+  if(!Array.isArray(sheetData) || sheetData.length<3){
+    return {sheetName, error:'empty'};
+  }
+  const headerRowIndex=detectHeaderRowIndex(sheetData);
+  await buildStateFromSheetData(sheetData,{headerRowIndex});
+  return {sheetName, ws};
+}
+
 async function parseWorkbook(wb, options={}){
   const preferredSheet=resolvePreferredSheetName(wb, options?.dataset||null);
   let best=null,score=-1,bestTextCount=-1;
   const headerRowCandidates=new Map();
-  const sheetNamesToScan=preferredSheet?[preferredSheet]:wb.SheetNames;
   const parseOptions={header:1, raw:true, defval:null, dense:true};
   const parseFallbackOptions={header:1, raw:false, defval:null, dense:false, blankrows:true};
+  const sheetNamesToScan=preferredSheet?[preferredSheet]:wb.SheetNames;
   for(const name of sheetNamesToScan){
     const ws=wb.Sheets[name];
     if(!ws) continue;
@@ -4119,85 +4185,28 @@ async function parseWorkbook(wb, options={}){
       bestTextCount=textCount;
     }
   }
-  let sheetName=preferredSheet || best;
-  let sheetData=null;
-  if(!sheetName){
-    for(const name of wb.SheetNames){
-      const ws=wb.Sheets[name];
-      if(!ws) continue;
-      const data=XLSX.utils.sheet_to_json(ws, parseOptions);
-      if(Array.isArray(data) && data.length){
-        sheetName=name;
-        sheetData=data;
-        break;
-      }
+  const diagnostics=getWorkbookSheetDiagnostics(wb);
+  const fallbackNames=diagnostics
+    .slice()
+    .sort((a,b)=>b.rowCount - a.rowCount)
+    .map(entry=>entry.name);
+  const candidates=[
+    preferredSheet,
+    best,
+    ...fallbackNames
+  ].filter((name, idx, arr)=>name && arr.indexOf(name)===idx);
+  if(!candidates.length) throw new Error('No usable sheet found');
+  const parseContext={parseOptions, parseFallbackOptions, headerRowCandidates};
+  for(const name of candidates){
+    const result=await tryParseWorksheet(wb, name, parseContext);
+    if(!result?.error){
+      return;
     }
+    console.warn(`Sheet "${name}" is missing or empty; trying next worksheet.`);
   }
-  if(!sheetName) throw new Error('No usable sheet found');
-  let ws=wb.Sheets[sheetName];
-  const sheetRange=ws?.['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : null;
-  const sheetRowCount=sheetRange ? (sheetRange.e.r - sheetRange.s.r + 1) : 0;
-  if(!sheetData){
-    if(sheetRowCount > LARGE_SHEET_ROW_THRESHOLD){
-      const fallbackSampleRange={
-        s:{r:sheetRange?.s.r ?? 0,c:sheetRange?.s.c ?? 0},
-        e:{r:Math.min((sheetRange?.s.r ?? 0)+24, sheetRange?.e.r ?? 24), c:sheetRange?.e.c ?? 0}
-      };
-      const headerRowIndex=Number.isInteger(headerRowCandidates.get(sheetName))
-        ? headerRowCandidates.get(sheetName)
-        : detectHeaderRowIndex(XLSX.utils.sheet_to_json(ws,{
-          ...parseOptions,
-          range:fallbackSampleRange
-        })) + (fallbackSampleRange.s.r || 0);
-      try{
-        await buildStateFromWorksheet(ws,{headerRowIndex});
-        return;
-      }catch(err){
-        const message=String(err?.message||err);
-        if(!message.includes('No usable sheet found')){
-          throw err;
-        }
-        console.warn('Large sheet parse failed; falling back to full sheet parse.', err);
-      }
-    }
-    sheetData=XLSX.utils.sheet_to_json(ws, parseOptions);
-  }
-  if(!Array.isArray(sheetData) || sheetData.length<3){
-    sheetData=XLSX.utils.sheet_to_json(ws, parseFallbackOptions);
-  }
-  if(!Array.isArray(sheetData) || sheetData.length<3){
-    for(const name of wb.SheetNames){
-      if(name===sheetName) continue;
-      const alt=wb.Sheets[name];
-      if(!alt) continue;
-      const data=XLSX.utils.sheet_to_json(alt, parseOptions);
-      if(Array.isArray(data) && data.length>=3){
-        sheetName=name;
-        ws=alt;
-        sheetData=data;
-        break;
-      }
-    }
-  }
-  if(!Array.isArray(sheetData) || sheetData.length<3){
-    for(const name of wb.SheetNames){
-      if(name===sheetName) continue;
-      const alt=wb.Sheets[name];
-      if(!alt) continue;
-      const data=XLSX.utils.sheet_to_json(alt, parseFallbackOptions);
-      if(Array.isArray(data) && data.length>=3){
-        sheetName=name;
-        ws=alt;
-        sheetData=data;
-        break;
-      }
-    }
-  }
-  if(!Array.isArray(sheetData) || sheetData.length<3){
-    throw new Error('No usable sheet found');
-  }
-  const headerRowIndex=detectHeaderRowIndex(sheetData);
-  await buildStateFromSheetData(sheetData,{headerRowIndex});
+  const available=diagnostics.map(entry=>entry.name).filter(Boolean);
+  const detail=available.length?` Available sheets: ${available.join(', ')}.`:'';
+  throw new Error(`No usable sheet found.${detail}`);
 }
 
 async function parseExcel(buf, options={}){
