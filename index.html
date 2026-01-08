@@ -4081,12 +4081,13 @@ function resolvePreferredSheetName(wb, dataset){
   return null;
 }
 
-async function parseExcel(buf, options={}){
-  const wb = XLSX.read(buf, { type:'array', cellDates:true, cellNF:false, cellText:false, dense:true });
+async function parseWorkbook(wb, options={}){
   const preferredSheet=resolvePreferredSheetName(wb, options?.dataset||null);
   let best=null,score=-1,bestTextCount=-1;
   const headerRowCandidates=new Map();
   const sheetNamesToScan=preferredSheet?[preferredSheet]:wb.SheetNames;
+  const parseOptions={header:1, raw:true, defval:null, dense:true};
+  const parseFallbackOptions={header:1, raw:false, defval:null, dense:false, blankrows:true};
   for(const name of sheetNamesToScan){
     const ws=wb.Sheets[name];
     if(!ws) continue;
@@ -4098,10 +4099,7 @@ async function parseExcel(buf, options={}){
       e:{r:Math.min(range.s.r+24, range.e.r), c:range.e.c}
     };
     const sample=XLSX.utils.sheet_to_json(ws,{
-      header:1,
-      raw:true,
-      defval:null,
-      dense:true,
+      ...parseOptions,
       range:sampleRange
     });
     if(!sample || !sample.length) continue;
@@ -4127,12 +4125,7 @@ async function parseExcel(buf, options={}){
     for(const name of wb.SheetNames){
       const ws=wb.Sheets[name];
       if(!ws) continue;
-      const data=XLSX.utils.sheet_to_json(ws,{
-        header:1,
-        raw:true,
-        defval:null,
-        dense:true
-      });
+      const data=XLSX.utils.sheet_to_json(ws, parseOptions);
       if(Array.isArray(data) && data.length){
         sheetName=name;
         sheetData=data;
@@ -4153,10 +4146,7 @@ async function parseExcel(buf, options={}){
       const headerRowIndex=Number.isInteger(headerRowCandidates.get(sheetName))
         ? headerRowCandidates.get(sheetName)
         : detectHeaderRowIndex(XLSX.utils.sheet_to_json(ws,{
-          header:1,
-          raw:true,
-          defval:null,
-          dense:true,
+          ...parseOptions,
           range:fallbackSampleRange
         })) + (fallbackSampleRange.s.r || 0);
       try{
@@ -4170,24 +4160,31 @@ async function parseExcel(buf, options={}){
         console.warn('Large sheet parse failed; falling back to full sheet parse.', err);
       }
     }
-    sheetData=XLSX.utils.sheet_to_json(ws,{
-      header:1,
-      raw:true,
-      defval:null,
-      dense:true
-    });
+    sheetData=XLSX.utils.sheet_to_json(ws, parseOptions);
+  }
+  if(!Array.isArray(sheetData) || sheetData.length<3){
+    sheetData=XLSX.utils.sheet_to_json(ws, parseFallbackOptions);
   }
   if(!Array.isArray(sheetData) || sheetData.length<3){
     for(const name of wb.SheetNames){
       if(name===sheetName) continue;
       const alt=wb.Sheets[name];
       if(!alt) continue;
-      const data=XLSX.utils.sheet_to_json(alt,{
-        header:1,
-        raw:true,
-        defval:null,
-        dense:true
-      });
+      const data=XLSX.utils.sheet_to_json(alt, parseOptions);
+      if(Array.isArray(data) && data.length>=3){
+        sheetName=name;
+        ws=alt;
+        sheetData=data;
+        break;
+      }
+    }
+  }
+  if(!Array.isArray(sheetData) || sheetData.length<3){
+    for(const name of wb.SheetNames){
+      if(name===sheetName) continue;
+      const alt=wb.Sheets[name];
+      if(!alt) continue;
+      const data=XLSX.utils.sheet_to_json(alt, parseFallbackOptions);
       if(Array.isArray(data) && data.length>=3){
         sheetName=name;
         ws=alt;
@@ -4201,6 +4198,20 @@ async function parseExcel(buf, options={}){
   }
   const headerRowIndex=detectHeaderRowIndex(sheetData);
   await buildStateFromSheetData(sheetData,{headerRowIndex});
+}
+
+async function parseExcel(buf, options={}){
+  const baseOptions={ type:'array', cellDates:true, cellNF:false, cellText:false, dense:true };
+  try{
+    const wb = XLSX.read(buf, baseOptions);
+    await parseWorkbook(wb, options);
+    return;
+  }catch(err){
+    const message=String(err?.message||err);
+    if(!message.includes('No usable sheet found')) throw err;
+  }
+  const wb = XLSX.read(buf, { ...baseOptions, cellText:true, dense:false });
+  await parseWorkbook(wb, options);
 }
 
 async function buildStateFromSheetData(sheetData, options={}){
