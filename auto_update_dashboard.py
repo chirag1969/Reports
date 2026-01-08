@@ -23,7 +23,7 @@ from watchdog.observers import Observer
 # =====================
 REPO_ROOT = Path(__file__).resolve().parent
 EXCEL_PATH = REPO_ROOT / "Products Search Term.xlsx"
-SHEET_NAME = "Products Search Term"
+SHEET_NAME = "Sheet1"
 OUTPUT_PATH = REPO_ROOT / "preprocessed/Products Search Term.json"
 HEADER_ROW_INDEX = 1
 CONFIG_PATH = REPO_ROOT / "tools/local_pipeline_config.json"
