@@ -2648,9 +2648,6 @@ const HAS_EXPLICIT_API_BASE=typeof window!=='undefined' && !!window.PRODUCTS_SEA
 const WORKBOOK_API_ENDPOINT=`${API_BASE_URL}/api/workbook`;
 const LARGE_SHEET_ROW_THRESHOLD=100000;
 const LARGE_SHEET_CHUNK_SIZE=100000;
-const WORKBOOK_SHEET_PREFERENCES={
-  'products search term.xlsx':['Sheet 1','Sheet1']
-};
 const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
 const ADVERTISED_PRODUCTS_WORKBOOK=ASIN_SKU_WORKBOOK;
 let asinSkuPromise=null;
@@ -4072,25 +4069,19 @@ async function buildStateFromWorksheet(ws, options={}){
   }
 }
 
-function resolvePreferredSheetName(wb, dataset){
+function resolvePreferredSheetName(wb){
   if(!wb || !Array.isArray(wb.SheetNames) || !wb.SheetNames.length) return null;
   const sheetNames=wb.SheetNames;
-  const fileRaw=dataset?.file?String(dataset.file):'';
-  const labelRaw=dataset?.label?String(dataset.label):'';
-  const fileName=(fileRaw.split(/[\\/]/).pop()||'').toLowerCase();
-  const baseName=fileName.replace(/\.[^.]+$/,'');
-  const candidates=[];
-  const preferredList=WORKBOOK_SHEET_PREFERENCES[fileName];
-  if(Array.isArray(preferredList)) candidates.push(...preferredList);
-  if(baseName) candidates.push(baseName);
-  if(labelRaw) candidates.push(labelRaw);
-  const normalizedCandidates=candidates.map(c=>String(c).trim().toLowerCase()).filter(Boolean);
-  if(!normalizedCandidates.length) return null;
-  for(const name of sheetNames){
-    const normalizedName=String(name).trim().toLowerCase();
-    if(normalizedCandidates.includes(normalizedName)) return name;
+  const normalizedSheetNames=sheetNames.map(name=>String(name).trim());
+  const normalizedLookup=new Map(
+    normalizedSheetNames.map((name, idx)=>[name.toLowerCase(), sheetNames[idx]])
+  );
+  const priorityNames=['Products Search Term','Sheet1','Sheet 1'];
+  for(const name of priorityNames){
+    const match=normalizedLookup.get(name.toLowerCase());
+    if(match) return match;
   }
-  return null;
+  return sheetNames[0];
 }
 
 function getWorksheetRowCount(ws){
@@ -4148,12 +4139,16 @@ async function tryParseWorksheet(wb, sheetName, options){
 }
 
 async function parseWorkbook(wb, options={}){
-  const preferredSheet=resolvePreferredSheetName(wb, options?.dataset||null);
+  const sheetNames=Array.isArray(wb?.SheetNames)?wb.SheetNames:[];
+  if(!sheetNames.length){
+    throw new Error('No worksheets found. Available sheets: none.');
+  }
+  const preferredSheet=resolvePreferredSheetName(wb);
   let best=null,score=-1,bestTextCount=-1;
   const headerRowCandidates=new Map();
   const parseOptions={header:1, raw:true, defval:null, dense:true};
   const parseFallbackOptions={header:1, raw:false, defval:null, dense:false, blankrows:true};
-  const sheetNamesToScan=preferredSheet?[preferredSheet]:wb.SheetNames;
+  const sheetNamesToScan=preferredSheet?[preferredSheet]:sheetNames;
   for(const name of sheetNamesToScan){
     const ws=wb.Sheets[name];
     if(!ws) continue;
