@@ -186,6 +186,12 @@ body.has-data #tipPill{display:none !important}
 .month-row:hover{background:var(--chip)}
 .month-row input{accent-color:var(--accent)}
 .month-name{font-weight:700;color:var(--text)}
+.month-year-group{border-bottom:1px solid var(--border)}
+.month-year-row{display:flex;align-items:center;gap:8px;padding:8px 12px;font-weight:700;color:var(--text)}
+.month-year-toggle{width:24px;height:24px;border-radius:6px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-weight:800;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.month-year-toggle:hover{background:color-mix(in srgb,var(--chip) 80%, transparent)}
+.month-year-toggle.is-open{background:var(--accent);color:#fff;border-color:transparent}
+.month-year-months{padding-left:32px}
 .month-range-panel{border:1px solid var(--border);border-radius:12px;padding:12px 14px 14px;background:color-mix(in srgb,var(--panel) 85%, var(--chip));box-shadow:inset 0 1px 0 color-mix(in srgb,var(--text) 6%, transparent);display:flex;flex-direction:column;gap:12px}
 .month-range-fields{display:flex;flex-direction:column;gap:12px}
 .month-range-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
@@ -4440,17 +4446,62 @@ function buildMonths(){
   state.dateBounds={min:minDate,max:maxDate};
 
   const monthRows=sqlQueryAll(`SELECT substr("${dateInfo.sqlName}",1,7) AS ym, COUNT(*) AS c FROM "${table}" WHERE "${dateInfo.sqlName}" IS NOT NULL AND "${dateInfo.sqlName}" <> '' GROUP BY ym ORDER BY ym`);
-  state.monthOptions=monthRows.filter(row=>row.ym).map(row=>{
+  const monthOptions=monthRows.filter(row=>row.ym).map(row=>{
     const ym=String(row.ym);
+    const year=ym.slice(0,4);
     const monthIndex=Number(ym.slice(5))-1;
-    return {ym,label:MONTH_NAMES[monthIndex]||ym};
+    const monthName=MONTH_NAMES[monthIndex]||ym;
+    return {ym, year, monthIndex, label:`${monthName} ${year}`, shortLabel:monthName};
+  });
+  state.monthOptions=monthOptions;
+
+  const yearGroups=new Map();
+  monthOptions.forEach(opt=>{
+    if(!yearGroups.has(opt.year)) yearGroups.set(opt.year, []);
+    yearGroups.get(opt.year).push(opt);
   });
 
-  el.monthList.innerHTML=state.monthOptions.map(o=>`
-    <label class="month-row">
-      <input type="checkbox" value="${o.ym}" ${state.monthSel.has(o.ym)?'checked':''}/>
-      <span class="month-name">${escapeHtml(o.label)}</span>
-    </label>`).join('');
+  el.monthList.innerHTML=Array.from(yearGroups.entries()).map(([year, months])=>{
+    const monthRowsHtml=months.map(o=>`
+        <label class="month-row">
+          <input type="checkbox" value="${o.ym}" ${state.monthSel.has(o.ym)?'checked':''}/>
+          <span class="month-name">${escapeHtml(o.shortLabel)}</span>
+        </label>`).join('');
+    return `
+      <div class="month-year-group" data-year="${escapeHtml(year)}">
+        <div class="month-year-row">
+          <button type="button" class="month-year-toggle" aria-expanded="false" aria-label="Show ${escapeHtml(year)} months">+</button>
+          <span class="month-year-label">${escapeHtml(year)}</span>
+        </div>
+        <div class="month-year-months" data-year-months="${escapeHtml(year)}" hidden>
+          ${monthRowsHtml}
+        </div>
+      </div>`;
+  }).join('');
+
+  el.monthList.querySelectorAll('.month-year-toggle').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const group=btn.closest('.month-year-group');
+      if(!group) return;
+      const year=group.getAttribute('data-year');
+      const currentPanel=group.querySelector('.month-year-months');
+      const willOpen=!!currentPanel?.hidden;
+      el.monthList.querySelectorAll('.month-year-months').forEach(panel=>{
+        const isTarget=panel.getAttribute('data-year-months')===year;
+        panel.hidden=!(isTarget && willOpen);
+      });
+      el.monthList.querySelectorAll('.month-year-toggle').forEach(toggle=>{
+        const toggleGroup=toggle.closest('.month-year-group');
+        const isOpen=willOpen && toggleGroup?.getAttribute('data-year')===year;
+        toggle.classList.toggle('is-open', isOpen);
+        toggle.textContent=isOpen ? '-' : '+';
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        const labelYear=toggleGroup?.getAttribute('data-year') || year;
+        toggle.setAttribute('aria-label', `${isOpen ? 'Hide' : 'Show'} ${labelYear} months`);
+      });
+    });
+  });
+
   el.monthList.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       if(cb.checked) state.monthSel.add(cb.value);
