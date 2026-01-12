@@ -4451,7 +4451,7 @@ function buildMonths(){
     const year=ym.slice(0,4);
     const monthIndex=Number(ym.slice(5))-1;
     const monthName=MONTH_NAMES[monthIndex]||ym;
-    return {ym, year, monthIndex, label:`${monthName} ${year}`, shortLabel:monthName};
+    return {ym, year, monthIndex, label:monthName, shortLabel:monthName};
   });
   state.monthOptions=monthOptions;
 
@@ -4539,7 +4539,7 @@ function updateMonthSummary(){
   }
   const n=state.monthSel.size;
   if(n===0){ sumEl.textContent='Date Range'; }
-  else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).label||k; }
+  else if(n===1){ const k=[...state.monthSel][0]; sumEl.textContent=(state.monthOptions.find(o=>o.ym===k)||{}).shortLabel||k; }
   else { sumEl.textContent=`${n} months`; }
 }
 function applyMonthFilters(force=false){
