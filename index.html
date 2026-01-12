@@ -1525,26 +1525,76 @@ function renderPivotDatePopup(){
   if(activeTab==='months'){
     if(filtered.length){
       if(emptyEl) emptyEl.hidden=true;
-      const frag=document.createDocumentFragment();
+      const yearGroups=new Map();
       filtered.forEach(opt=>{
-        if(!opt) return;
-        const row=document.createElement('label');
-        row.className='pivot-filter-option';
-        const left=document.createElement('span');
-        left.className='pivot-filter-option-label';
-        const input=document.createElement('input');
-        input.type='checkbox';
-        input.dataset.month=opt.ym;
-        input.checked=monthSet.has(opt.ym);
-        left.appendChild(input);
-        const valueSpan=document.createElement('span');
-        valueSpan.className='pivot-filter-option-value';
-        valueSpan.textContent=opt.label || opt.ym || '—';
-        left.appendChild(valueSpan);
-        row.appendChild(left);
-        frag.appendChild(row);
+        if(!opt || !opt.year) return;
+        if(!yearGroups.has(opt.year)) yearGroups.set(opt.year, []);
+        yearGroups.get(opt.year).push(opt);
+      });
+      const frag=document.createDocumentFragment();
+      Array.from(yearGroups.entries()).forEach(([year, months])=>{
+        months.sort((a,b)=>a.monthIndex-b.monthIndex);
+        const group=document.createElement('div');
+        group.className='month-year-group';
+        group.dataset.year=year;
+        const row=document.createElement('div');
+        row.className='month-year-row';
+        const toggle=document.createElement('button');
+        toggle.type='button';
+        toggle.className='month-year-toggle';
+        toggle.setAttribute('aria-expanded','false');
+        toggle.setAttribute('aria-label',`Show ${year} months`);
+        toggle.textContent='+';
+        row.appendChild(toggle);
+        const label=document.createElement('span');
+        label.className='month-year-label';
+        label.textContent=year;
+        row.appendChild(label);
+        group.appendChild(row);
+        const monthsWrap=document.createElement('div');
+        monthsWrap.className='month-year-months';
+        monthsWrap.dataset.yearMonths=year;
+        monthsWrap.hidden=true;
+        months.forEach(opt=>{
+          const monthRow=document.createElement('label');
+          monthRow.className='month-row';
+          const input=document.createElement('input');
+          input.type='checkbox';
+          input.dataset.month=opt.ym;
+          input.checked=monthSet.has(opt.ym);
+          monthRow.appendChild(input);
+          const name=document.createElement('span');
+          name.className='month-name';
+          name.textContent=opt.label || opt.ym || '—';
+          monthRow.appendChild(name);
+          monthsWrap.appendChild(monthRow);
+        });
+        group.appendChild(monthsWrap);
+        frag.appendChild(group);
       });
       listEl.appendChild(frag);
+      listEl.querySelectorAll('.month-year-toggle').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const group=btn.closest('.month-year-group');
+          if(!group) return;
+          const year=group.getAttribute('data-year');
+          const currentPanel=group.querySelector('.month-year-months');
+          const willOpen=!!currentPanel?.hidden;
+          listEl.querySelectorAll('.month-year-months').forEach(panel=>{
+            const isTarget=panel.getAttribute('data-year-months')===year;
+            panel.hidden=!(isTarget && willOpen);
+          });
+          listEl.querySelectorAll('.month-year-toggle').forEach(toggle=>{
+            const toggleGroup=toggle.closest('.month-year-group');
+            const isOpen=willOpen && toggleGroup?.getAttribute('data-year')===year;
+            toggle.classList.toggle('is-open', isOpen);
+            toggle.textContent=isOpen ? '-' : '+';
+            toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            const labelYear=toggleGroup?.getAttribute('data-year') || year;
+            toggle.setAttribute('aria-label', `${isOpen ? 'Hide' : 'Show'} ${labelYear} months`);
+          });
+        });
+      });
     }else if(emptyEl){
       emptyEl.hidden=false;
       emptyEl.textContent=months.length ? 'No matching months' : 'No month data';
