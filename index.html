@@ -2433,6 +2433,10 @@ function applyDatasetOverrides(dataset){
   const label=(dataset?.label||'').toLowerCase();
   const isProductsCampaign=file.includes('products campaign') || label.includes('products campaign');
   const isBrandsCampaign=file.includes('brands campaign') || label.includes('brands campaign');
+  const isAdvertisedProduct=file.includes('products advertised product')
+    || label.includes('products advertised product')
+    || file.includes('advertised product')
+    || label.includes('advertised product');
   if(isProductsCampaign){
     TAB_ORDER=TAB_ORDER.filter(tab=>tab!=='campaignPortfolio' && tab!=='targeting');
     delete PIVOT_CONFIG.campaignPortfolio;
@@ -2449,8 +2453,8 @@ function applyDatasetOverrides(dataset){
     ensureSlot('adGroup','adgroup','Ad Group Name');
   }
   state.datasetUi={
-    showPivot:!isBrandsCampaign,
-    showTabs:!isBrandsCampaign
+    showPivot:!(isBrandsCampaign || isAdvertisedProduct),
+    showTabs:!(isBrandsCampaign || isAdvertisedProduct)
   };
   updateTabButtonsForOrder(TAB_ORDER);
   if(!TAB_ORDER.includes(state.activeTab)){
@@ -2699,7 +2703,8 @@ const DEFAULT_PREPROCESSED_DATA=[];
 const DEFAULT_WORKBOOKS=[
   'Products Search Term.xlsx',
   'Products Campaign.xlsx',
-  'Brands Campaign.xlsx'
+  'Brands Campaign.xlsx',
+  'Products Advertised Product.xlsx'
 ];
 const PREPROCESSED_WORKBOOK_MAP={
   'products search term.xlsx':'preprocessed/Products Search Term.json',
