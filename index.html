@@ -2385,7 +2385,8 @@ const state={
   activePivotModal:null,
   filtersReturn:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0},
-  dataset:{type:'',file:'',label:''}
+  dataset:{type:'',file:'',label:''},
+  datasetUi:{showPivot:true, showTabs:true}
 };
 
 function updateDatasetTitle(){
@@ -2431,6 +2432,7 @@ function applyDatasetOverrides(dataset){
   const file=(dataset?.file||'').toLowerCase();
   const label=(dataset?.label||'').toLowerCase();
   const isProductsCampaign=file.includes('products campaign') || label.includes('products campaign');
+  const isBrandsCampaign=file.includes('brands campaign') || label.includes('brands campaign');
   if(isProductsCampaign){
     TAB_ORDER=TAB_ORDER.filter(tab=>tab!=='campaignPortfolio' && tab!=='targeting');
     delete PIVOT_CONFIG.campaignPortfolio;
@@ -2446,12 +2448,17 @@ function applyDatasetOverrides(dataset){
     ensureSlot('campaign','campaign','Campaign Name');
     ensureSlot('adGroup','adgroup','Ad Group Name');
   }
+  state.datasetUi={
+    showPivot:!isBrandsCampaign,
+    showTabs:!isBrandsCampaign
+  };
   updateTabButtonsForOrder(TAB_ORDER);
   if(!TAB_ORDER.includes(state.activeTab)){
     state.activeTab=TAB_ORDER[0] || 'overview';
   }
   state.lastTabIndex=TAB_ORDER.indexOf(state.activeTab);
   updateTabsUI();
+  updateDatasetSectionVisibility();
   if(state.hasData) updateAdvertisedProductsDisplay();
 }
 
@@ -2691,7 +2698,8 @@ const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, b
 const DEFAULT_PREPROCESSED_DATA=[];
 const DEFAULT_WORKBOOKS=[
   'Products Search Term.xlsx',
-  'Products Campaign.xlsx'
+  'Products Campaign.xlsx',
+  'Brands Campaign.xlsx'
 ];
 const PREPROCESSED_WORKBOOK_MAP={
   'products search term.xlsx':'preprocessed/Products Search Term.json',
@@ -3634,6 +3642,13 @@ function showLoading(on, options={}){
 
 function resetKpis(){ Object.values(el.kpi||{}).forEach(node=>{ if(node) node.textContent='—'; }); lastKpiSeries=null; updateKpiSparks(null); }
 
+function updateDatasetSectionVisibility(){
+  const showPivot=state.datasetUi?.showPivot !== false;
+  const showTabs=state.datasetUi?.showTabs !== false;
+  if(el.pivot?.section) el.pivot.section.hidden = !state.hasData || !showPivot;
+  if(el.tabs?.bar) el.tabs.bar.hidden = !state.hasData || !showTabs;
+}
+
 function setHasData(has){
   state.hasData=!!has;
   if(has){
@@ -3643,11 +3658,10 @@ function setHasData(has){
   if(has){
     if(el.topLine) el.topLine.style.display='flex';
     if(el.kpis) el.kpis.hidden=false;
-    if(el.pivot?.section) el.pivot.section.hidden=false;
     if(el.openFiltersBtn) el.openFiltersBtn.style.display='inline-flex';
     if(el.dlCsv) el.dlCsv.disabled=false;
     if(el.monthsWrap) el.monthsWrap.hidden = state.monthOptions.length===0;
-    if(el.tabs?.bar) el.tabs.bar.hidden=false;
+    updateDatasetSectionVisibility();
     if(el.tipPill) el.tipPill.hidden=true;
     if(lastKpiSeries){
       const redraw=()=>updateKpiSparks(lastKpiSeries);
