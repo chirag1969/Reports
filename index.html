@@ -2453,8 +2453,8 @@ function applyDatasetOverrides(dataset){
     ensureSlot('adGroup','adgroup','Ad Group Name');
   }
   state.datasetUi={
-    showPivot:!(isBrandsCampaign || isAdvertisedProduct),
-    showTabs:!(isBrandsCampaign || isAdvertisedProduct)
+    showPivot:!isAdvertisedProduct,
+    showTabs:!isAdvertisedProduct
   };
   updateTabButtonsForOrder(TAB_ORDER);
   if(!TAB_ORDER.includes(state.activeTab)){
