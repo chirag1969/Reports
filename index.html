@@ -2371,6 +2371,7 @@ const state={
   snapshot:{},
   hasData:false,
   activeTab:'overview',
+  pivotDisabled:false,
   customRange:{start:null,end:null,active:false},
   dateBounds:{min:null,max:null},
   asinSkuMap:new Map(),
@@ -2431,6 +2432,8 @@ function applyDatasetOverrides(dataset){
   const file=(dataset?.file||'').toLowerCase();
   const label=(dataset?.label||'').toLowerCase();
   const isProductsCampaign=file.includes('products campaign') || label.includes('products campaign');
+  const isBrandCampaign=file.includes('brand campaign') || label.includes('brand campaign');
+  state.pivotDisabled=isBrandCampaign;
   if(isProductsCampaign){
     TAB_ORDER=TAB_ORDER.filter(tab=>tab!=='campaignPortfolio' && tab!=='targeting');
     delete PIVOT_CONFIG.campaignPortfolio;
@@ -2459,6 +2462,18 @@ function updateTabButtonsForOrder(order){
   if(!el.tabs?.list) return;
   const allowed=new Set(order||[]);
   const buttons=Array.from(el.tabs.list.querySelectorAll('[data-tab]'));
+  if(state.pivotDisabled){
+    buttons.forEach(btn=>{
+      btn.hidden=true;
+      btn.setAttribute('aria-hidden','true');
+      btn.setAttribute('tabindex','-1');
+      btn.setAttribute('aria-selected','false');
+      btn.classList.remove('is-active');
+    });
+    el.tabs.buttons=[];
+    if(el.tabs.bar) el.tabs.bar.hidden=true;
+    return;
+  }
   buttons.forEach(btn=>{
     const tab=btn.dataset.tab;
     const show=allowed.size===0 || allowed.has(tab);
@@ -2691,11 +2706,13 @@ const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, b
 const DEFAULT_PREPROCESSED_DATA=[];
 const DEFAULT_WORKBOOKS=[
   'Products Search Term.xlsx',
-  'Products Campaign.xlsx'
+  'Products Campaign.xlsx',
+  'Brand Campaign.xlsx'
 ];
 const PREPROCESSED_WORKBOOK_MAP={
   'products search term.xlsx':'preprocessed/Products Search Term.json',
-  'products campaign.xlsx':'preprocessed/Products Campaign.json'
+  'products campaign.xlsx':'preprocessed/Products Campaign.json',
+  'brand campaign.xlsx':'preprocessed/Brand Campaign.json'
 };
 const API_BASE_URL=(typeof window!=='undefined' && window.PRODUCTS_SEARCH_TERM_API_BASE)
   ? String(window.PRODUCTS_SEARCH_TERM_API_BASE).replace(/\/+$/,'')
@@ -4132,7 +4149,7 @@ function resolvePreferredSheetName(wb){
   const normalizedLookup=new Map(
     normalizedSheetNames.map((name, idx)=>[name.toLowerCase(), sheetNames[idx]])
   );
-  const priorityNames=['Products Search Term','Sheet1','Sheet 1'];
+  const priorityNames=['Products Search Term','Brand Campaign','Sheet1','Sheet 1'];
   for(const name of priorityNames){
     const match=normalizedLookup.get(name.toLowerCase());
     if(match) return match;
@@ -6412,6 +6429,15 @@ function renderAll(){
   const context=buildFilterContext(null);
   const series=buildKpiSeries(context);
   renderKPIs(computeKPIs(context), series);
+
+  if(state.pivotDisabled){
+    if(el.pivot?.section) el.pivot.section.hidden=true;
+    updateResetButtonVisibility();
+    updatePivotFilterButtons();
+    refreshActivePivotPopup();
+    updateAdvertisedProductsDisplay();
+    return;
+  }
 
   const spendInfo=getSqlInfoForStateKey('spend');
   const salesInfo=getSqlInfoForStateKey('revenue');
