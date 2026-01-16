@@ -692,7 +692,7 @@ body.has-data #tipPill{display:none !important}
       </table>
     </div>
   </div>
-  <div class="chart-card pivot-card pivot-overall-left" id="pivotTargetingAsinCard">
+  <div class="chart-card pivot-card pivot-targeting-left" id="pivotTargetingAsinCard">
     <div class="chart-title">
       <span class="chart-title-text">Targeting ASIN Performance Pivot</span>
       <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableTargetingAsin" title="Copy Targeting ASIN Performance Pivot table" aria-label="Copy Targeting ASIN Performance Pivot table">
@@ -2659,14 +2659,14 @@ const DEFAULT_PIVOT_CONFIG={
     {slot:'lo', column:'tsub', fallback:'Targeting Sub Type'},
     {slot:'custType', column:'customerType', fallback:'Customer Search Term - TYPE'},
     {slot:'cat', column:'tsub2', fallback:'Targeting Sub Type2'},
-    {slot:'placement', column:'placement', fallback:'Placement'},
-    {slot:'targetingAsin', column:'targetingAsin', fallback:'Targeting ASIN'}
+    {slot:'placement', column:'placement', fallback:'Placement'}
   ],
   campaignPortfolio:[
     {slot:'campaign', column:'campaign', fallback:'Campaign Name'},
     {slot:'adGroup', column:'adgroup', fallback:'Ad Group Name'}
   ],
   targeting:[
+    {slot:'targetingAsin', column:'targetingAsin', fallback:'Targeting ASIN'},
     {slot:'targetingCat', column:'targetingCat', fallback:'Targeting CAT'}
   ]
 };
