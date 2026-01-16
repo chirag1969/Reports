@@ -2798,7 +2798,8 @@ function ensureAsinSkuMap(){
   asinSkuPromise=loadAsinSkuWorkbook().then(meta=>{
     const skuMap = meta && meta.skuMap instanceof Map ? meta.skuMap : new Map();
     const brandMap = meta && meta.brandMap instanceof Map ? meta.brandMap : new Map();
-    state.asinSkuMap = skuMap;
+    const existingMap = state.asinSkuMap instanceof Map ? state.asinSkuMap : new Map();
+    state.asinSkuMap = mergeAsinSkuMaps(skuMap, existingMap);
     state.asinBrandMap = brandMap;
     state.asinSkuLoaded=true;
     if(state.hasData){
@@ -2807,8 +2808,8 @@ function ensureAsinSkuMap(){
     }
     return state.asinSkuMap;
   }).catch(()=>{
-    state.asinSkuMap=new Map();
-    state.asinBrandMap=new Map();
+    if(!(state.asinSkuMap instanceof Map)) state.asinSkuMap=new Map();
+    state.asinBrandMap=state.asinBrandMap instanceof Map ? state.asinBrandMap : new Map();
     state.asinSkuLoaded=true;
     return state.asinSkuMap;
   });
@@ -3025,6 +3026,59 @@ function buildAsinSkuMapFromRows(rows){
     return collator.compare(aPlain,bPlain);
   }));
   return map;
+}
+
+function mergeAsinSkuMaps(baseMap, extraMap){
+  const output = baseMap instanceof Map ? baseMap : new Map();
+  if(!(extraMap instanceof Map) || extraMap.size===0) return output;
+  extraMap.forEach((entries, asinKey)=>{
+    if(!asinKey || !Array.isArray(entries) || !entries.length) return;
+    let target=output.get(asinKey);
+    if(!Array.isArray(target)){
+      target=[];
+      output.set(asinKey, target);
+    }
+    entries.forEach(entry=>{
+      if(!entry) return;
+      const sellerSku=entry.sellerSku==null?'':String(entry.sellerSku);
+      const plainSku=entry.plainSku==null?'':String(entry.plainSku);
+      if(!sellerSku && !plainSku) return;
+      const exists=target.some(item=>item && item.sellerSku===sellerSku && item.plainSku===plainSku);
+      if(!exists){
+        target.push({sellerSku, plainSku});
+      }
+    });
+  });
+  return output;
+}
+
+function seedAsinSkuMapFromDataset(){
+  const table=state.sql?.table;
+  if(!table) return;
+  const asinInfo=getSqlInfoForStateKey('targetingAsin');
+  const skuInfo=getSqlInfoForStateKey('sku');
+  if(!asinInfo || !skuInfo) return;
+  const rows=sqlQueryAll(`SELECT DISTINCT "${asinInfo.sqlName}" AS asin, "${skuInfo.sqlName}" AS sku FROM "${table}" WHERE "${asinInfo.sqlName}" IS NOT NULL AND "${asinInfo.sqlName}" <> '' AND "${skuInfo.sqlName}" IS NOT NULL AND "${skuInfo.sqlName}" <> ''`);
+  if(!rows.length) return;
+  const map=new Map();
+  rows.forEach(row=>{
+    const asin=String(row.asin??'').trim();
+    const sku=String(row.sku??'').trim();
+    if(!asin || !sku) return;
+    const asinKey=normalizeAsinKey(asin);
+    if(!asinKey) return;
+    let list=map.get(asinKey);
+    if(!list){
+      list=[];
+      map.set(asinKey, list);
+    }
+    const entry={sellerSku:sku, plainSku:sku};
+    if(!list.some(item=>item && item.sellerSku===entry.sellerSku && item.plainSku===entry.plainSku)){
+      list.push(entry);
+    }
+  });
+  if(!map.size) return;
+  state.asinSkuMap = mergeAsinSkuMaps(state.asinSkuMap, map);
 }
 
 function buildAsinBrandMapFromRows(rows){
@@ -3998,6 +4052,7 @@ async function buildStateFromWorksheet(ws, options={}){
     targeting:  findIndexByTokens(headers,['targeting']),
     term:       findIndexByTokens(headers,['customersearchterm','searchterm','term']),
     customerType:findIndexByTokens(headers,['customersearchtermtype','searchtermtype']),
+    sku:        findIndexByTokens(headers,['advertisedsku','seller sku','seller-sku','plain sku','plain-sku','sku']),
     targetingAsin:findIndexByTokens(headers,['targetingasin','targetasin','advertisedasin','asin']),
     targetingCat: findIndexByTokens(headers,['targetingcat','targetcat']),
     placement:  findIndexByTokens(headers,['placement','placements']),
@@ -4111,6 +4166,7 @@ async function buildStateFromWorksheet(ws, options={}){
   resetConversionPaging();
   buildSqlIndexes();
   buildMonths();
+  seedAsinSkuMapFromDataset();
   const {token:filterToken, remainingKeys}=initFilters({initialKeys:INITIAL_FILTER_KEYS});
   renderAll();
   if(Array.isArray(remainingKeys) && remainingKeys.length){
@@ -4295,6 +4351,7 @@ async function buildStateFromSheetData(sheetData, options={}){
     targeting:  findIndexByTokens(headers,['targeting']),
     term:       findIndexByTokens(headers,['customersearchterm','searchterm','term']),
     customerType:findIndexByTokens(headers,['customersearchtermtype','searchtermtype']),
+    sku:        findIndexByTokens(headers,['advertisedsku','seller sku','seller-sku','plain sku','plain-sku','sku']),
     targetingAsin:findIndexByTokens(headers,['targetingasin','targetasin','advertisedasin','asin']),
     targetingCat: findIndexByTokens(headers,['targetingcat','targetcat']),
     placement:  findIndexByTokens(headers,['placement','placements']),
@@ -4408,6 +4465,7 @@ async function buildStateFromSheetData(sheetData, options={}){
   resetConversionPaging();
   buildSqlIndexes();
   buildMonths();
+  seedAsinSkuMapFromDataset();
   const {token:filterToken, remainingKeys}=initFilters({initialKeys:INITIAL_FILTER_KEYS});
   renderAll();
   if(Array.isArray(remainingKeys) && remainingKeys.length){
