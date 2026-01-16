@@ -708,22 +708,6 @@ body.has-data #tipPill{display:none !important}
       <table id="pivotTableTargetingAsin" class="pivot-table"></table>
     </div>
   </div>
-  <div class="chart-card pivot-card pivot-targeting-left" id="pivotTargetingKeywordCard">
-    <div class="chart-title">
-      <span class="chart-title-text">Keyword Performance Pivot</span>
-      <button type="button" class="pivot-action-btn pivot-copy-btn" data-copy-target="pivotTableTargetingKeyword" title="Copy Keyword Performance Pivot table" aria-label="Copy Keyword Performance Pivot table">
-        <span class="pivot-copy-icon" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-            <rect x="5" y="5" width="12" height="12" rx="3" ry="3" opacity=".45"></rect>
-            <rect x="8" y="7" width="12" height="12" rx="3" ry="3"></rect>
-          </svg>
-        </span>
-      </button>
-    </div>
-    <div class="pivot-body">
-      <table id="pivotTableTargetingKeyword" class="pivot-table"></table>
-    </div>
-  </div>
   <div class="chart-card pivot-card pivot-targeting-left" id="pivotTargetingCatCard">
     <div class="chart-title">
       <span class="chart-title-text">Targeting CAT Performance Pivot</span>
@@ -2273,7 +2257,6 @@ const el={
     adGroup:{card:document.getElementById('pivotAdGroupCard'),table:document.getElementById('pivotTableAdGroup')},
     portfolio:{card:document.getElementById('pivotPortfolioCard'),table:document.getElementById('pivotTablePortfolio')},
     targetingAsin:{card:document.getElementById('pivotTargetingAsinCard'),table:document.getElementById('pivotTableTargetingAsin')},
-    targetingKeyword:{card:document.getElementById('pivotTargetingKeywordCard'),table:document.getElementById('pivotTableTargetingKeyword')},
     targetingCat:{card:document.getElementById('pivotTargetingCatCard'),table:document.getElementById('pivotTableTargetingCat')},
     conversionSt:{
       card:document.getElementById('pivotConversionStCard'),
@@ -2684,7 +2667,6 @@ const DEFAULT_PIVOT_CONFIG={
   ],
   targeting:[
     {slot:'targetingAsin', column:'targetingAsin', fallback:'Targeting ASIN'},
-    {slot:'targetingKeyword', column:'targeting', fallback:'Keyword', options:{displayName:'Keyword', baseFilters:[{stateKey:'tsub', values:['Keyword']}]}},
     {slot:'targetingCat', column:'targetingCat', fallback:'Targeting CAT'}
   ]
 };
