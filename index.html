@@ -215,6 +215,7 @@ body.has-data #tipPill{display:none !important}
 .pivot{padding:6px clamp(14px,3vw,26px) 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:var(--chartsGap);align-items:start;grid-auto-rows:var(--pivot-auto-rows,auto);grid-auto-flow:row dense}
 .pivot[data-mode="overview"] #pivotCustTypeCard,
 .pivot[data-mode="overview"] #pivotPlacementCard{display:none !important}
+.pivot:not([data-mode="targeting"]) .pivot-conversion{display:none !important}
 @media(min-width:960px){
   .pivot[data-mode="overview"]{grid-template-columns:repeat(2,minmax(0,1fr));}
   .pivot[data-mode="overview"] #pivotStoreCard,
@@ -226,6 +227,9 @@ body.has-data #tipPill{display:none !important}
   .pivot[data-mode="overall"] .pivot-overall-left{grid-column:1 / 2;}
   .pivot[data-mode="overall"] .pivot-overall-right{grid-column:2 / 3;}
   .pivot[data-mode="campaignPortfolio"]{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .pivot[data-mode="targeting"]{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .pivot[data-mode="targeting"] .pivot-targeting-left{grid-column:1 / 2;}
+  .pivot[data-mode="targeting"] .pivot-targeting-right{grid-column:2 / 3;}
 }
 .chart-card{position:relative;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 12px 10px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:visible}
 .chart-title{font-weight:700;margin-bottom:8px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -475,6 +479,7 @@ body.has-data #tipPill{display:none !important}
           <button type="button" class="pivot-tab is-active" data-tab="overview" role="tab" aria-selected="true">Overview Pivots</button>
           <button type="button" class="pivot-tab" data-tab="overall" role="tab" aria-selected="false" tabindex="-1">Overall Pivots</button>
           <button type="button" class="pivot-tab" data-tab="campaignPortfolio" role="tab" aria-selected="false" tabindex="-1">Campaign / Ad Group</button>
+          <button type="button" class="pivot-tab" data-tab="targeting" role="tab" aria-selected="false" tabindex="-1">Targeting ASIN / CAT</button>
         </div>
       </div>
       <div class="months-wrap" id="monthsWrap" hidden>
@@ -2623,7 +2628,7 @@ async function onDatasetMenuClick(event){
   closeDatasetMenu(false);
   await handleDatasetSelection(type,file,label);
 }
-const DEFAULT_TAB_ORDER=['overview','overall','campaignPortfolio'];
+const DEFAULT_TAB_ORDER=['overview','overall','campaignPortfolio','targeting'];
 let TAB_ORDER=DEFAULT_TAB_ORDER.slice();
 const PIVOT_SORT_KEYS=new Set(['label','sku','brand','spend','sales','acos']);
 
@@ -2660,6 +2665,9 @@ const DEFAULT_PIVOT_CONFIG={
   campaignPortfolio:[
     {slot:'campaign', column:'campaign', fallback:'Campaign Name'},
     {slot:'adGroup', column:'adgroup', fallback:'Ad Group Name'}
+  ],
+  targeting:[
+    {slot:'targetingCat', column:'targetingCat', fallback:'Targeting CAT'}
   ]
 };
 let PIVOT_CONFIG=clonePivotConfig(DEFAULT_PIVOT_CONFIG);
