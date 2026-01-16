@@ -2437,6 +2437,23 @@ function applyDatasetOverrides(dataset){
     || label.includes('products advertised product')
     || file.includes('advertised product')
     || label.includes('advertised product');
+  if(isAdvertisedProduct){
+    const overall=Array.isArray(PIVOT_CONFIG.overall) ? PIVOT_CONFIG.overall : [];
+    const targeting=Array.isArray(PIVOT_CONFIG.targeting) ? PIVOT_CONFIG.targeting : [];
+    const moved=targeting.find(entry=>entry?.slot==='targetingAsin');
+    PIVOT_CONFIG.targeting=targeting.filter(entry=>entry?.slot!=='targetingAsin');
+    if(!overall.some(entry=>entry?.slot==='targetingAsin')){
+      const next=moved ? {...moved} : {slot:'targetingAsin', column:'targetingAsin', fallback:'Advertised ASIN'};
+      next.options={...(next.options||{}), displayName:'Advertised ASIN'};
+      overall.push(next);
+    }else{
+      const entry=overall.find(cfg=>cfg?.slot==='targetingAsin');
+      if(entry){
+        entry.options={...(entry.options||{}), displayName:'Advertised ASIN'};
+      }
+    }
+    PIVOT_CONFIG.overall=overall;
+  }
   if(isProductsCampaign){
     TAB_ORDER=TAB_ORDER.filter(tab=>tab!=='campaignPortfolio' && tab!=='targeting');
     delete PIVOT_CONFIG.campaignPortfolio;
