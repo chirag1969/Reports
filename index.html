@@ -274,6 +274,8 @@ body.has-data #tipPill{display:none !important}
 .advertised-table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.5}
 .advertised-table thead th{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);font-size:12px;letter-spacing:.4px;text-transform:uppercase;font-weight:700}
 .advertised-table tbody td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600;vertical-align:top}
+.advertised-table thead th.metric,.advertised-table tbody td.metric{text-align:right;white-space:nowrap}
+.advertised-table tbody td.metric{font-variant-numeric:tabular-nums}
 .advertised-table tbody tr:hover{background:color-mix(in srgb,var(--chip) 85%, transparent)}
 .advertised-table tbody tr:last-child td{border-bottom:0}
 .advertised-table.is-loading tbody td{color:var(--muted);font-style:italic}
@@ -697,6 +699,9 @@ body.has-data #tipPill{display:none !important}
           <tr>
             <th scope="col">Advertised SKU</th>
             <th scope="col">Advertised ASIN</th>
+            <th scope="col" class="metric">Spend</th>
+            <th scope="col" class="metric">Sales</th>
+            <th scope="col" class="metric">ACOS</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -3124,6 +3129,9 @@ function buildAdvertisedProductsFromRows(rows){
   let idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
   let idxSku=findIndexByTokens(headers,['advertisedsku','sku']);
   let idxAsin=findIndexByTokens(headers,['advertisedasin','asin']);
+  let idxSpend=findIndexByTokens(headers,['spend','adspend','cost','advertisingcost']);
+  let idxSales=findIndexByTokens(headers,['7 day total sales','7-day total sales','total sales','sales','revenue']);
+  let idxAcos=findIndexByTokens(headers,['acos','advertising cost of sales','total advertising cost of sales']);
   if((idxCampaign<0 && idxAdGroup<0) || (idxSku<0 && idxAsin<0)){
     for(let i=0;i<Math.min(rows.length,6);i++){
       const candidate=sanitizeRow(rows[i]);
@@ -3131,6 +3139,9 @@ function buildAdvertisedProductsFromRows(rows){
       const adGroupCandidate=findIndexByTokens(candidate,['adgroupname','ad group name','adgroup']);
       const skuCandidate=findIndexByTokens(candidate,['advertisedsku','sku']);
       const asinCandidate=findIndexByTokens(candidate,['advertisedasin','asin']);
+      const spendCandidate=findIndexByTokens(candidate,['spend','adspend','cost','advertisingcost']);
+      const salesCandidate=findIndexByTokens(candidate,['7 day total sales','7-day total sales','total sales','sales','revenue']);
+      const acosCandidate=findIndexByTokens(candidate,['acos','advertising cost of sales','total advertising cost of sales']);
       const hasNames=(campaignCandidate>-1 || adGroupCandidate>-1);
       const hasProducts=(skuCandidate>-1 || asinCandidate>-1);
       if(hasNames && hasProducts){
@@ -3140,6 +3151,9 @@ function buildAdvertisedProductsFromRows(rows){
         idxAdGroup=adGroupCandidate;
         idxSku=skuCandidate;
         idxAsin=asinCandidate;
+        idxSpend=spendCandidate;
+        idxSales=salesCandidate;
+        idxAcos=acosCandidate;
         break;
       }
     }
@@ -3150,6 +3164,9 @@ function buildAdvertisedProductsFromRows(rows){
       idxAdGroup=findIndexByTokens(headers,['adgroupname','ad group name','adgroup']);
       idxSku=findIndexByTokens(headers,['advertisedsku','sku']);
       idxAsin=findIndexByTokens(headers,['advertisedasin','asin']);
+      idxSpend=findIndexByTokens(headers,['spend','adspend','cost','advertisingcost']);
+      idxSales=findIndexByTokens(headers,['7 day total sales','7-day total sales','total sales','sales','revenue']);
+      idxAcos=findIndexByTokens(headers,['acos','advertising cost of sales','total advertising cost of sales']);
     }
   }
   if(idxCampaign<0 && idxAdGroup<0) return null;
@@ -3161,6 +3178,9 @@ function buildAdvertisedProductsFromRows(rows){
     const adGroup=idxAdGroup>-1?String(row[idxAdGroup]??'').trim():'';
     const sku=idxSku>-1?String(row[idxSku]??'').trim():'';
     const asin=idxAsin>-1?String(row[idxAsin]??'').trim():'';
+    const spend=idxSpend>-1?parseNumber(row[idxSpend]):NaN;
+    const sales=idxSales>-1?parseNumber(row[idxSales]):NaN;
+    const acos=idxAcos>-1?parseNumber(row[idxAcos]):NaN;
     if(!campaign && !adGroup) continue;
     if(!sku && !asin) continue;
     data.push({
@@ -3168,6 +3188,9 @@ function buildAdvertisedProductsFromRows(rows){
       adGroup,
       sku,
       asin,
+      spend,
+      sales,
+      acos,
       campaignKey:normalizeAdvertisedKey(campaign),
       adGroupKey:normalizeAdvertisedKey(adGroup)
     });
@@ -6336,11 +6359,40 @@ function filterAdvertisedProductRows(rows, campaignValues, adgroupValues, mode){
     const asin=String(row.asin||'').trim();
     if(!sku && !asin) return;
     const key=`${normalizeSkuKey(sku)}||${normalizeAsinKey(asin)}`;
-    if(!dedupe.has(key)){
-      dedupe.set(key,{sku,asin});
+    let entry=dedupe.get(key);
+    if(!entry){
+      entry={sku,asin,spend:0,sales:0,acosTotal:0,acosCount:0,hasSpend:false,hasSales:false,hasAcos:false};
+      dedupe.set(key,entry);
+    }
+    if(Number.isFinite(row?.spend)){
+      entry.spend+=row.spend;
+      entry.hasSpend=true;
+    }
+    if(Number.isFinite(row?.sales)){
+      entry.sales+=row.sales;
+      entry.hasSales=true;
+    }
+    if(Number.isFinite(row?.acos)){
+      entry.acosTotal+=row.acos;
+      entry.acosCount+=1;
+      entry.hasAcos=true;
     }
   });
-  const result=Array.from(dedupe.values());
+  const result=Array.from(dedupe.values()).map(entry=>{
+    const spend=entry.hasSpend?entry.spend:NaN;
+    const sales=entry.hasSales?entry.sales:NaN;
+    let acos=NaN;
+    if(entry.hasSpend || entry.hasSales){
+      if(Number.isFinite(spend) && Number.isFinite(sales) && sales>0){
+        acos=spend/sales;
+      }else if(Number.isFinite(spend) && spend>0){
+        acos=Infinity;
+      }
+    }else if(entry.hasAcos && entry.acosCount){
+      acos=entry.acosTotal/entry.acosCount;
+    }
+    return {sku:entry.sku, asin:entry.asin, spend, sales, acos};
+  });
   if(!result.length) return [];
   result.sort((a,b)=>{
     const skuDiff=PIVOT_LABEL_COLLATOR.compare(a.sku||'', b.sku||'');
@@ -6357,7 +6409,7 @@ function setAdvertisedProductsView(status, rows){
     table.classList.toggle('is-loading', status==='loading');
   }
   if(status==='loading'){
-    if(body) body.innerHTML='<tr class="advertised-loading"><td colspan="2">Loading…</td></tr>';
+    if(body) body.innerHTML='<tr class="advertised-loading"><td colspan="5">Loading…</td></tr>';
     if(table) table.hidden=false;
     if(empty) empty.hidden=true;
   }else if(status==='error'){
@@ -6380,7 +6432,10 @@ function setAdvertisedProductsView(status, rows){
       body.innerHTML=rows.map(row=>{
         const sku=row?.sku?escapeHtml(row.sku):placeholder;
         const asin=row?.asin?escapeHtml(row.asin):placeholder;
-        return `<tr><td>${sku}</td><td>${asin}</td></tr>`;
+        const spend=Number.isFinite(row?.spend)?fmt.money(row.spend):placeholder;
+        const sales=Number.isFinite(row?.sales)?fmt.money(row.sales):placeholder;
+        const acos=Number.isFinite(row?.acos)?fmt.pct(row.acos):placeholder;
+        return `<tr><td>${sku}</td><td>${asin}</td><td class="metric">${spend}</td><td class="metric">${sales}</td><td class="metric">${acos}</td></tr>`;
       }).join('');
     }
     if(table) table.hidden=false;
