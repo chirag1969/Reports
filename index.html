@@ -2692,7 +2692,7 @@ const WORKBOOK_API_ENDPOINT=`${API_BASE_URL}/api/workbook`;
 const LARGE_SHEET_ROW_THRESHOLD=100000;
 const LARGE_SHEET_CHUNK_SIZE=100000;
 const ASIN_SKU_WORKBOOK='ASINwise SKU.xlsx';
-const ADVERTISED_PRODUCTS_WORKBOOK=ASIN_SKU_WORKBOOK;
+const ADVERTISED_PRODUCTS_WORKBOOK='Products Advertised Product.xlsx';
 let asinSkuPromise=null;
 let advertisedProductsPromise=null;
 let loadingDepth=0;
@@ -2815,46 +2815,96 @@ function ensureAsinSkuMap(){
   return asinSkuPromise;
 }
 
-async function loadAsinSkuWorkbook(){
-  const file=ASIN_SKU_WORKBOOK && ASIN_SKU_WORKBOOK.trim();
+function mergeSkuMaps(target, source){
+  if(!(target instanceof Map) || !(source instanceof Map) || source.size===0) return;
+  source.forEach((entries, asinKey)=>{
+    if(!asinKey || !Array.isArray(entries) || !entries.length) return;
+    const existing=target.get(asinKey);
+    if(!existing){
+      target.set(asinKey, entries.slice());
+      return;
+    }
+    const combined=existing.slice();
+    entries.forEach(entry=>{
+      if(!entry) return;
+      const hasMatch=combined.some(item=>item && item.sellerSku===entry.sellerSku && item.plainSku===entry.plainSku);
+      if(!hasMatch) combined.push(entry);
+    });
+    target.set(asinKey, combined);
+  });
+}
+
+function mergeBrandMaps(target, source){
+  if(!(target instanceof Map) || !(source instanceof Map) || source.size===0) return;
+  source.forEach((brand, asinKey)=>{
+    if(!asinKey) return;
+    const normalized=brand==null?'':String(brand).trim();
+    if(!normalized) return;
+    if(!target.has(asinKey) || !String(target.get(asinKey)||'').trim()){
+      target.set(asinKey, normalized);
+    }
+  });
+}
+
+async function readAsinSkuWorkbook(file){
   if(!file) return {skuMap:new Map(), brandMap:new Map()};
+  let targetUrl;
   try{
-    let targetUrl;
+    targetUrl=new URL(file, document.baseURI).href;
+  }catch(_){
+    targetUrl=encodeURI(file);
+  }
+  const response=await fetch(targetUrl,{cache:'no-store'});
+  if(!response.ok && response.status!==0) throw new Error('ASIN SKU workbook not found');
+  const buf=await response.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array',cellDates:false,cellNF:false,cellText:false});
+  if(!wb.SheetNames || !wb.SheetNames.length) return {skuMap:new Map(), brandMap:new Map()};
+  let skuMap=null;
+  let brandMap=null;
+  for(const sheetName of wb.SheetNames){
+    const ws=wb.Sheets[sheetName];
+    if(!ws) continue;
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
+    if(!rows || rows.length<2) continue;
+    if(!skuMap){
+      const candidate=buildAsinSkuMapFromRows(rows);
+      if(candidate) skuMap=candidate;
+    }
+    if(!brandMap){
+      const brandCandidate=buildAsinBrandMapFromRows(rows);
+      if(brandCandidate) brandMap=brandCandidate;
+    }
+    if(skuMap && brandMap) break;
+  }
+  return {
+    skuMap:skuMap||new Map(),
+    brandMap:brandMap||new Map()
+  };
+}
+
+async function loadAsinSkuWorkbook(){
+  const files=[ASIN_SKU_WORKBOOK, ADVERTISED_PRODUCTS_WORKBOOK]
+    .map(file=>String(file||'').trim())
+    .filter(Boolean);
+  const uniqueFiles=Array.from(new Set(files));
+  if(!uniqueFiles.length) return {skuMap:new Map(), brandMap:new Map()};
+  const skuMap=new Map();
+  const brandMap=new Map();
+  let loadedAny=false;
+  for(const file of uniqueFiles){
     try{
-      targetUrl=new URL(file, document.baseURI).href;
-    }catch(_){
-      targetUrl=encodeURI(file);
+      const result=await readAsinSkuWorkbook(file);
+      mergeSkuMaps(skuMap, result?.skuMap);
+      mergeBrandMaps(brandMap, result?.brandMap);
+      loadedAny=true;
+    }catch(err){
+      console.warn(`ASIN SKU mapping load failed for ${file}:`, err);
     }
-    const response=await fetch(targetUrl,{cache:'no-store'});
-    if(!response.ok && response.status!==0) throw new Error('ASIN SKU workbook not found');
-    const buf=await response.arrayBuffer();
-    const wb=XLSX.read(buf,{type:'array',cellDates:false,cellNF:false,cellText:false});
-    if(!wb.SheetNames || !wb.SheetNames.length) return {skuMap:new Map(), brandMap:new Map()};
-    let skuMap=null;
-    let brandMap=null;
-    for(const sheetName of wb.SheetNames){
-      const ws=wb.Sheets[sheetName];
-      if(!ws) continue;
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:false,defval:''});
-      if(!rows || rows.length<2) continue;
-      if(!skuMap){
-        const candidate=buildAsinSkuMapFromRows(rows);
-        if(candidate) skuMap=candidate;
-      }
-      if(!brandMap){
-        const brandCandidate=buildAsinBrandMapFromRows(rows);
-        if(brandCandidate) brandMap=brandCandidate;
-      }
-      if(skuMap && brandMap) break;
-    }
-    return {
-      skuMap:skuMap||new Map(),
-      brandMap:brandMap||new Map()
-    };
-  }catch(err){
-    console.warn('ASIN SKU mapping load failed:', err);
+  }
+  if(!loadedAny && !skuMap.size && !brandMap.size){
     return {skuMap:new Map(), brandMap:new Map()};
   }
+  return {skuMap, brandMap};
 }
 
 function normalizeAsinKey(value){
