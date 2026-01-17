@@ -29,7 +29,8 @@ You can pass a custom output path or select a specific sheet using the
 Use `tools/local_pipeline.py` to read the Excel files from your PC, export the
 exact JSON files used by the dashboard, and automatically commit + push them to
 GitHub. The dashboard will continue to read the same files at the same paths
-(`preprocessed/Products Search Term.json` and
+(`preprocessed/Products Search Term 2025.json`,
+`preprocessed/Products Search Term 2026.json`, and
 `preprocessed/Products Campaign.json`).
 
 1. Install dependencies:

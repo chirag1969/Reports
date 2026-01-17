@@ -377,6 +377,12 @@ body.has-data #tipPill{display:none !important}
 .filter label::after{content:"";display:block;width:18px;height:2px;border-radius:999px;background:var(--accent);margin-top:4px}
 .filter.is-highlighted{outline:2px solid color-mix(in srgb,var(--accent) 65%, transparent);outline-offset:2px;animation:filterPulse 1.2s ease-in-out;box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 25%, transparent)}
 @keyframes filterPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 28%, transparent);}50%{box-shadow:0 0 0 12px color-mix(in srgb,var(--accent) 18%, transparent);}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%, transparent);}}
+.year-modal-body{display:grid;gap:14px}
+.year-modal-text{margin:0;color:var(--muted);font-weight:600}
+.year-modal-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.year-option{padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-weight:700;letter-spacing:.4px;text-transform:uppercase;cursor:pointer;transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease}
+.year-option:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 50%, var(--border));box-shadow:0 10px 20px rgba(15,23,42,.2)}
+.year-option:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 75%, transparent);outline-offset:2px}
 
 /* Multi-select */
 .dd{position:relative}
@@ -823,6 +829,23 @@ body.has-data #tipPill{display:none !important}
       <button id="clearAll" class="btn-outline">Clear All</button>
       <button id="cancelFilters" class="btn-outline">Cancel</button>
       <button id="applyFilters" class="btn-primary">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Products Search Term Year Modal -->
+<div id="yearSelectModal" class="modal" aria-hidden="true" role="dialog" aria-label="Select Products Search Term year">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>Products Search Term</h3>
+      <button id="closeYearSelect" class="btn-outline" title="Close">✕</button>
+    </div>
+    <div class="year-modal-body">
+      <p class="year-modal-text">Select the year to load the Products Search Term dashboard.</p>
+      <div id="yearSelectOptions" class="year-modal-options">
+        <button type="button" class="year-option" data-search-term-year="2025">2025</button>
+        <button type="button" class="year-option" data-search-term-year="2026">2026</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2327,6 +2350,11 @@ const el={
   applyFiltersBtn:document.getElementById('applyFilters'),
   clearAllBtn:document.getElementById('clearAll'),
   filters:document.getElementById('filtersSection'),
+  searchTermYear:{
+    modal:document.getElementById('yearSelectModal'),
+    close:document.getElementById('closeYearSelect'),
+    options:document.getElementById('yearSelectOptions')
+  },
   themeBtn:document.getElementById('themeBtn'),
   empty:document.getElementById('emptyState'),
   emptyDatasetOptions:document.getElementById('emptyDatasetOptions'),
@@ -2384,6 +2412,7 @@ const state={
   activePivotPopup:null,
   activePivotModal:null,
   filtersReturn:null,
+  yearPromptReturn:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0},
   dataset:{type:'',file:'',label:''},
   datasetUi:{showPivot:true, showTabs:true}
@@ -2513,7 +2542,9 @@ function updateDatasetMenuActive(){
     menu.list.querySelectorAll('[data-dataset-id]').forEach(item=>{
       const type=item.dataset.datasetType||'';
       const file=item.dataset.datasetFile||'';
-      const isActive=!!dataset.file && dataset.type===type && dataset.file===file;
+      const isActive=type==='yearPrompt'
+        ? isProductsSearchTermDataset(dataset)
+        : (!!dataset.file && dataset.type===type && dataset.file===file);
       item.classList.toggle('is-active', isActive);
       item.setAttribute('aria-checked', isActive?'true':'false');
     });
@@ -2522,7 +2553,9 @@ function updateDatasetMenuActive(){
     el.emptyDatasetOptions.querySelectorAll('[data-dataset-id]').forEach(button=>{
       const type=button.dataset.datasetType||'';
       const file=button.dataset.datasetFile||'';
-      const isActive=!!dataset.file && dataset.type===type && dataset.file===file;
+      const isActive=type==='yearPrompt'
+        ? isProductsSearchTermDataset(dataset)
+        : (!!dataset.file && dataset.type===type && dataset.file===file);
       button.classList.toggle('is-active', isActive);
       button.setAttribute('aria-pressed', isActive?'true':'false');
     });
@@ -2577,11 +2610,55 @@ function toggleDatasetMenu(){
   else openDatasetMenu();
 }
 
-async function handleDatasetSelection(type,file,label){
+function isSearchTermYearModalOpen(){
+  const modal=el.searchTermYear?.modal;
+  return !!(modal && modal.classList.contains('open'));
+}
+
+function openSearchTermYearModal(triggerEl){
+  const modal=el.searchTermYear?.modal;
+  if(!modal || isSearchTermYearModalOpen()) return;
+  state.yearPromptReturn=triggerEl || document.activeElement;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  const firstOption=modal.querySelector('[data-search-term-year]');
+  if(firstOption){
+    requestAnimationFrame(()=>{ try{ firstOption.focus({preventScroll:true}); }catch(_){ } });
+  }
+}
+
+function closeSearchTermYearModal(options={restoreFocus:true}){
+  const modal=el.searchTermYear?.modal;
+  if(!modal || !isSearchTermYearModalOpen()) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  if(options.restoreFocus){
+    const target=state.yearPromptReturn;
+    state.yearPromptReturn=null;
+    if(target && typeof target.focus==='function'){
+      requestAnimationFrame(()=>{ try{ target.focus({preventScroll:true}); }catch(_){ } });
+    }
+  }else{
+    state.yearPromptReturn=null;
+  }
+}
+
+async function selectSearchTermYear(year){
+  const match=PRODUCTS_SEARCH_TERM_YEARS.find(option=>option.year===String(year));
+  if(!match) return;
+  closeSearchTermYearModal({restoreFocus:false});
+  await handleDatasetSelection('workbook', match.file, match.label);
+}
+
+async function handleDatasetSelection(type,file,label,triggerEl){
   const datasetType=type||'';
   const datasetFile=file||'';
   const datasetLabel=label || formatDatasetLabelFromFile(datasetFile);
   if(!datasetType || !datasetFile) return;
+  if(datasetType==='yearPrompt'){
+    openSearchTermYearModal(triggerEl);
+    return;
+  }
   try{
     showLoading(true);
     if(datasetType==='workbook'){
@@ -2660,7 +2737,7 @@ async function onDatasetMenuClick(event){
   const file=button.dataset.datasetFile||'';
   const label=button.dataset.datasetLabel || formatDatasetLabelFromFile(file);
   closeDatasetMenu(false);
-  await handleDatasetSelection(type,file,label);
+  await handleDatasetSelection(type,file,label,button);
 }
 const DEFAULT_TAB_ORDER=['overview','overall','campaignPortfolio','targeting'];
 let TAB_ORDER=DEFAULT_TAB_ORDER.slice();
@@ -2717,14 +2794,19 @@ const FILTER_BACKFILL_CHUNK_SIZE=3;
 let filterBackfillToken=0;
 const pivotFilterPopupState={slot:'', options:[], filtered:[], dimension:null, button:null, displayName:'', search:'', mode:'dimension', dateTab:'months'};
 const DEFAULT_PREPROCESSED_DATA=[];
+const PRODUCTS_SEARCH_TERM_LABEL='Products Search Term';
+const PRODUCTS_SEARCH_TERM_YEARS=[
+  {year:'2025', file:'Products Search Term 2025.xlsx', label:'Products Search Term 2025'},
+  {year:'2026', file:'Products Search Term 2026.xlsx', label:'Products Search Term 2026'}
+];
 const DEFAULT_WORKBOOKS=[
-  'Products Search Term.xlsx',
   'Products Campaign.xlsx',
   'Brands Campaign.xlsx',
   'Products Advertised Product.xlsx'
 ];
 const PREPROCESSED_WORKBOOK_MAP={
-  'products search term.xlsx':'preprocessed/Products Search Term.json',
+  'products search term 2025.xlsx':'preprocessed/Products Search Term 2025.json',
+  'products search term 2026.xlsx':'preprocessed/Products Search Term 2026.json',
   'products campaign.xlsx':'preprocessed/Products Campaign.json'
 };
 const API_BASE_URL=(typeof window!=='undefined' && window.PRODUCTS_SEARCH_TERM_API_BASE)
@@ -2754,8 +2836,26 @@ function createDatasetId(type,file){
   return `${type||''}:${(file||'').toLowerCase()}`;
 }
 
+function getProductsSearchTermPromptOption(){
+  return {
+    id:createDatasetId('yearPrompt', PRODUCTS_SEARCH_TERM_LABEL),
+    type:'yearPrompt',
+    file:PRODUCTS_SEARCH_TERM_LABEL,
+    label:PRODUCTS_SEARCH_TERM_LABEL,
+    meta:'Workbook'
+  };
+}
+
+function isProductsSearchTermDataset(dataset){
+  const label=String(dataset?.label||'').trim().toLowerCase();
+  const file=String(dataset?.file||'').trim().toLowerCase();
+  return label.startsWith('products search term') || file.startsWith('products search term ');
+}
+
 function getBuiltinDatasetOptions(){
   const options=[];
+  const searchTermOption=getProductsSearchTermPromptOption();
+  if(searchTermOption) options.push(searchTermOption);
   if(Array.isArray(DEFAULT_WORKBOOKS)){
     DEFAULT_WORKBOOKS.forEach(file=>{
       const trimmed=typeof file==='string'?file.trim():'';
@@ -2827,7 +2927,7 @@ async function onEmptyDatasetOptionClick(event){
   const file=button.dataset.datasetFile||'';
   const label=button.dataset.datasetLabel || formatDatasetLabelFromFile(file);
   if(isDatasetMenuOpen()) closeDatasetMenu(false);
-  await handleDatasetSelection(type,file,label);
+  await handleDatasetSelection(type,file,label,button);
 }
 
 function ensureAsinSkuMap(){
@@ -3551,6 +3651,16 @@ function boot(){
   el.applyFiltersBtn.addEventListener('click', closeFiltersApply);
   el.clearAllBtn.addEventListener('click', clearAllFilters);
   if(el.resetFiltersBtn) el.resetFiltersBtn.addEventListener('click', resetFiltersAndApply);
+  if(el.searchTermYear?.close) el.searchTermYear.close.addEventListener('click', ()=>closeSearchTermYearModal());
+  if(el.searchTermYear?.options) el.searchTermYear.options.addEventListener('click', ev=>{
+    const button=ev.target.closest?.('[data-search-term-year]');
+    if(!button) return;
+    ev.preventDefault();
+    selectSearchTermYear(button.dataset.searchTermYear);
+  });
+  if(el.searchTermYear?.modal) el.searchTermYear.modal.addEventListener('click', ev=>{
+    if(ev.target===el.searchTermYear.modal) closeSearchTermYearModal();
+  });
   const monthControl=el.monthDD.querySelector('.dd-control');
   monthControl.addEventListener('click', ()=>{
     const wasOpen=el.monthDD.classList.contains('open');
@@ -3624,6 +3734,12 @@ function boot(){
 
   document.addEventListener('keydown', (ev)=>{
     if(ev.key==='Escape' || ev.key==='Esc'){
+      if(isSearchTermYearModalOpen()){
+        closeSearchTermYearModal();
+        ev.stopPropagation();
+        ev.preventDefault();
+        return;
+      }
       if(isDatasetMenuOpen()){
         if(closeDatasetMenu()){
           ev.stopPropagation();

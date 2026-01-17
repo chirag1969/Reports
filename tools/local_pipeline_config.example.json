@@ -2,11 +2,19 @@
   "commit_message": "Update preprocessed dashboard data",
   "workbooks": [
     {
-      "name": "products-search-term",
-      "excel_path": "C:/path/to/Products Search Term.xlsx",
+      "name": "products-search-term-2025",
+      "excel_path": "C:/path/to/Products Search Term 2025.xlsx",
       "sheet_name": "Sheet1",
-      "output_path": "preprocessed/Products Search Term.json",
-      "csv_output_path": "preprocessed/Products Search Term.csv",
+      "output_path": "preprocessed/Products Search Term 2025.json",
+      "csv_output_path": "preprocessed/Products Search Term 2025.csv",
+      "header_row_index": 1
+    },
+    {
+      "name": "products-search-term-2026",
+      "excel_path": "C:/path/to/Products Search Term 2026.xlsx",
+      "sheet_name": "Sheet1",
+      "output_path": "preprocessed/Products Search Term 2026.json",
+      "csv_output_path": "preprocessed/Products Search Term 2026.csv",
       "header_row_index": 1
     },
     {

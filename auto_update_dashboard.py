@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Continuously publish the Products Search Term worksheet for GitHub Pages."""
+"""Continuously publish the Products Search Term worksheets for GitHub Pages."""
 from __future__ import annotations
 
 import json
@@ -22,9 +22,7 @@ from watchdog.observers import Observer
 # Configurable settings
 # =====================
 REPO_ROOT = Path(__file__).resolve().parent
-EXCEL_PATH = REPO_ROOT / "Products Search Term.xlsx"
-SHEET_NAME = "Sheet 1"
-OUTPUT_PATH = REPO_ROOT / "preprocessed/Products Search Term.json"
+DEFAULT_SHEET_NAME = "Sheet 1"
 HEADER_ROW_INDEX = 1
 CONFIG_PATH = REPO_ROOT / "tools/local_pipeline_config.json"
 DEBOUNCE_SECONDS = 2.5
@@ -40,6 +38,22 @@ class WorkbookConfig:
     sheet_name: str
     output_path: Path
     header_row_index: int
+
+
+DEFAULT_WORKBOOK_CONFIGS = (
+    WorkbookConfig(
+        excel_path=REPO_ROOT / "Products Search Term 2025.xlsx",
+        sheet_name=DEFAULT_SHEET_NAME,
+        output_path=REPO_ROOT / "preprocessed/Products Search Term 2025.json",
+        header_row_index=HEADER_ROW_INDEX,
+    ),
+    WorkbookConfig(
+        excel_path=REPO_ROOT / "Products Search Term 2026.xlsx",
+        sheet_name=DEFAULT_SHEET_NAME,
+        output_path=REPO_ROOT / "preprocessed/Products Search Term 2026.json",
+        header_row_index=HEADER_ROW_INDEX,
+    ),
+)
 
 
 class DebouncedRunner:
@@ -83,23 +97,22 @@ class ExcelChangeHandler(FileSystemEventHandler):
             self.runner.trigger()
 
 
-def load_config_from_file(config_path: Path) -> Optional[WorkbookConfig]:
+def load_config_from_file(config_path: Path) -> list[WorkbookConfig]:
     if not config_path.exists():
-        return None
+        return []
     try:
         with config_path.open("r", encoding="utf-8") as fp:
             payload = json.load(fp)
     except json.JSONDecodeError:
         logging.warning("Config file is not valid JSON: %s", config_path)
-        return None
+        return []
     workbooks = payload.get("workbooks", [])
     if not isinstance(workbooks, list):
         logging.warning("Config file missing 'workbooks' list: %s", config_path)
-        return None
+        return []
+    configs: list[WorkbookConfig] = []
     for entry in workbooks:
-        sheet_name = str(entry.get("sheet_name", "")).strip()
-        if sheet_name.lower() != SHEET_NAME.lower():
-            continue
+        sheet_name = str(entry.get("sheet_name", DEFAULT_SHEET_NAME)).strip() or DEFAULT_SHEET_NAME
         excel_path_raw = str(entry.get("excel_path", "")).strip()
         output_path_raw = str(entry.get("output_path", "")).strip()
         header_row_index = int(entry.get("header_row_index", HEADER_ROW_INDEX))
@@ -109,25 +122,22 @@ def load_config_from_file(config_path: Path) -> Optional[WorkbookConfig]:
         output_path = Path(output_path_raw)
         if not output_path.is_absolute():
             output_path = REPO_ROOT / output_path
-        return WorkbookConfig(
-            excel_path=excel_path,
-            sheet_name=SHEET_NAME,
-            output_path=output_path,
-            header_row_index=header_row_index,
+        configs.append(
+            WorkbookConfig(
+                excel_path=excel_path,
+                sheet_name=sheet_name,
+                output_path=output_path,
+                header_row_index=header_row_index,
+            )
         )
-    return None
+    return configs
 
 
-def resolve_workbook_config() -> WorkbookConfig:
-    config = load_config_from_file(CONFIG_PATH)
-    if config is not None:
-        return config
-    return WorkbookConfig(
-        excel_path=EXCEL_PATH,
-        sheet_name=SHEET_NAME,
-        output_path=OUTPUT_PATH,
-        header_row_index=HEADER_ROW_INDEX,
-    )
+def resolve_workbook_configs() -> list[WorkbookConfig]:
+    configs = load_config_from_file(CONFIG_PATH)
+    if configs:
+        return configs
+    return list(DEFAULT_WORKBOOK_CONFIGS)
 
 
 def normalize_cell(value: object) -> object:
@@ -226,11 +236,13 @@ def write_json_output(config: WorkbookConfig, rows: Iterable[list[object]]) -> N
     logging.info("Wrote %s", config.output_path)
 
 
-def git_publish(output_path: Path) -> None:
-    rel_path = str(output_path)
-    subprocess.run(["git", "add", "--", rel_path], check=True)
+def git_publish(output_paths: Iterable[Path]) -> None:
+    rel_paths = [str(output_path) for output_path in output_paths]
+    if not rel_paths:
+        return
+    subprocess.run(["git", "add", "--", *rel_paths], check=True)
     status = subprocess.check_output(
-        ["git", "status", "--porcelain", "--", rel_path],
+        ["git", "status", "--porcelain", "--", *rel_paths],
         text=True,
     ).strip()
     if not status:
@@ -244,40 +256,51 @@ def git_publish(output_path: Path) -> None:
 
 
 def refresh_dashboard() -> None:
-    config = resolve_workbook_config()
-    try:
-        rows = read_worksheet(config)
-    except FileNotFoundError as exc:
-        logging.warning("%s", exc)
-        return
-    except ValueError as exc:
-        logging.warning("%s", exc)
-        return
+    configs = resolve_workbook_configs()
+    output_paths: list[Path] = []
+    for config in configs:
+        try:
+            rows = read_worksheet(config)
+        except FileNotFoundError as exc:
+            logging.warning("%s", exc)
+            continue
+        except ValueError as exc:
+            logging.warning("%s", exc)
+            continue
 
-    if not rows:
-        logging.warning("Sheet is empty")
-        return
+        if not rows:
+            logging.warning("Sheet is empty for %s", config.excel_path)
+            continue
 
-    write_json_output(config, rows)
+        write_json_output(config, rows)
+        output_paths.append(config.output_path)
+    if not output_paths:
+        return
     try:
-        git_publish(config.output_path)
+        git_publish(output_paths)
     except subprocess.CalledProcessError as exc:
         logging.error("Git publish failed: %s", exc)
 
 
-def watch_with_watchdog(config: WorkbookConfig) -> Observer:
+def watch_with_watchdog(configs: Iterable[WorkbookConfig]) -> Observer:
     runner = DebouncedRunner(DEBOUNCE_SECONDS, refresh_dashboard)
-    handler = ExcelChangeHandler({config.excel_path, CONFIG_PATH}, runner)
+    watch_paths = {CONFIG_PATH}
+    watch_dirs = {CONFIG_PATH.parent}
+    for config in configs:
+        watch_paths.add(config.excel_path)
+        watch_dirs.add(config.excel_path.parent)
+    handler = ExcelChangeHandler(watch_paths, runner)
     observer = Observer()
-    watch_dirs = {config.excel_path.parent, CONFIG_PATH.parent}
     for watch_dir in watch_dirs:
         observer.schedule(handler, str(watch_dir), recursive=False)
     observer.start()
     return observer
 
 
-def poll_for_changes(config: WorkbookConfig) -> None:
-    watch_paths = {config.excel_path, CONFIG_PATH}
+def poll_for_changes(configs: Iterable[WorkbookConfig]) -> None:
+    watch_paths = {CONFIG_PATH}
+    for config in configs:
+        watch_paths.add(config.excel_path)
     mtimes: dict[Path, float] = {}
     for path in watch_paths:
         if path.exists():
@@ -301,15 +324,19 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
-    config = resolve_workbook_config()
-    logging.info("Watching %s", config.excel_path)
+    configs = resolve_workbook_configs()
+    if configs:
+        watched = ", ".join(str(config.excel_path) for config in configs)
+        logging.info("Watching %s", watched)
+    else:
+        logging.info("No workbooks configured to watch.")
     refresh_dashboard()
 
     try:
-        observer = watch_with_watchdog(config)
+        observer = watch_with_watchdog(configs)
     except Exception as exc:
         logging.warning("watchdog unavailable (%s); falling back to polling", exc)
-        poll_for_changes(config)
+        poll_for_changes(configs)
         return
 
     last_config_mtime = CONFIG_PATH.stat().st_mtime if CONFIG_PATH.exists() else 0.0
@@ -323,8 +350,8 @@ def main() -> None:
                     logging.info("Config updated; reloading watch paths.")
                     observer.stop()
                     observer.join()
-                    config = resolve_workbook_config()
-                    observer = watch_with_watchdog(config)
+                    configs = resolve_workbook_configs()
+                    observer = watch_with_watchdog(configs)
     except KeyboardInterrupt:
         logging.info("Stopping watcher.")
     finally:
