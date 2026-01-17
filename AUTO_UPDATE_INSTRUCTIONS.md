@@ -24,10 +24,11 @@ cp tools/local_pipeline_config.example.json tools/local_pipeline_config.json
 Open `tools/local_pipeline_config.json` and update the `excel_path` for each
 workbook. **Do not change** the `output_path` values; they must stay:
 
-- `preprocessed/Products Search Term.json`
+- `preprocessed/Products Search Term 2025.json`
+- `preprocessed/Products Search Term 2026.json`
 - `preprocessed/Products Campaign.json`
 
-Make sure the sheet names match exactly (e.g., `"Products Search Term"`).
+Make sure the sheet names match exactly for each workbook (e.g., `"Sheet1"`).
 
 ## 3) Run once to verify
 
