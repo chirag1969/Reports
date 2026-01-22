@@ -9,6 +9,12 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.9.0/sql-wasm.js"></script>
+<script src="auth.js"></script>
+<script>
+  if (window.advtAuth) {
+    window.advtAuth.requireAuth();
+  }
+</script>
 
 <style>
 :root{
@@ -462,6 +468,7 @@ body.has-data #tipPill{display:none !important}
     <input id="fileInput" type="file" accept=".xlsx,.xls" hidden />
     <button id="downloadCsvBtn" class="btn-primary btn-success" disabled>Download CSV</button>
     <button id="themeBtn" class="btn-mode" title="Toggle dark/light" aria-label="Toggle theme"><span class="icon">🌙</span></button>
+    <button id="logoutBtn" class="btn-outline">Logout</button>
   </div>
 </header>
 
@@ -852,6 +859,11 @@ body.has-data #tipPill{display:none !important}
 
 <script>
 'use strict';
+
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn && window.advtAuth) {
+  logoutBtn.addEventListener('click', () => window.advtAuth.logout());
+}
 
 let sqlLibPromise=null;
 let sqlReadyPromise=null;
