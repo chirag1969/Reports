@@ -857,6 +857,23 @@ body.has-data #tipPill{display:none !important}
   </div>
 </div>
 
+<!-- SKU Wise Ad Spend Year Modal -->
+<div id="skuYearSelectModal" class="modal" aria-hidden="true" role="dialog" aria-label="Select SKU Wise Ad Spend year">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>SKU WISE AD SPEND</h3>
+      <button id="closeSkuYearSelect" class="btn-outline" title="Close">✕</button>
+    </div>
+    <div class="year-modal-body">
+      <p class="year-modal-text">Select the year to load the SKU WISE AD SPEND dashboard.</p>
+      <div id="skuYearSelectOptions" class="year-modal-options">
+        <button type="button" class="year-option" data-sku-ad-spend-year="2025">2025</button>
+        <button type="button" class="year-option" data-sku-ad-spend-year="2026">2026</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -2367,6 +2384,11 @@ const el={
     close:document.getElementById('closeYearSelect'),
     options:document.getElementById('yearSelectOptions')
   },
+  skuAdSpendYear:{
+    modal:document.getElementById('skuYearSelectModal'),
+    close:document.getElementById('closeSkuYearSelect'),
+    options:document.getElementById('skuYearSelectOptions')
+  },
   themeBtn:document.getElementById('themeBtn'),
   empty:document.getElementById('emptyState'),
   emptyDatasetOptions:document.getElementById('emptyDatasetOptions'),
@@ -2425,6 +2447,7 @@ const state={
   activePivotModal:null,
   filtersReturn:null,
   yearPromptReturn:null,
+  skuYearPromptReturn:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0},
   dataset:{type:'',file:'',label:''},
   datasetUi:{showPivot:true, showTabs:true}
@@ -2550,12 +2573,20 @@ function updateTabButtonsForOrder(order){
 function updateDatasetMenuActive(){
   const dataset=state.dataset||{type:'',file:'',label:''};
   const menu=el.datasetMenu||{};
+  const promptMatchers={
+    yearPromptSearchTerm:isProductsSearchTermDataset,
+    yearPromptSkuAdSpend:isSkuWiseAdSpendDataset
+  };
+  const isPromptActive=(type)=>{
+    const matcher=promptMatchers[type];
+    return matcher?matcher(dataset):false;
+  };
   if(menu.list){
     menu.list.querySelectorAll('[data-dataset-id]').forEach(item=>{
       const type=item.dataset.datasetType||'';
       const file=item.dataset.datasetFile||'';
-      const isActive=type==='yearPrompt'
-        ? isProductsSearchTermDataset(dataset)
+      const isActive=promptMatchers[type]
+        ? isPromptActive(type)
         : (!!dataset.file && dataset.type===type && dataset.file===file);
       item.classList.toggle('is-active', isActive);
       item.setAttribute('aria-checked', isActive?'true':'false');
@@ -2565,8 +2596,8 @@ function updateDatasetMenuActive(){
     el.emptyDatasetOptions.querySelectorAll('[data-dataset-id]').forEach(button=>{
       const type=button.dataset.datasetType||'';
       const file=button.dataset.datasetFile||'';
-      const isActive=type==='yearPrompt'
-        ? isProductsSearchTermDataset(dataset)
+      const isActive=promptMatchers[type]
+        ? isPromptActive(type)
         : (!!dataset.file && dataset.type===type && dataset.file===file);
       button.classList.toggle('is-active', isActive);
       button.setAttribute('aria-pressed', isActive?'true':'false');
@@ -2662,13 +2693,57 @@ async function selectSearchTermYear(year){
   await handleDatasetSelection('workbook', match.file, match.label);
 }
 
+function isSkuAdSpendYearModalOpen(){
+  const modal=el.skuAdSpendYear?.modal;
+  return !!(modal && modal.classList.contains('open'));
+}
+
+function openSkuAdSpendYearModal(triggerEl){
+  const modal=el.skuAdSpendYear?.modal;
+  if(!modal || isSkuAdSpendYearModalOpen()) return;
+  state.skuYearPromptReturn=triggerEl || document.activeElement;
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+  const firstOption=modal.querySelector('[data-sku-ad-spend-year]');
+  if(firstOption){
+    requestAnimationFrame(()=>{ try{ firstOption.focus({preventScroll:true}); }catch(_){ } });
+  }
+}
+
+function closeSkuAdSpendYearModal(options={restoreFocus:true}){
+  const modal=el.skuAdSpendYear?.modal;
+  if(!modal || !isSkuAdSpendYearModalOpen()) return;
+  modal.classList.remove('open');
+  modal.setAttribute('aria-hidden','true');
+  if(options.restoreFocus){
+    const target=state.skuYearPromptReturn;
+    state.skuYearPromptReturn=null;
+    if(target && typeof target.focus==='function'){
+      requestAnimationFrame(()=>{ try{ target.focus({preventScroll:true}); }catch(_){ } });
+    }
+  }else{
+    state.skuYearPromptReturn=null;
+  }
+}
+
+async function selectSkuAdSpendYear(year){
+  const match=SKU_WISE_AD_SPEND_YEARS.find(option=>option.year===String(year));
+  if(!match) return;
+  closeSkuAdSpendYearModal({restoreFocus:false});
+  await handleDatasetSelection('workbook', match.file, match.label);
+}
+
 async function handleDatasetSelection(type,file,label,triggerEl){
   const datasetType=type||'';
   const datasetFile=file||'';
   const datasetLabel=label || formatDatasetLabelFromFile(datasetFile);
   if(!datasetType || !datasetFile) return;
-  if(datasetType==='yearPrompt'){
+  if(datasetType==='yearPromptSearchTerm'){
     openSearchTermYearModal(triggerEl);
+    return;
+  }
+  if(datasetType==='yearPromptSkuAdSpend'){
+    openSkuAdSpendYearModal(triggerEl);
     return;
   }
   try{
@@ -2811,6 +2886,11 @@ const PRODUCTS_SEARCH_TERM_YEARS=[
   {year:'2025', file:'Products Search Term 2025.xlsx', label:'Products Search Term 2025'},
   {year:'2026', file:'Products Search Term 2026.xlsx', label:'Products Search Term 2026'}
 ];
+const SKU_WISE_AD_SPEND_LABEL='SKU WISE AD SPEND';
+const SKU_WISE_AD_SPEND_YEARS=[
+  {year:'2025', file:'SKU WISE AD SPEND 2025.xlsx', label:'SKU WISE AD SPEND 2025'},
+  {year:'2026', file:'SKU WISE AD SPEND 2026.xlsx', label:'SKU WISE AD SPEND 2026'}
+];
 const DEFAULT_WORKBOOKS=[
   'Products Campaign.xlsx',
   'Brands Campaign.xlsx',
@@ -2850,10 +2930,20 @@ function createDatasetId(type,file){
 
 function getProductsSearchTermPromptOption(){
   return {
-    id:createDatasetId('yearPrompt', PRODUCTS_SEARCH_TERM_LABEL),
-    type:'yearPrompt',
+    id:createDatasetId('yearPromptSearchTerm', PRODUCTS_SEARCH_TERM_LABEL),
+    type:'yearPromptSearchTerm',
     file:PRODUCTS_SEARCH_TERM_LABEL,
     label:PRODUCTS_SEARCH_TERM_LABEL,
+    meta:'Workbook'
+  };
+}
+
+function getSkuWiseAdSpendPromptOption(){
+  return {
+    id:createDatasetId('yearPromptSkuAdSpend', SKU_WISE_AD_SPEND_LABEL),
+    type:'yearPromptSkuAdSpend',
+    file:SKU_WISE_AD_SPEND_LABEL,
+    label:SKU_WISE_AD_SPEND_LABEL,
     meta:'Workbook'
   };
 }
@@ -2864,10 +2954,18 @@ function isProductsSearchTermDataset(dataset){
   return label.startsWith('products search term') || file.startsWith('products search term ');
 }
 
+function isSkuWiseAdSpendDataset(dataset){
+  const label=String(dataset?.label||'').trim().toLowerCase();
+  const file=String(dataset?.file||'').trim().toLowerCase();
+  return label.startsWith('sku wise ad spend') || file.startsWith('sku wise ad spend ');
+}
+
 function getBuiltinDatasetOptions(){
   const options=[];
   const searchTermOption=getProductsSearchTermPromptOption();
   if(searchTermOption) options.push(searchTermOption);
+  const skuAdSpendOption=getSkuWiseAdSpendPromptOption();
+  if(skuAdSpendOption) options.push(skuAdSpendOption);
   if(Array.isArray(DEFAULT_WORKBOOKS)){
     DEFAULT_WORKBOOKS.forEach(file=>{
       const trimmed=typeof file==='string'?file.trim():'';
@@ -3673,6 +3771,16 @@ function boot(){
   if(el.searchTermYear?.modal) el.searchTermYear.modal.addEventListener('click', ev=>{
     if(ev.target===el.searchTermYear.modal) closeSearchTermYearModal();
   });
+  if(el.skuAdSpendYear?.close) el.skuAdSpendYear.close.addEventListener('click', ()=>closeSkuAdSpendYearModal());
+  if(el.skuAdSpendYear?.options) el.skuAdSpendYear.options.addEventListener('click', ev=>{
+    const button=ev.target.closest?.('[data-sku-ad-spend-year]');
+    if(!button) return;
+    ev.preventDefault();
+    selectSkuAdSpendYear(button.dataset.skuAdSpendYear);
+  });
+  if(el.skuAdSpendYear?.modal) el.skuAdSpendYear.modal.addEventListener('click', ev=>{
+    if(ev.target===el.skuAdSpendYear.modal) closeSkuAdSpendYearModal();
+  });
   const monthControl=el.monthDD.querySelector('.dd-control');
   monthControl.addEventListener('click', ()=>{
     const wasOpen=el.monthDD.classList.contains('open');
@@ -3748,6 +3856,12 @@ function boot(){
     if(ev.key==='Escape' || ev.key==='Esc'){
       if(isSearchTermYearModalOpen()){
         closeSearchTermYearModal();
+        ev.stopPropagation();
+        ev.preventDefault();
+        return;
+      }
+      if(isSkuAdSpendYearModalOpen()){
+        closeSkuAdSpendYearModal();
         ev.stopPropagation();
         ev.preventDefault();
         return;
