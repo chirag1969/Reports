@@ -861,7 +861,7 @@ body.has-data #tipPill{display:none !important}
 <div id="skuYearSelectModal" class="modal" aria-hidden="true" role="dialog" aria-label="Select SKU Wise Ad Spend year">
   <div class="modal-card">
     <div class="modal-head">
-      <h3>SKU WISE AD SPEND</h3>
+      <h3>Select Year</h3>
       <button id="closeSkuYearSelect" class="btn-outline" title="Close">✕</button>
     </div>
     <div class="year-modal-body">
@@ -2448,6 +2448,7 @@ const state={
   filtersReturn:null,
   yearPromptReturn:null,
   skuYearPromptReturn:null,
+  selectedYear:null,
   sql:{db:null, table:'', columns:[], columnMap:new Map(), rowCount:0},
   dataset:{type:'',file:'',label:''},
   datasetUi:{showPivot:true, showTabs:true}
@@ -2729,8 +2730,15 @@ function closeSkuAdSpendYearModal(options={restoreFocus:true}){
 async function selectSkuAdSpendYear(year){
   const match=SKU_WISE_AD_SPEND_YEARS.find(option=>option.year===String(year));
   if(!match) return;
+  state.selectedYear=match.year;
   closeSkuAdSpendYearModal({restoreFocus:false});
   await handleDatasetSelection('workbook', match.file, match.label);
+}
+
+function getSkuWiseAdSpendYearOption(file,label){
+  const fileName=String(file||'').trim();
+  const labelName=String(label||'').trim();
+  return SKU_WISE_AD_SPEND_YEARS.find(option=>option.file===fileName || option.label===labelName);
 }
 
 async function handleDatasetSelection(type,file,label,triggerEl){
@@ -2745,6 +2753,13 @@ async function handleDatasetSelection(type,file,label,triggerEl){
   if(datasetType==='yearPromptSkuAdSpend'){
     openSkuAdSpendYearModal(triggerEl);
     return;
+  }
+  const skuYearOption=getSkuWiseAdSpendYearOption(datasetFile,datasetLabel);
+  if(skuYearOption){
+    if(state.selectedYear===null || String(state.selectedYear)!==String(skuYearOption.year)){
+      openSkuAdSpendYearModal(triggerEl);
+      return;
+    }
   }
   try{
     showLoading(true);
